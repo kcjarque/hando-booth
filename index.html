@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Hando Booth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:   #c8831c;
+      --amber:    #e09b35;
+      --cream:    #fdf6ee;
+      --bg:       #fdf6ee;
+      --surface:  #fff8f0;
+      --surface2: #ffefd8;
+      --border:   #e8d5b4;
+      --text:     #2e1e08;
+      --muted:    #9a7d55;
+      --shadow:   rgba(180,120,40,0.10);
+      --font-brand: 'Fredoka', 'Trebuchet MS', system-ui, sans-serif;
+      --font-ui:    system-ui, -apple-system, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── SCREENS ───────────────────────────────────── */
+    .screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      flex-direction: column;
+      align-items: center;
+    }
+    .screen.active { display: flex; }
+
+    /* ── SHARED HELPERS ────────────────────────────── */
+    .section-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .spin-ring {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-ghost {
+      flex: 1;
+      padding: 18px;
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: var(--font-ui);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-ghost:active { background: var(--surface2); transform: scale(0.97); }
+
+    .btn-warm {
+      flex: 1;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--orange), var(--amber));
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: var(--font-ui);
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-warm:active { opacity: 0.85; transform: scale(0.97); }
+
+    /* ── HOME ──────────────────────────────────────── */
+    #home {
+      justify-content: center;
+      align-items: center;
+      gap: clamp(18px, 3.5vh, 30px);
+      padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: radial-gradient(ellipse at 60% 10%, #fce8c8 0%, var(--bg) 65%);
+    }
+
+    /* Logo */
+    .logo-wrap { text-align: center; line-height: 1; }
+    .logo-hando {
+      display: block;
+      font-family: var(--font-brand);
+      font-weight: 700;
+      font-size: clamp(3.4rem, 13vw, 5rem);
+      color: var(--orange);
+      letter-spacing: -0.01em;
+    }
+    .logo-booth {
+      display: block;
+      font-family: var(--font-brand);
+      font-weight: 700;
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      color: var(--text);
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      margin-top: -4px;
+    }
+    .logo-sub {
+      display: block;
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* Layout picker */
+    .layout-grid {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .layout-card {
+      flex: 1;
+      background: #fff;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 10px 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 2px 8px var(--shadow);
+      transition: border-color 0.2s, background 0.2s, transform 0.1s, box-shadow 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .layout-card:active { transform: scale(0.96); }
+    .layout-card.selected {
+      border-color: var(--orange);
+      background: #fff8ef;
+      box-shadow: 0 2px 16px rgba(200,131,28,0.2);
+    }
+
+    .icon-single, .icon-strip, .icon-quad { display: flex; flex-direction: column; gap: 3px; }
+    .icon-row { display: flex; gap: 3px; }
+    .icon-cell {
+      background: var(--border);
+      border-radius: 3px;
+      transition: background 0.2s;
+    }
+    .layout-card.selected .icon-cell { background: var(--orange); }
+
+    .layout-label { font-size: 0.82rem; font-weight: 700; color: var(--text); font-family: var(--font-brand); font-size: 1rem; }
+    .layout-count { font-size: 0.68rem; color: var(--muted); }
+
+    .start-btn {
+      width: 100%;
+      max-width: 380px;
+      padding: 22px;
+      background: linear-gradient(135deg, var(--orange) 0%, var(--amber) 100%);
+      border: none;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-family: var(--font-brand);
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      box-shadow: 0 4px 24px rgba(200,131,28,0.35);
+      transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .start-btn:active { opacity: 0.88; transform: scale(0.98); box-shadow: 0 2px 12px rgba(200,131,28,0.25); }
+
+    /* ── CAMERA ────────────────────────────────────── */
+    #camera { background: #000; }
+
+    #video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .cam-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px 20px 36px;
+    }
+
+    .cam-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .icon-btn {
+      width: 50px; height: 50px;
+      background: rgba(16,13,8,0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(242,228,204,0.15);
+      border-radius: 50%;
+      color: var(--cream);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+    }
+    .icon-btn:active { background: rgba(200,131,28,0.35); }
+
+    #thumb-strip { display: flex; gap: 6px; align-items: center; }
+
+    .thumb {
+      width: 38px; height: 38px;
+      border-radius: 6px;
+      background: rgba(16,13,8,0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 2px solid rgba(242,228,204,0.2);
+      overflow: hidden;
+      transition: border-color 0.25s;
+      flex-shrink: 0;
+    }
+    .thumb.done { border-color: var(--orange); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .cam-bottom { display: flex; justify-content: center; align-items: center; }
+
+    .shutter {
+      width: 82px; height: 82px;
+      border-radius: 50%;
+      background: rgba(242,228,204,0.92);
+      border: 4px solid rgba(242,228,204,0.4);
+      box-shadow: 0 0 0 6px rgba(200,131,28,0.2);
+      cursor: pointer;
+      transition: transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    .shutter::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .shutter:active { transform: scale(0.91); }
+    .shutter:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── COUNTDOWN ─────────────────────────────────── */
+    #countdown {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    #countdown.show { display: flex; }
+
+    #cd-num {
+      font-size: clamp(8rem, 28vw, 12rem);
+      font-weight: 700;
+      font-family: var(--font-brand);
+      line-height: 1;
+      color: var(--cream);
+      text-shadow: 0 0 80px rgba(200,131,28,0.8), 0 0 20px rgba(200,131,28,0.4);
+      animation: cdPop 1s cubic-bezier(0.22,1,0.36,1) forwards;
+    }
+    #cd-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.25em;
+      color: rgba(242,228,204,0.7);
+      font-weight: 600;
+    }
+    @keyframes cdPop {
+      0%   { transform: scale(1.6); opacity: 0; }
+      25%  { transform: scale(1);   opacity: 1; }
+      75%  { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(0.75); opacity: 0; }
+    }
+
+    /* ── FLASH ─────────────────────────────────────── */
+    #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+    #flash.pop { animation: flashAnim 0.35s ease-out forwards; }
+    @keyframes flashAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+    /* ── PREVIEW + GIF shared ──────────────────────── */
+    .warm-screen {
+      justify-content: flex-start;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: clamp(36px, 6vh, 52px) 20px max(clamp(36px,6vh,52px), env(safe-area-inset-bottom));
+      gap: 18px;
+      background: radial-gradient(ellipse at 60% 5%, #fce8c8 0%, var(--bg) 55%);
+    }
+
+    .screen-top {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      max-width: 380px;
+      flex-shrink: 0;
+    }
+    .home-btn {
+      width: 40px; height: 40px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 50%;
+      color: var(--muted);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 1px 4px var(--shadow);
+    }
+    .home-btn:active { background: var(--surface2); color: var(--text); }
+
+    .screen-head { text-align: center; flex: 1; }
+    .screen-head h2 {
+      font-family: var(--font-brand);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .screen-head p { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+    /* Composite / export preview panel */
+    .img-panel {
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      max-height: 42vh;
+      min-height: 100px;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1.5px solid var(--border);
+      box-shadow: 0 4px 20px var(--shadow);
+    }
+    .img-panel .panel-img { max-height: 42vh; object-fit: contain; }
+    .panel-img {
+      width: 100%;
+      display: block;
+      border-radius: 14px;
+      transition: opacity 0.2s;
+    }
+    .panel-spinner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .panel-spinner.hidden { display: none; }
+
+    /* Section blocks */
+    .prev-section { width: 100%; max-width: 380px; flex-shrink: 0; }
+
+    /* Filter pills */
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .pill-row::-webkit-scrollbar { display: none; }
+
+    .fpill {
+      flex-shrink: 0;
+      padding: 8px 18px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fpill:active { transform: scale(0.94); }
+    .fpill.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+    /* Overlay section */
+    .ov-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .ov-add-btn {
+      padding: 6px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      color: var(--text);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ov-add-btn:active { background: var(--surface2); }
+    .ov-add-btn.open { border-color: var(--orange); color: var(--orange); background: #fff8ef; }
+
+    .upload-panel {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 16px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .upload-panel.open { display: flex; }
+
+    .text-input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.88rem;
+      font-family: var(--font-ui);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .text-input:focus { border-color: var(--amber); }
+    .text-input::placeholder { color: var(--muted); }
+
+    .file-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--surface2);
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      color: var(--orange);
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .file-btn:hover { border-color: var(--orange); background: #fef3e2; }
+    .file-btn input { display: none; }
+
+    .ov-gallery {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+      min-height: 90px;
+      align-items: flex-start;
+    }
+    .ov-gallery::-webkit-scrollbar { display: none; }
+
+    .ov-empty { font-size: 0.75rem; color: var(--muted); font-style: italic; align-self: center; }
+
+    .ov-item {
+      flex-shrink: 0;
+      position: relative;
+      width: 76px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ov-item-thumb {
+      width: 76px; height: 76px;
+      object-fit: contain;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: #fff;
+      display: block;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .ov-item.selected .ov-item-thumb {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 2px rgba(200,131,28,0.3);
+    }
+    .ov-item-label {
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ov-del {
+      position: absolute;
+      top: -6px; right: -6px;
+      width: 20px; height: 20px;
+      background: #c0392b;
+      border: 2px solid var(--bg);
+      border-radius: 50%;
+      color: #fff;
+      font-size: 0.8rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ov-stock-badge {
+      position: absolute;
+      top: 3px; left: 3px;
+      background: rgba(200,131,28,0.2);
+      border: 1px solid rgba(200,131,28,0.4);
+      border-radius: 4px;
+      font-size: 0.48rem;
+      color: var(--amber);
+      padding: 1px 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      pointer-events: none;
+    }
+    .ov-none-thumb {
+      width: 76px; height: 76px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: repeating-linear-gradient(
+        45deg, #f5ede0 0px, #f5ede0 4px, #e8d5b4 4px, #e8d5b4 8px
+      );
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .ov-item.selected .ov-none-thumb {
+      border-color: var(--orange);
+      box-shadow: 0 0 0 2px rgba(200,131,28,0.3);
+    }
+
+    /* Admin overlay management */
+    .admin-ov-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-ov-row:last-child { border-bottom: none; }
+    .ov-layout-badge {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 100px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    /* Toggle switch */
+    .ov-toggle {
+      position: relative;
+      width: 38px; height: 22px;
+      flex-shrink: 0;
+    }
+    .ov-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .ov-toggle-track {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 100px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .ov-toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .ov-toggle input:checked + .ov-toggle-track { background: var(--orange); }
+    .ov-toggle input:checked + .ov-toggle-track::after { transform: translateX(16px); }
+
+    /* Action row */
+    .action-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 380px;
+      flex-shrink: 0;
+    }
+
+    /* ── GIF SCREEN extras ─────────────────────────── */
+    .mode-toggle {
+      display: flex;
+      width: 100%;
+      max-width: 380px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 5px;
+      gap: 4px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 11px 16px;
+      border: none;
+      border-radius: 100px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      font-family: var(--font-ui);
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--muted);
+      background: transparent;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, var(--orange), var(--amber));
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(200,131,28,0.3);
+    }
+
+    .delay-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 380px;
+    }
+    .delay-btn {
+      flex: 1;
+      padding: 14px 8px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-family: var(--font-ui);
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.4;
+      box-shadow: 0 1px 4px var(--shadow);
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .delay-btn small { display: block; font-size: 0.62rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
+    .delay-btn.active { border-color: var(--orange); color: var(--orange); background: #fff8ef; }
+    .delay-btn.active small { color: rgba(200,131,28,0.7); }
+    .delay-btn:active { transform: scale(0.96); }
+
+    canvas { display: none; }
+
+    /* ── INTAKE MODAL ──────────────────────────────── */
+    /* ── MODAL — always a centered popup ──────────────── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(46,30,8,0.5);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-sheet {
+      background: var(--surface);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      max-height: 90svh;
+      overflow: hidden;
+      min-width: 0;
+      box-shadow: 0 8px 48px rgba(46,30,8,0.22);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px 22px 0;
+      flex-shrink: 0;
+    }
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 22px 0;
+    }
+    .modal-footer {
+      flex-shrink: 0;
+      padding: 14px 22px max(18px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .field-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .req { color: var(--orange); }
+    .field-err {
+      font-size: 0.74rem;
+      color: #c0392b;
+      min-height: 1em;
+    }
+    .text-input.invalid { border-color: #c0392b; }
+
+    /* ── THANK YOU ─────────────────────────────────── */
+    #thankyou .img-panel { max-width: 280px; }
+    /* qrcode.js renders both a canvas and a hidden img — do NOT force display on both */
+    #qr-container canvas { border-radius: 4px; }
+
+    /* ── SCREEN TRANSITIONS ────────────────────────── */
+    .screen.active { animation: screenIn 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+    @keyframes screenIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── RETAKE STRIP ──────────────────────────────── */
+    .retake-strip {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 380px;
+      flex-shrink: 0;
+    }
+    .retake-thumb {
+      position: relative;
+      flex: 1;
+      aspect-ratio: 4/3;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .retake-thumb:active { transform: scale(0.93); }
+    .retake-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .retake-badge {
+      position: absolute;
+      inset: 0;
+      background: rgba(200,131,28,0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .retake-thumb:hover .retake-badge { background: rgba(200,131,28,0.28); }
+    .retake-icon-wrap {
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,0.92);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.6);
+      transition: opacity 0.15s, transform 0.15s;
+      color: var(--orange);
+    }
+    .retake-thumb:hover .retake-icon-wrap { opacity: 1; transform: scale(1); }
+
+    /* ── ADMIN MODAL ───────────────────────────────── */
+    .admin-ov-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .admin-ov-row:last-child { border-bottom: none; }
+
+    /* ── PRINT ─────────────────────────────────────── */
+    #print-target {
+      display: none;
+    }
+    @media print {
+      body > *                    { display: none !important; }
+      #print-target               { display: flex !important; position: fixed; inset: 0;
+                                    align-items: center; justify-content: center; background: #fff; }
+      #print-target img           { max-width: 100%; max-height: 100%; object-fit: contain; }
+    }
+
+    /* ── TABLET / KIOSK POLISH ─────────────────────── */
+    @media (min-width: 600px) {
+      .logo-hando  { font-size: clamp(4rem, 10vw, 6rem); }
+      .logo-booth  { font-size: clamp(1.4rem, 3.5vw, 2rem); }
+      .warm-screen { padding-left: 36px; padding-right: 36px; gap: 22px; }
+      .screen-top, .img-panel, .prev-section, .action-row,
+      .mode-toggle, .delay-row, .retake-strip { max-width: 520px; }
+      .layout-grid  { max-width: 480px; }
+      .start-btn    { max-width: 480px; font-size: 1.15rem; padding: 24px; }
+      .screen-head h2 { font-size: 2rem; }
+      .fpill        { padding: 10px 22px; font-size: 0.85rem; }
+      .btn-warm, .btn-ghost { padding: 20px; font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════ HOME ════════════ -->
+<div id="home" class="screen active">
+  <div class="logo-wrap" onclick="handleLogoTap()" style="-webkit-tap-highlight-color:transparent;cursor:default;user-select:none">
+    <span class="logo-hando">Hando</span>
+    <span class="logo-booth">Booth</span>
+    <span class="logo-sub">Strike a pose</span>
+  </div>
+
+  <div style="width:100%;max-width:380px">
+    <p class="section-label">Choose your layout</p>
+    <div class="layout-grid">
+
+      <div class="layout-card selected" data-layout="single" onclick="selectLayout(this,'single')">
+        <div class="icon-single">
+          <div class="icon-cell" style="width:44px;height:34px"></div>
+        </div>
+        <div class="layout-label">Single</div>
+        <div class="layout-count">1 photo</div>
+      </div>
+
+      <div class="layout-card" data-layout="strip" onclick="selectLayout(this,'strip')">
+        <div class="icon-strip">
+          <div class="icon-cell" style="width:44px;height:18px"></div>
+          <div class="icon-cell" style="width:44px;height:18px"></div>
+          <div class="icon-cell" style="width:44px;height:18px"></div>
+        </div>
+        <div class="layout-label">Strip</div>
+        <div class="layout-count">3 photos</div>
+      </div>
+
+      <div class="layout-card" data-layout="quad" onclick="selectLayout(this,'quad')">
+        <div class="icon-quad">
+          <div class="icon-row">
+            <div class="icon-cell" style="width:20px;height:20px"></div>
+            <div class="icon-cell" style="width:20px;height:20px"></div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-cell" style="width:20px;height:20px"></div>
+            <div class="icon-cell" style="width:20px;height:20px"></div>
+          </div>
+        </div>
+        <div class="layout-label">Quad</div>
+        <div class="layout-count">4 photos</div>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="start-btn" onclick="startBooth()">&#x25B6;&ensp;Start Session</button>
+
+  <!-- Admin button — password protected -->
+  <button onclick="openAdminModal()" aria-label="Admin" style="position:absolute;bottom:max(20px,env(safe-area-inset-bottom));right:20px;width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent;z-index:10">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</div>
+
+<!-- ════════════ CAMERA ════════════ -->
+<div id="camera" class="screen">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <div class="cam-overlay">
+    <div class="cam-top">
+      <button class="icon-btn" onclick="goHome()" aria-label="Close">✕</button>
+      <div id="thumb-strip"></div>
+      <button class="icon-btn" onclick="flipCamera()" aria-label="Flip camera">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
+          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
+        </svg>
+      </button>
+    </div>
+    <div class="cam-bottom">
+      <button class="shutter" id="shutter" onclick="startCapture()" aria-label="Take photo"></button>
+    </div>
+  </div>
+
+  <div id="countdown">
+    <div id="cd-num">3</div>
+    <div id="cd-label">Get ready!</div>
+  </div>
+  <div id="flash"></div>
+</div>
+
+<!-- ════════════ PREVIEW ════════════ -->
+<div id="preview" class="screen warm-screen">
+
+  <div class="screen-top">
+    <button class="home-btn" onclick="goHome()" aria-label="Back to home">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
+    <div class="screen-head">
+      <h2>Looking good!</h2>
+      <p>Pick a filter and frame</p>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+
+  <div class="img-panel">
+    <img id="composite-img" class="panel-img" alt="Your photobooth composite">
+    <div id="composite-spinner" class="panel-spinner">
+      <span class="spin-ring"></span>Rendering…
+    </div>
+  </div>
+
+  <!-- Individual photo retake strip (hidden for single layout) -->
+  <div id="retake-strip" class="retake-strip" style="display:none"></div>
+
+  <!-- Filters -->
+  <div class="prev-section">
+    <p class="section-label">Filter</p>
+    <div class="pill-row">
+      <button class="fpill active" data-f="none"  onclick="setFilter('none')">None</button>
+      <button class="fpill"        data-f="bw"    onclick="setFilter('bw')">B&amp;W</button>
+      <button class="fpill"        data-f="sepia" onclick="setFilter('sepia')">Sepia</button>
+      <button class="fpill"        data-f="warm"  onclick="setFilter('warm')">Warm</button>
+      <button class="fpill"        data-f="cool"  onclick="setFilter('cool')">Cool</button>
+    </div>
+  </div>
+
+  <!-- Overlay gallery -->
+  <div class="prev-section">
+    <p class="section-label">Frame Overlay</p>
+    <div id="ov-gallery" class="ov-gallery"></div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn-ghost" onclick="retake()">↩ Retake All</button>
+    <button class="btn-warm"  onclick="continueFlow()">Continue ›</button>
+  </div>
+
+</div>
+
+<!-- ════════════ GIF / EXPORT ════════════ -->
+<div id="gif-screen" class="screen warm-screen">
+
+  <div class="screen-top">
+    <button class="home-btn" onclick="goHome()" aria-label="Back to home">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
+    <div class="screen-head">
+      <h2>Save your moment</h2>
+      <p>Choose photo or animated GIF</p>
+    </div>
+    <button class="home-btn" onclick="printPhoto()" aria-label="Print" title="Print photo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    </button>
+  </div>
+
+  <!-- Mode toggle -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="mode-photo" onclick="setExportMode('photo')">📷&ensp;Photo</button>
+    <button class="mode-btn"        id="mode-gif"   onclick="setExportMode('gif')">🎞&ensp;GIF</button>
+  </div>
+
+  <!-- Export preview -->
+  <div class="img-panel" id="export-panel">
+    <img id="export-img" class="panel-img" alt="Export preview">
+    <div id="export-spinner" class="panel-spinner hidden">
+      <span class="spin-ring"></span>
+      <span id="export-spinner-label">Generating GIF…</span>
+    </div>
+  </div>
+
+  <!-- GIF controls (only shown in GIF mode) -->
+  <div class="prev-section" id="gif-controls" style="display:none">
+    <p class="section-label">Frame Speed</p>
+    <div class="delay-row">
+      <button class="delay-btn"        data-d="200"  onclick="setFrameDelay(200)">Fast<small>0.2 s</small></button>
+      <button class="delay-btn active" data-d="500"  onclick="setFrameDelay(500)">Medium<small>0.5 s</small></button>
+      <button class="delay-btn"        data-d="1000" onclick="setFrameDelay(1000)">Slow<small>1.0 s</small></button>
+    </div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn-ghost" onclick="backToPreview()">← Back</button>
+    <button class="btn-warm"  onclick="showGetPhotoModal()">Get Your Photo →</button>
+  </div>
+
+</div>
+
+<!-- ════════════ THANK YOU ════════════ -->
+<div id="thankyou" class="screen warm-screen">
+
+  <div class="screen-top">
+    <div style="width:40px"></div>
+    <div class="screen-head">
+      <h2 id="ty-name">Enjoy your photo!</h2>
+      <p>Your file has been saved to this device</p>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+
+  <div class="img-panel">
+    <img id="ty-img" class="panel-img" alt="Your photo">
+  </div>
+
+  <div class="prev-section" style="text-align:center">
+    <p class="section-label">Scan to get it on your phone</p>
+    <div id="qr-box" style="display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 4px 20px var(--shadow);min-width:164px;min-height:164px">
+      <div id="qr-container"></div>
+    </div>
+    <p id="qr-hint" style="font-size:0.7rem;color:var(--muted);margin-top:10px;text-align:center"></p>
+  </div>
+
+  <div class="action-row" style="max-width:380px;width:100%">
+    <button class="btn-warm" style="font-size:1rem" onclick="startOver()">✦ Start Over</button>
+  </div>
+
+</div>
+
+<!-- Print target (only visible when printing) -->
+<div id="print-target">
+  <img id="print-target-img" alt="Print">
+</div>
+
+<!-- ════════════ ADMIN MODAL ════════════ -->
+<div id="admin-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeAdmin()">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+
+    <!-- Password login -->
+    <div id="admin-login" style="display:contents">
+      <div class="modal-header">
+        <h3 style="font-family:var(--font-brand);font-size:1.5rem;color:var(--text)">Admin Access</h3>
+        <button onclick="closeAdmin()" style="background:none;border:none;font-size:1.4rem;color:var(--muted);cursor:pointer;padding:4px">✕</button>
+      </div>
+      <form onsubmit="submitAdminPw(event)" novalidate style="display:contents">
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="field-label">Password</label>
+            <input id="admin-pw-input" class="text-input" type="password" placeholder="Enter password" autocomplete="off">
+            <span class="field-err" id="admin-pw-err"></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn-warm" style="width:100%;font-size:1rem">Unlock →</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Admin panel (shown after login) -->
+    <div id="admin-panel" style="display:none;contents">
+      <div class="modal-header">
+        <h3 style="font-family:var(--font-brand);font-size:1.5rem;color:var(--text)">Admin Panel</h3>
+        <button onclick="closeAdmin()" style="background:none;border:none;font-size:1.4rem;color:var(--muted);cursor:pointer;padding:4px">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Usage counter -->
+        <div style="background:var(--surface2);border-radius:14px;padding:16px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+          <div style="font-size:2rem;line-height:1">📸</div>
+          <div>
+            <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700">Sessions Completed</div>
+            <div id="admin-usage" style="font-family:var(--font-brand);font-size:2rem;font-weight:700;color:var(--orange);line-height:1.1">0</div>
+          </div>
+          <button onclick="resetUsage()" style="margin-left:auto;background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:0.75rem;color:var(--muted);cursor:pointer">Reset</button>
+        </div>
+        <!-- Overlay templates -->
+        <p class="section-label" style="text-align:left;margin-bottom:10px">Overlay Templates</p>
+        <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:20px">
+          <p style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Download a template PNG for each layout. Design your overlay on top — the checkerboard areas are where photos will show through.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="downloadOverlayTemplate('single')" style="flex:1;min-width:80px;padding:9px 8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Single<br><span style="font-weight:400;color:var(--muted)">864×664</span></button>
+            <button onclick="downloadOverlayTemplate('strip')"  style="flex:1;min-width:80px;padding:9px 8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Strip<br><span style="font-weight:400;color:var(--muted)">864×1896</span></button>
+            <button onclick="downloadOverlayTemplate('quad')"   style="flex:1;min-width:80px;padding:9px 8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Quad<br><span style="font-weight:400;color:var(--muted)">1680×1280</span></button>
+          </div>
+        </div>
+        <!-- Custom overlays -->
+        <p class="section-label" style="text-align:left;margin-bottom:12px">Custom Overlays</p>
+        <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px">
+          <div class="form-field" style="margin-bottom:8px">
+            <label class="field-label" style="font-size:0.75rem">Overlay Name</label>
+            <input id="admin-ov-label" class="text-input" type="text" placeholder="e.g. Floral Frame" style="padding:10px 12px;font-size:0.83rem">
+          </div>
+          <div class="form-field" style="margin-bottom:10px">
+            <label class="field-label" style="font-size:0.75rem">For Layout</label>
+            <select id="admin-ov-layout" class="text-input" style="padding:10px 12px;font-size:0.83rem;cursor:pointer">
+              <option value="single">Single (1 photo)</option>
+              <option value="strip">Strip (3 photos)</option>
+              <option value="quad">Quad (4 photos)</option>
+              <option value="all">All layouts</option>
+            </select>
+          </div>
+          <label class="file-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Choose PNG (max 3 MB)
+            <input type="file" id="admin-ov-file" accept="image/png" onchange="handleAdminOverlayUpload()">
+          </label>
+        </div>
+        <div id="admin-ov-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button onclick="closeAdmin()" class="btn-ghost" style="width:100%;font-size:1rem">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════ INTAKE MODAL ════════════ -->
+<div id="intake-modal" class="modal-backdrop" style="display:none" onclick="handleBackdropClick(event)">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 style="font-family:var(--font-brand);font-size:1.5rem;color:var(--text)">Get Your Photo</h3>
+      <button onclick="closeIntake()" style="background:none;border:none;font-size:1.4rem;color:var(--muted);cursor:pointer;line-height:1;padding:4px">✕</button>
+    </div>
+    <form id="intake-form" onsubmit="submitIntake(event)" novalidate style="display:contents">
+      <div class="modal-body">
+        <div class="form-field">
+          <label class="field-label">Name <span class="req">*</span></label>
+          <input id="f-name" class="text-input" type="text" placeholder="Your name" autocomplete="name">
+          <span class="field-err" id="err-name"></span>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Email <span class="req">*</span></label>
+          <input id="f-email" class="text-input" type="email" placeholder="your@email.com" autocomplete="email">
+          <span class="field-err" id="err-email"></span>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Phone <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+          <input id="f-phone" class="text-input" type="tel" placeholder="+63 912 345 6789" autocomplete="tel">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn-warm" style="width:100%;font-size:1rem">
+          Download &amp; Continue →
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  /* ─── Capture state ───────────────────────────────── */
+  const COUNTS = { single: 1, strip: 3, quad: 4 };
+  let layout     = 'single';
+  let facingMode = 'user';
+  let stream     = null;
+  let photos     = [];
+  let busy       = false;
+
+  /* ─── Composite / edit state ──────────────────────── */
+  let activeFilter     = 'none';
+  let activeOverlay    = null;
+  let overlays         = [];
+  let compositeDataUrl = null;
+
+  /* ─── GIF / export state ──────────────────────────── */
+  let exportMode  = 'photo';
+  let frameDelay  = 500;
+  let gifUrl      = null;
+  let gifWorking  = false;
+  let _workerBlob = null;
+
+  const LS_KEY          = 'hb_overlays';
+  const LS_STOCK_ENABLED = 'hb_stock_enabled';
+
+  /* ─── Stock overlays ──────────────────────────────── */
+  const STOCK_OVERLAYS = (() => {
+    const mk = (id, label, body) => ({
+      id, label, isStock: true, layout: 'all', enabled: true,
+      dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ` +
+        `preserveAspectRatio="none" width="1600" height="1600">${body}</svg>`
+      )
+    });
+    const sprockets = [4,13,22,31,40,49,58,67,76,85,94]
+      .map(y =>
+        `<rect x="1.4" y="${y}" width="4.6" height="3.5" rx="0.5" fill="#2d2d2d"/>` +
+        `<rect x="94" y="${y}" width="4.6" height="3.5" rx="0.5" fill="#2d2d2d"/>`
+      ).join('');
+    const confettiData = [
+      [2,2,3,3,'#c8831c',15],  [6,1,2,2,'#e8a840',-10],[1,7,2.5,2.5,'#8a7258',25],
+      [5,6,2,2,'#c8831c',-20], [9,3,1.5,1.5,'#e8a840',10],[3,10,1.5,1.5,'#c8831c',35],
+      [95,2,3,3,'#e8a840',-15],[91,1,2,2,'#c8831c',10],  [97,7,2.5,2.5,'#8a7258',-25],
+      [92,6,2,2,'#e8a840',20], [89,3,1.5,1.5,'#c8831c',-10],[95.5,10,1.5,1.5,'#e8a840',-35],
+      [2,95,3,3,'#8a7258',-15],[6,97,2,2,'#c8831c',10],  [1,88,2.5,2.5,'#e8a840',25],
+      [5,91,2,2,'#c8831c',-20],[9,95.5,1.5,1.5,'#e8a840',10],[3,85,1.5,1.5,'#8a7258',35],
+      [95,95,3,3,'#c8831c',15],[91,97,2,2,'#e8a840',-10],[97,88,2.5,2.5,'#c8831c',-25],
+      [92,91,2,2,'#8a7258',20],[89,95.5,1.5,1.5,'#e8a840',-10],[95.5,85,1.5,1.5,'#c8831c',-35],
+    ];
+    const confetti = confettiData
+      .map(([x,y,w,h,c,r]) =>
+        `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}" transform="rotate(${r},${x+w/2},${y+h/2})"/>`
+      ).join('');
+
+    return [
+      mk('stock-classic', 'Classic',
+        `<path fill-rule="evenodd" fill="rgba(255,255,255,0.92)"
+           d="M0 0H100V100H0Z M2.8 2.8H97.2V97.2H2.8Z"/>
+         <rect x="3.5" y="3.5" width="93" height="93" fill="none"
+           stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>`
+      ),
+      mk('stock-polaroid', 'Polaroid',
+        `<path fill-rule="evenodd" fill="white"
+           d="M0 0H100V100H0Z M4.5 4.5H95.5V81H4.5Z"/>
+         <rect x="4.5" y="81" width="91" height="14.5" fill="rgba(248,244,236,0.95)"/>
+         <rect x="0.3" y="0.3" width="99.4" height="99.4" fill="none" stroke="#d8d0be" stroke-width="0.4"/>`
+      ),
+      mk('stock-neon', 'Neon',
+        `<polyline points="3,16 3,3 16,3"    fill="none" stroke="#c8831c" stroke-width="2.6" stroke-linecap="square"/>
+         <polyline points="84,3 97,3 97,16"   fill="none" stroke="#c8831c" stroke-width="2.6" stroke-linecap="square"/>
+         <polyline points="3,84 3,97 16,97"   fill="none" stroke="#e8a840" stroke-width="2.6" stroke-linecap="square"/>
+         <polyline points="84,97 97,97 97,84" fill="none" stroke="#e8a840" stroke-width="2.6" stroke-linecap="square"/>
+         <circle cx="3"  cy="3"  r="1.6" fill="#c8831c"/>
+         <circle cx="97" cy="3"  r="1.6" fill="#c8831c"/>
+         <circle cx="3"  cy="97" r="1.6" fill="#e8a840"/>
+         <circle cx="97" cy="97" r="1.6" fill="#e8a840"/>`
+      ),
+      mk('stock-film', 'Film',
+        `<rect x="0"    y="0" width="7.8"  height="100" fill="#0c0c0c"/>
+         <rect x="92.2" y="0" width="7.8"  height="100" fill="#0c0c0c"/>
+         ${sprockets}`
+      ),
+      mk('stock-party', 'Party',
+        `${confetti}
+         <text x="10" y="19" font-size="8" font-family="serif" fill="#c8831c" opacity="0.9">&#9733;</text>
+         <text x="84" y="19" font-size="7" font-family="serif" fill="#e8a840" opacity="0.9">&#9733;</text>
+         <text x="10" y="89" font-size="7" font-family="serif" fill="#e8a840" opacity="0.9">&#9733;</text>
+         <text x="83" y="89" font-size="8" font-family="serif" fill="#c8831c" opacity="0.9">&#9733;</text>`
+      ),
+    ];
+  })();
+
+  /* ─── Pixel-based filter engine (cross-browser, no ctx.filter) ─── */
+  // ctx.filter silently fails in older Safari & some mobile browsers.
+  // Pixel manipulation is guaranteed to work everywhere.
+  function applyPixelFilter(cc, w, h, name) {
+    if (!name || name === 'none') return;
+    const d = cc.getImageData(0, 0, w, h);
+    const px = d.data;
+    for (let i = 0; i < px.length; i += 4) {
+      let r = px[i], g = px[i+1], b = px[i+2];
+      if (name === 'bw') {
+        const v = Math.round(0.299*r + 0.587*g + 0.114*b);
+        px[i] = px[i+1] = px[i+2] = v;
+      } else if (name === 'sepia') {
+        px[i]   = Math.min(255, r*0.393 + g*0.769 + b*0.189);
+        px[i+1] = Math.min(255, r*0.349 + g*0.686 + b*0.168);
+        px[i+2] = Math.min(255, r*0.272 + g*0.534 + b*0.131);
+      } else if (name === 'warm') {
+        px[i]   = Math.min(255, r*1.08 + 12);
+        px[i+1] = Math.min(255, g*1.02 + 4);
+        px[i+2] = Math.max(0,   b*0.86 - 8);
+      } else if (name === 'cool') {
+        px[i]   = Math.max(0,   r*0.88 - 8);
+        px[i+1] = Math.min(255, g*1.02 + 2);
+        px[i+2] = Math.min(255, b*1.10 + 12);
+      }
+    }
+    cc.putImageData(d, 0, 0);
+  }
+
+  /* ─── Composite geometry ──────────────────────────── */
+  const CELL_W = 800, CELL_H = 600, GAP = 16, PAD = 32;
+
+  /* ─── DOM refs ────────────────────────────────────── */
+  const $         = id => document.getElementById(id);
+  const video     = $('video');
+  const canvas    = $('canvas');
+  const ctx       = canvas.getContext('2d');
+  const cdOverlay = $('countdown');
+  const cdNum     = $('cd-num');
+  const cdLabel   = $('cd-label');
+  const flashEl   = $('flash');
+  const shutter   = $('shutter');
+  const thumbStrip= $('thumb-strip');
+
+  /* ═══════════════════════════════════════════════════
+     SOUND ENGINE  (Web Audio API — no external files)
+  ═══════════════════════════════════════════════════ */
+  let _audioCtx = null;
+  function getAudioCtx() {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return _audioCtx;
+  }
+
+  function playBeep(freq = 880, dur = 0.08, vol = 0.4, type = 'sine') {
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = type; osc.frequency.value = freq;
+      const t = ctx.currentTime;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(vol, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.start(t); osc.stop(t + dur + 0.01);
+    } catch {}
+  }
+
+  function playCountdownTick() {
+    playBeep(660, 0.07, 0.35, 'sine');
+  }
+
+  function playCountdownFinal() {
+    // Rising two-tone for the last beat before snap
+    playBeep(880, 0.12, 0.5, 'sine');
+    setTimeout(() => playBeep(1100, 0.1, 0.4, 'sine'), 80);
+  }
+
+  function playShutter() {
+    try {
+      const ctx = getAudioCtx();
+      // Mechanical click: short noise burst
+      const bufLen = ctx.sampleRate * 0.04;
+      const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.6, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+      src.connect(gain); gain.connect(ctx.destination);
+      src.start();
+      // Low thump underneath
+      playBeep(120, 0.06, 0.3, 'triangle');
+    } catch {}
+  }
+
+  /* ─── Admin / usage state ────────────────────────── */
+  let _logoTaps = 0, _logoTapTimer = null;
+  const LS_USAGE = 'hb_usage';
+
+  /* ─── Retake state ────────────────────────────────── */
+  let retakeIndex = null;
+
+  /* ─── Screen ──────────────────────────────────────── */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+
+  /* ─── Layout picker ───────────────────────────────── */
+  function selectLayout(card, name) {
+    document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
+    card.classList.add('selected');
+    layout = name;
+  }
+
+  /* ─── Camera ──────────────────────────────────────── */
+  async function startCamera() {
+    stopStream();
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+      video.srcObject = stream;
+      video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'none';
+    } catch (err) {
+      alert('Camera unavailable: ' + err.message);
+    }
+  }
+
+  function stopStream() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+
+  async function flipCamera() {
+    facingMode = facingMode === 'user' ? 'environment' : 'user';
+    await startCamera();
+  }
+
+  function buildThumbs() {
+    thumbStrip.innerHTML = '';
+    for (let i = 0; i < COUNTS[layout]; i++) {
+      const d = document.createElement('div');
+      d.className = 'thumb'; d.id = 'thumb-' + i;
+      thumbStrip.appendChild(d);
+    }
+  }
+
+  /* ─── Session flow ────────────────────────────────── */
+  async function startBooth() {
+    photos = [];
+    await startCamera();
+    buildThumbs();
+    showScreen('camera');
+  }
+
+  function goHome() {
+    busy = false;
+    cdOverlay.classList.remove('show');
+    shutter.disabled = false;
+    stopStream();
+    photos = [];
+    showScreen('home');
+  }
+
+  /* ─── Capture sequence ────────────────────────────── */
+  async function startCapture() {
+    if (busy) return;
+    busy = true; shutter.disabled = true;
+
+    if (retakeIndex !== null) {
+      // Single-slot retake mode
+      await runCountdown(`Retake photo ${retakeIndex + 1}`);
+      const dataUrl = snap();
+      photos[retakeIndex] = dataUrl;
+      markThumb(retakeIndex, dataUrl);
+      doFlash();
+      cdOverlay.classList.remove('show');
+      busy = false; shutter.disabled = false;
+      retakeIndex = null;
+      await sleep(350);
+      showPreviewScreen();
+      return;
+    }
+
+    // Normal multi-shot capture
+    const total = COUNTS[layout]; photos = [];
+    for (let i = 0; i < total; i++) {
+      await runCountdown(i === 0 ? 'Get ready!' : 'Keep going!');
+      const dataUrl = snap(); photos.push(dataUrl);
+      markThumb(i, dataUrl); doFlash();
+      if (i < total - 1) await sleep(500);
+    }
+    cdOverlay.classList.remove('show');
+    busy = false; shutter.disabled = false;
+    // Increment usage counter when a full session is captured
+    try { localStorage.setItem(LS_USAGE, String((parseInt(localStorage.getItem(LS_USAGE)||'0'))+1)); } catch {}
+    await sleep(350);
+    showPreviewScreen();
+  }
+
+  function runCountdown(label) {
+    return new Promise(resolve => {
+      cdLabel.textContent = label;
+      cdOverlay.classList.add('show');
+      let n = 3;
+      function tick() {
+        if (n === 0) { resolve(); return; }
+        cdNum.textContent = n;
+        cdNum.style.animation = 'none';
+        void cdNum.offsetHeight;
+        cdNum.style.animation = 'cdPop 1s cubic-bezier(0.22,1,0.36,1) forwards';
+        // Play tick sound — final number gets a distinct tone
+        if (n === 1) playCountdownFinal(); else playCountdownTick();
+        n--;
+        setTimeout(tick, 1000);
+      }
+      tick();
+    });
+  }
+
+  function snap() {
+    const w = video.videoWidth || 1280, h = video.videoHeight || 720;
+    canvas.width = w; canvas.height = h;
+    if (facingMode === 'user') { ctx.save(); ctx.translate(w,0); ctx.scale(-1,1); }
+    ctx.drawImage(video, 0, 0, w, h);
+    if (facingMode === 'user') ctx.restore();
+    return canvas.toDataURL('image/jpeg', 0.88);
+  }
+
+  function markThumb(i, dataUrl) {
+    const t = $('thumb-' + i); if (!t) return;
+    t.classList.add('done');
+    const img = document.createElement('img'); img.src = dataUrl;
+    t.appendChild(img);
+  }
+
+  function doFlash() {
+    flashEl.classList.remove('pop'); void flashEl.offsetHeight; flashEl.classList.add('pop');
+    playShutter();
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  /* ═══════════════════════════════════════════════════
+     COMPOSITE BUILDER
+  ═══════════════════════════════════════════════════ */
+  function layoutGeometry() {
+    if (layout === 'single') return {
+      cw: CELL_W+2*PAD, ch: CELL_H+2*PAD,
+      positions: [{ x:PAD, y:PAD }]
+    };
+    if (layout === 'strip') return {
+      cw: CELL_W+2*PAD, ch: 3*CELL_H+2*GAP+2*PAD,
+      positions: [
+        {x:PAD,y:PAD}, {x:PAD,y:PAD+CELL_H+GAP}, {x:PAD,y:PAD+2*(CELL_H+GAP)}
+      ]
+    };
+    return {
+      cw: 2*CELL_W+GAP+2*PAD, ch: 2*CELL_H+GAP+2*PAD,
+      positions: [
+        {x:PAD,y:PAD}, {x:PAD+CELL_W+GAP,y:PAD},
+        {x:PAD,y:PAD+CELL_H+GAP}, {x:PAD+CELL_W+GAP,y:PAD+CELL_H+GAP}
+      ]
+    };
+  }
+
+  function rrPath(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r);
+    c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+  }
+
+  function loadImg(src) {
+    return new Promise((res, rej) => {
+      const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = src;
+    });
+  }
+
+  async function buildComposite() {
+    const { cw, ch, positions } = layoutGeometry();
+    const comp = document.createElement('canvas');
+    comp.width = cw; comp.height = ch;
+    const c = comp.getContext('2d');
+
+    c.fillStyle = '#fdf0de';
+    c.fillRect(0, 0, cw, ch);
+
+    for (let i = 0; i < photos.length && i < positions.length; i++) {
+      const img = await loadImg(photos[i]);
+      const { x, y } = positions[i];
+
+      // Draw photo into a cell-sized temp canvas, apply pixel filter there
+      const cell = document.createElement('canvas');
+      cell.width = CELL_W; cell.height = CELL_H;
+      const cc = cell.getContext('2d', { willReadFrequently: true });
+      const s = Math.max(CELL_W / img.naturalWidth, CELL_H / img.naturalHeight);
+      cc.drawImage(img,
+        (CELL_W - img.naturalWidth * s) / 2,
+        (CELL_H - img.naturalHeight * s) / 2,
+        img.naturalWidth * s, img.naturalHeight * s
+      );
+      applyPixelFilter(cc, CELL_W, CELL_H, activeFilter);
+
+      // Stamp filtered cell onto composite with rounded-rect clip
+      c.save();
+      rrPath(c, x, y, CELL_W, CELL_H, 12);
+      c.clip();
+      c.drawImage(cell, x, y);
+      c.restore();
+    }
+
+    if (activeOverlay) {
+      const ov = await loadImg(activeOverlay.dataUrl);
+      c.drawImage(ov, 0, 0, cw, ch);
+    }
+    return comp.toDataURL('image/png');
+  }
+
+  let _renderGen = 0;
+  async function reRenderComposite() {
+    const gen = ++_renderGen;
+    const spinner = $('composite-spinner'), img = $('composite-img');
+    spinner.classList.remove('hidden');
+    img.style.opacity = compositeDataUrl ? '0.4' : '0';
+    const result = await buildComposite();
+    if (gen !== _renderGen) return; // a newer render started; discard this one
+    compositeDataUrl = result;
+    img.src = compositeDataUrl;
+    img.style.opacity = '1';
+    spinner.classList.add('hidden');
+  }
+
+  /* ─── Filters ─────────────────────────────────────── */
+  function setFilter(name) {
+    activeFilter = name;
+    document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === name));
+    reRenderComposite();
+  }
+
+  /* ─── Overlay gallery ─────────────────────────────── */
+  function loadOverlays() {
+    try { overlays = JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { overlays = []; }
+    // Apply saved enabled states to stock overlays
+    try {
+      const stockStates = JSON.parse(localStorage.getItem(LS_STOCK_ENABLED) || '{}');
+      STOCK_OVERLAYS.forEach(ov => {
+        if (ov.id in stockStates) ov.enabled = stockStates[ov.id];
+      });
+    } catch {}
+  }
+  function saveOverlays() {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(overlays)); }
+    catch { alert('Storage full — try deleting an existing overlay.'); }
+  }
+  function saveStockEnabled() {
+    const states = {};
+    STOCK_OVERLAYS.forEach(ov => { states[ov.id] = ov.enabled !== false; });
+    try { localStorage.setItem(LS_STOCK_ENABLED, JSON.stringify(states)); } catch {}
+  }
+
+  function toggleUploadPanel() {
+    const panel = $('upload-panel'), btn = $('ov-add-btn');
+    const nowOpen = !panel.classList.contains('open');
+    panel.classList.toggle('open', nowOpen);
+    btn.classList.toggle('open', nowOpen);
+    btn.textContent = nowOpen ? '✕ Close' : '+ Add';
+  }
+
+  function handleOverlayUpload() {
+    const fi = $('ov-file'); if (!fi.files.length) return;
+    const file = fi.files[0];
+    if (file.size > 3*1024*1024) { alert('PNG must be under 3 MB.'); fi.value=''; return; }
+    const label = $('ov-label').value.trim() || 'Untitled';
+    const reader = new FileReader();
+    reader.onload = e => {
+      overlays.unshift({ id: String(Date.now()), label, dataUrl: e.target.result });
+      saveOverlays(); renderOverlayGallery();
+      fi.value=''; $('ov-label').value='';
+      $('upload-panel').classList.remove('open');
+      $('ov-add-btn').classList.remove('open');
+      $('ov-add-btn').textContent = '+ Add';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function selectOverlayById(id) {
+    const all = [...STOCK_OVERLAYS, ...overlays];
+    activeOverlay = (activeOverlay && activeOverlay.id === id)
+      ? null : all.find(o => o.id === id) || null;
+    renderOverlayGallery();
+    reRenderComposite();
+  }
+
+  function deleteOverlay(id) {
+    if (activeOverlay && activeOverlay.id === id) activeOverlay = null;
+    overlays = overlays.filter(o => o.id !== id);
+    saveOverlays(); renderOverlayGallery(); reRenderComposite();
+  }
+
+  function renderOverlayGallery() {
+    const gallery = $('ov-gallery');
+    gallery.innerHTML = '';
+
+    // "None" chip — always first
+    const noneItem = document.createElement('div');
+    noneItem.className = 'ov-item' + (!activeOverlay ? ' selected' : '');
+    const noneThumb = document.createElement('div');
+    noneThumb.className = 'ov-none-thumb';
+    noneThumb.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="2" stroke-linecap="round"><line x1="4" y1="4" x2="20" y2="20"/><line x1="20" y1="4" x2="4" y2="20"/></svg>`;
+    const noneLbl = document.createElement('div');
+    noneLbl.className = 'ov-item-label'; noneLbl.textContent = 'None';
+    noneItem.append(noneThumb, noneLbl);
+    noneItem.onclick = () => { activeOverlay = null; renderOverlayGallery(); reRenderComposite(); };
+    gallery.appendChild(noneItem);
+
+    // Filter: matching layout + enabled
+    const all = [...STOCK_OVERLAYS, ...overlays];
+    const visible = all.filter(ov =>
+      (ov.layout === 'all' || !ov.layout || ov.layout === layout) &&
+      (ov.enabled !== false)
+    );
+
+    if (!visible.length) {
+      const em = document.createElement('p'); em.className = 'ov-empty';
+      em.textContent = 'No overlays for this layout'; gallery.appendChild(em); return;
+    }
+
+    visible.forEach(ov => {
+      const item = document.createElement('div');
+      item.className = 'ov-item' + (activeOverlay && activeOverlay.id === ov.id ? ' selected' : '');
+      const thumb = document.createElement('img');
+      thumb.className = 'ov-item-thumb'; thumb.src = ov.dataUrl; thumb.alt = ov.label;
+      const lbl = document.createElement('div');
+      lbl.className = 'ov-item-label'; lbl.textContent = ov.label;
+      item.append(thumb, lbl);
+      if (ov.isStock) {
+        const badge = document.createElement('span');
+        badge.className = 'ov-stock-badge'; badge.textContent = 'Built-in';
+        item.appendChild(badge);
+      }
+      item.onclick = () => selectOverlayById(ov.id);
+      gallery.appendChild(item);
+    });
+  }
+
+  /* ─── Preview screen ──────────────────────────────── */
+  function showPreviewScreen() {
+    stopStream();
+    activeFilter = 'none'; activeOverlay = null;
+    document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === 'none'));
+    loadOverlays(); renderOverlayGallery();
+    compositeDataUrl = null;
+    $('composite-img').src = ''; $('composite-img').style.opacity = '0';
+    $('composite-spinner').classList.remove('hidden');
+    buildRetakeStrip();
+    showScreen('preview');
+    reRenderComposite();
+  }
+
+  /* ─── Individual photo retake ─────────────────────── */
+  function buildRetakeStrip() {
+    const strip = $('retake-strip');
+    strip.innerHTML = '';
+    if (photos.length <= 1) { strip.style.display = 'none'; return; }
+    strip.style.display = 'flex';
+    photos.forEach((src, i) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'retake-thumb';
+      wrap.setAttribute('aria-label', `Retake photo ${i + 1}`);
+      const img = document.createElement('img');
+      img.src = src; img.alt = `Photo ${i + 1}`;
+      const badge = document.createElement('div');
+      badge.className = 'retake-badge';
+      const iconWrap = document.createElement('div');
+      iconWrap.className = 'retake-icon-wrap';
+      iconWrap.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>`;
+      badge.appendChild(iconWrap);
+      wrap.append(img, badge);
+      wrap.onclick = () => startRetakeSingle(i);
+      strip.appendChild(wrap);
+    });
+  }
+
+  async function startRetakeSingle(index) {
+    retakeIndex = index;
+    await startCamera();
+    buildThumbs();
+    // Re-mark already-captured slots
+    photos.forEach((src, i) => { if (i !== index) markThumb(i, src); });
+    showScreen('camera');
+  }
+
+  function retake() { photos = []; startBooth(); }
+
+  function continueFlow() { showGifScreen(); }
+
+  /* ═══════════════════════════════════════════════════
+     GIF / EXPORT SCREEN
+  ═══════════════════════════════════════════════════ */
+
+  function showGifScreen() {
+    exportMode = 'photo'; gifUrl = null; gifWorking = false;
+    $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
+    $('gif-controls').style.display = 'none';
+    $('export-img').src = compositeDataUrl || '';
+    $('export-img').style.opacity = '1';
+    $('export-spinner').classList.add('hidden');
+    document.querySelectorAll('.delay-btn').forEach(b => b.classList.toggle('active', b.dataset.d === '500'));
+    frameDelay = 500;
+    showScreen('gif-screen');
+  }
+
+  function backToPreview() { showScreen('preview'); }
+
+  function setExportMode(mode) {
+    exportMode = mode;
+    $('mode-photo').classList.toggle('active', mode === 'photo');
+    $('mode-gif').classList.toggle('active', mode === 'gif');
+    $('gif-controls').style.display = mode === 'gif' ? '' : 'none';
+    if (mode === 'photo') {
+      $('export-img').src = compositeDataUrl || '';
+      $('export-img').style.opacity = '1';
+      $('export-spinner').classList.add('hidden');
+    } else {
+      if (gifUrl) { $('export-img').src = gifUrl; $('export-img').style.opacity = '1'; }
+      else generateGif();
+    }
+  }
+
+  function setFrameDelay(ms) {
+    frameDelay = ms;
+    document.querySelectorAll('.delay-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.d) === ms));
+    gifUrl = null; generateGif();
+  }
+
+  /* Fetch gif.worker.js as a blob to avoid cross-origin Worker restriction */
+  async function ensureWorkerBlob() {
+    if (_workerBlob) return _workerBlob;
+    try {
+      const r = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');
+      const blob = await r.blob();
+      _workerBlob = URL.createObjectURL(blob);
+    } catch {
+      _workerBlob = 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js';
+    }
+    return _workerBlob;
+  }
+
+  async function generateGif() {
+    if (gifWorking) return;
+    gifWorking = true;
+
+    const spinner = $('export-spinner'), img = $('export-img'), lbl = $('export-spinner-label');
+    spinner.classList.remove('hidden');
+    img.style.opacity = gifUrl ? '0.35' : '0';
+    lbl.textContent = 'Generating GIF…';
+
+    const GIF_W = 480, GIF_H = 360;
+
+    try {
+      const workerScript = await ensureWorkerBlob();
+
+      const gif = new GIF({
+        workers: 2,
+        quality: 8,
+        width:  GIF_W,
+        height: GIF_H,
+        workerScript
+      });
+
+      for (const src of photos) {
+        const im = await loadImg(src);
+        const fc = document.createElement('canvas');
+        fc.width = GIF_W; fc.height = GIF_H;
+        const fctx = fc.getContext('2d', { willReadFrequently: true });
+        const s = Math.max(GIF_W/im.naturalWidth, GIF_H/im.naturalHeight);
+        fctx.drawImage(im,
+          (GIF_W - im.naturalWidth*s)/2, (GIF_H - im.naturalHeight*s)/2,
+          im.naturalWidth*s, im.naturalHeight*s
+        );
+        applyPixelFilter(fctx, GIF_W, GIF_H, activeFilter);
+        gif.addFrame(fc, { delay: frameDelay, copy: true });
+      }
+
+      gif.on('progress', p => { lbl.textContent = `Generating GIF… ${Math.round(p*100)}%`; });
+
+      gif.on('finished', blob => {
+        gifWorking = false;
+        if (gifUrl) URL.revokeObjectURL(gifUrl);
+        gifUrl = URL.createObjectURL(blob);
+        img.src = gifUrl; img.style.opacity = '1';
+        spinner.classList.add('hidden');
+      });
+
+      gif.render();
+    } catch (err) {
+      gifWorking = false;
+      spinner.classList.add('hidden');
+      alert('GIF generation failed: ' + err.message);
+    }
+  }
+
+  function saveExport() {
+    const url = exportMode === 'gif' ? gifUrl : compositeDataUrl;
+    if (!url) return;
+    const ext = exportMode === 'gif' ? 'gif' : 'png';
+    const a = document.createElement('a');
+    a.href = url; a.download = `hando-booth-${Date.now()}.${ext}`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  /* ═══════════════════════════════════════════════════
+     PRINT
+  ═══════════════════════════════════════════════════ */
+  function printPhoto() {
+    const url = exportMode === 'gif' ? compositeDataUrl : (compositeDataUrl || '');
+    if (!url) { alert('Nothing to print yet.'); return; }
+    $('print-target-img').src = url;
+    window.print();
+  }
+
+  /* ═══════════════════════════════════════════════════
+     ADMIN MODE
+  ═══════════════════════════════════════════════════ */
+  function handleLogoTap() {
+    _logoTaps++;
+    clearTimeout(_logoTapTimer);
+    if (_logoTaps >= 3) {
+      _logoTaps = 0;
+      openAdminModal();
+    } else {
+      _logoTapTimer = setTimeout(() => { _logoTaps = 0; }, 700);
+    }
+  }
+
+  function openAdminModal() {
+    $('admin-pw-input').value = '';
+    $('admin-pw-err').textContent = '';
+    $('admin-login').style.display = '';
+    $('admin-panel').style.display = 'none';
+    $('admin-modal').style.display = 'flex';
+    setTimeout(() => $('admin-pw-input').focus(), 80);
+  }
+
+  function closeAdmin() {
+    $('admin-modal').style.display = 'none';
+  }
+
+  function submitAdminPw(e) {
+    e.preventDefault();
+    if ($('admin-pw-input').value === 'hando2025') {
+      $('admin-login').style.display = 'none';
+      $('admin-panel').style.display = 'contents';
+      renderAdminPanel();
+    } else {
+      $('admin-pw-err').textContent = 'Incorrect password.';
+      $('admin-pw-input').value = '';
+      $('admin-pw-input').focus();
+    }
+  }
+
+  function handleAdminOverlayUpload() {
+    const fi = $('admin-ov-file'); if (!fi.files.length) return;
+    const file = fi.files[0];
+    if (file.size > 3 * 1024 * 1024) { alert('PNG must be under 3 MB.'); fi.value = ''; return; }
+    const label = $('admin-ov-label').value.trim() || 'Untitled';
+    const ovLayout = $('admin-ov-layout').value;
+    const reader = new FileReader();
+    reader.onload = e => {
+      overlays.unshift({ id: String(Date.now()), label, layout: ovLayout, enabled: true, dataUrl: e.target.result });
+      saveOverlays(); renderAdminPanel();
+      fi.value = ''; $('admin-ov-label').value = '';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function toggleOverlayEnabled(id) {
+    const stockOv = STOCK_OVERLAYS.find(o => o.id === id);
+    const customOv = overlays.find(o => o.id === id);
+    const ov = stockOv || customOv;
+    if (!ov) return;
+    ov.enabled = ov.enabled === false ? true : false;
+    if (!ov.enabled && activeOverlay && activeOverlay.id === id) activeOverlay = null;
+    if (stockOv) saveStockEnabled(); else saveOverlays();
+    renderAdminPanel();
+    if (document.getElementById('preview').classList.contains('active')) {
+      renderOverlayGallery();
+      if (!ov.enabled) reRenderComposite();
+    }
+  }
+
+  function renderAdminPanel() {
+    $('admin-usage').textContent = localStorage.getItem(LS_USAGE) || '0';
+    loadOverlays();
+    const list = $('admin-ov-list');
+    list.innerHTML = '';
+    const LAYOUT_LABELS = { single: 'Single', strip: 'Strip', quad: 'Quad', all: 'All' };
+
+    function makeRow(ov, isStock) {
+      const row = document.createElement('div');
+      row.className = 'admin-ov-row';
+
+      const img = document.createElement('img');
+      img.src = ov.dataUrl; img.width = 44; img.height = 44;
+      img.style.cssText = 'border-radius:8px;object-fit:contain;border:1.5px solid var(--border);flex-shrink:0;opacity:' + (ov.enabled === false ? '0.35' : '1');
+
+      const info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:4px';
+      const lbl = document.createElement('span');
+      lbl.style.cssText = 'font-size:0.83rem;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+      lbl.textContent = ov.label;
+      const badge = document.createElement('span');
+      badge.className = 'ov-layout-badge';
+      badge.textContent = (isStock ? '⭐ ' : '') + (LAYOUT_LABELS[ov.layout || 'all'] || 'All');
+      info.append(lbl, badge);
+
+      const toggleWrap = document.createElement('label');
+      toggleWrap.className = 'ov-toggle';
+      const toggleInput = document.createElement('input');
+      toggleInput.type = 'checkbox';
+      toggleInput.checked = ov.enabled !== false;
+      toggleInput.onchange = () => toggleOverlayEnabled(ov.id);
+      const toggleTrack = document.createElement('span');
+      toggleTrack.className = 'ov-toggle-track';
+      toggleWrap.append(toggleInput, toggleTrack);
+
+      row.append(img, info, toggleWrap);
+
+      if (!isStock) {
+        const del = document.createElement('button');
+        del.style.cssText = 'background:#c0392b;border:none;border-radius:8px;color:#fff;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;flex-shrink:0';
+        del.textContent = '✕';
+        del.onclick = () => {
+          if (!confirm(`Delete "${ov.label}"?`)) return;
+          if (activeOverlay && activeOverlay.id === ov.id) activeOverlay = null;
+          overlays = overlays.filter(o => o.id !== ov.id);
+          saveOverlays(); renderAdminPanel();
+        };
+        row.appendChild(del);
+      }
+      return row;
+    }
+
+    // Stock overlays section
+    const stockHeader = document.createElement('p');
+    stockHeader.style.cssText = 'font-size:0.68rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:6px';
+    stockHeader.textContent = 'Built-in';
+    list.appendChild(stockHeader);
+    STOCK_OVERLAYS.forEach(ov => list.appendChild(makeRow(ov, true)));
+
+    // Custom overlays section
+    const customHeader = document.createElement('p');
+    customHeader.style.cssText = 'font-size:0.68rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin:14px 0 6px';
+    customHeader.textContent = 'Uploaded';
+    list.appendChild(customHeader);
+
+    if (!overlays.length) {
+      const em = document.createElement('p');
+      em.style.cssText = 'font-size:0.8rem;color:var(--muted);padding:8px 0';
+      em.textContent = 'No custom overlays uploaded yet.';
+      list.appendChild(em);
+      return;
+    }
+    overlays.forEach(ov => list.appendChild(makeRow(ov, false)));
+  }
+
+  function resetUsage() {
+    if (confirm('Reset session counter to 0?')) {
+      localStorage.setItem(LS_USAGE, '0');
+      $('admin-usage').textContent = '0';
+    }
+  }
+
+  function downloadOverlayTemplate(layoutName) {
+    const CW = 800, CH = 600, G = 16, P = 32;
+    let cw, ch, positions;
+    if (layoutName === 'single') {
+      cw = CW + 2*P; ch = CH + 2*P;
+      positions = [{x: P, y: P}];
+    } else if (layoutName === 'strip') {
+      cw = CW + 2*P; ch = 3*CH + 2*G + 2*P;
+      positions = [{x:P,y:P},{x:P,y:P+CH+G},{x:P,y:P+2*(CH+G)}];
+    } else {
+      cw = 2*CW + G + 2*P; ch = 2*CH + G + 2*P;
+      positions = [{x:P,y:P},{x:P+CW+G,y:P},{x:P,y:P+CH+G},{x:P+CW+G,y:P+CH+G}];
+    }
+
+    const cv = document.createElement('canvas');
+    cv.width = cw; cv.height = ch;
+    const c = cv.getContext('2d');
+
+    // Transparent canvas — overlay area stays transparent
+    c.clearRect(0, 0, cw, ch);
+
+    // Draw checkerboard in each photo cell (design reference)
+    const SQ = 30;
+    positions.forEach(({x, y}) => {
+      for (let row = 0; row < CH; row += SQ) {
+        for (let col = 0; col < CW; col += SQ) {
+          c.fillStyle = ((Math.floor(row/SQ) + Math.floor(col/SQ)) % 2 === 0)
+            ? 'rgba(180,180,180,0.55)' : 'rgba(230,230,230,0.55)';
+          c.fillRect(x+col, y+row, Math.min(SQ, CW-col), Math.min(SQ, CH-row));
+        }
+      }
+      // Red dashed cell border
+      c.save();
+      c.strokeStyle = '#e74c3c';
+      c.lineWidth = 3;
+      c.setLineDash([14, 7]);
+      c.strokeRect(x+1.5, y+1.5, CW-3, CH-3);
+      c.restore();
+      // Center label
+      c.save();
+      c.fillStyle = 'rgba(231,76,60,0.85)';
+      c.font = `bold ${Math.round(CH*0.055)}px system-ui, sans-serif`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText('PHOTO SHOWS HERE', x + CW/2, y + CH/2 - CH*0.07);
+      c.font = `${Math.round(CH*0.04)}px system-ui, sans-serif`;
+      c.fillStyle = 'rgba(180,60,40,0.75)';
+      c.fillText(`${CW} × ${CH} px`, x + CW/2, y + CH/2 + CH*0.06);
+      c.restore();
+    });
+
+    // Outer canvas border (dashed guide)
+    c.save();
+    c.strokeStyle = '#2c3e50';
+    c.lineWidth = 4;
+    c.setLineDash([20, 10]);
+    c.strokeRect(2, 2, cw-4, ch-4);
+    c.restore();
+
+    // Top-left info block
+    const pad = 10, bh = 52, bw = 300;
+    c.fillStyle = 'rgba(44,62,80,0.85)';
+    c.beginPath(); c.roundRect(pad, pad, bw, bh, 8); c.fill();
+    c.fillStyle = '#fff';
+    c.font = `bold ${16}px system-ui, sans-serif`;
+    c.textAlign = 'left'; c.textBaseline = 'top';
+    c.fillText(`HANDO BOOTH — ${layoutName.toUpperCase()} TEMPLATE`, pad+10, pad+8);
+    c.font = `${13}px system-ui, sans-serif`;
+    c.fillStyle = 'rgba(255,255,255,0.75)';
+    c.fillText(`Canvas: ${cw} × ${ch} px  •  Design overlay here, keep cells clear`, pad+10, pad+28);
+
+    cv.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `hando-template-${layoutName}.png`;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════
+     SUPABASE CONFIG  — fill in after creating project
+  ═══════════════════════════════════════════════════ */
+  const SUPABASE_URL    = 'https://wdzsjgwhhohxlrzxojgq.supabase.co';
+  const SUPABASE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenNqZ3doaG9oeGxyenhvamdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzOTkyOTYsImV4cCI6MjA5MDk3NTI5Nn0.K677qTL0E813GSkW9HuALOCLyKh86YOSAgS1RvS_odw';
+  const SUPABASE_BUCKET = 'photos';
+
+  async function uploadPhotoToSupabase(dataUrl) {
+    const res  = await fetch(dataUrl);
+    const blob = await res.blob();
+    const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.png`;
+    const r = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'image/png',
+          'x-upsert': 'false'
+        },
+        body: blob
+      }
+    );
+    if (!r.ok) throw new Error(await r.text());
+    return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
+  }
+
+  /* ═══════════════════════════════════════════════════
+     SHARE FLOW — INTAKE MODAL
+  ═══════════════════════════════════════════════════ */
+
+  function showGetPhotoModal() {
+    // Reset form state
+    ['f-name','f-email','f-phone'].forEach(id => { $(id).value = ''; $(id).classList.remove('invalid'); });
+    ['err-name','err-email'].forEach(id => { $(id).textContent = ''; });
+    $('intake-modal').style.display = 'flex';
+    setTimeout(() => $(  'f-name').focus(), 80);
+  }
+
+  function closeIntake() {
+    $('intake-modal').style.display = 'none';
+  }
+
+  function handleBackdropClick(e) {
+    if (e.target === $('intake-modal')) closeIntake();
+  }
+
+  function submitIntake(e) {
+    e.preventDefault();
+    const name  = $('f-name').value.trim();
+    const email = $('f-email').value.trim();
+    let valid = true;
+
+    // Validate name
+    if (name.length < 2) {
+      $('err-name').textContent = 'Please enter your name (at least 2 characters).';
+      $('f-name').classList.add('invalid');
+      valid = false;
+    } else {
+      $('err-name').textContent = '';
+      $('f-name').classList.remove('invalid');
+    }
+
+    // Validate email
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) {
+      $('err-email').textContent = 'Please enter a valid email address.';
+      $('f-email').classList.add('invalid');
+      valid = false;
+    } else {
+      $('err-email').textContent = '';
+      $('f-email').classList.remove('invalid');
+    }
+
+    if (!valid) return;
+
+    closeIntake();
+
+    // 1. Show thank you screen immediately with loading QR
+    const firstName = name.split(' ')[0];
+    $('ty-name').textContent = `Thanks, ${firstName}! 🎉`;
+    $('ty-img').src = compositeDataUrl || '';
+    $('qr-container').innerHTML = '';
+    $('qr-hint').textContent = 'Uploading your photo…';
+    $('qr-box').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div><span style="font-size:0.72rem;color:var(--muted)">Uploading…</span></div>';
+    showScreen('thankyou');
+
+    // 2. Trigger local download immediately
+    const localUrl = exportMode === 'gif' ? gifUrl : compositeDataUrl;
+    const ext = exportMode === 'gif' ? 'gif' : 'png';
+    if (localUrl) {
+      const a = document.createElement('a');
+      a.href = localUrl; a.download = `hando-booth-${Date.now()}.${ext}`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    // 3. Upload composite PNG to Supabase, then render QR with public URL
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      uploadPhotoToSupabase(compositeDataUrl)
+        .then(publicUrl => renderQR(publicUrl))
+        .catch(err => {
+          console.error('Supabase upload failed:', err);
+          $('qr-box').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Upload failed.<br>Ask staff for your photo.</p>';
+          $('qr-hint').textContent = '';
+        });
+    } else {
+      $('qr-box').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Cloud sharing<br>not configured.</p>';
+      $('qr-hint').textContent = '';
+    }
+  }
+
+  function renderQR(url) {
+    const box = $('qr-box');
+    box.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.id = 'qr-container';
+    box.appendChild(wrap);
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(wrap, {
+        text: url,
+        width: 148, height: 148,
+        colorDark: '#2e1e08', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } else {
+      wrap.innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:8px">QR unavailable</p>';
+    }
+    $('qr-hint').textContent = 'Scan to download on your phone — works anywhere!';
+  }
+
+  function startOver() {
+    photos = []; compositeDataUrl = null; gifUrl = null;
+    activeFilter = 'none'; activeOverlay = null; exportMode = 'photo';
+    showScreen('home');
+  }
+
+  /* QR now links directly to Supabase public URL — no ?get= param needed */
+</script>
+</body>
+</html>
