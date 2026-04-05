@@ -11,6 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- FIX 15: EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -329,6 +331,40 @@
     #flash.pop { animation: flashAnim 0.35s ease-out forwards; }
     @keyframes flashAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
 
+    /* ── FIX 1: CAMERA CROP GUIDE ──────────────────── */
+    .cam-crop-guide {
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      height: 100%;
+      aspect-ratio: 4/3;
+      max-width: 100%;
+      pointer-events: none;
+      border-left: 2px solid rgba(255,255,255,0.5);
+      border-right: 2px solid rgba(255,255,255,0.5);
+      box-shadow: 0 0 0 100vmax rgba(0,0,0,0.35);
+      z-index: 1;
+    }
+
+    /* ── FIX 13: CAMERA LOADING OVERLAY ────────────── */
+    #cam-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--cream);
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: opacity 0.3s;
+    }
+    #cam-loading.hidden { display: none; }
+
     /* ── PREVIEW + GIF shared ──────────────────────── */
     .warm-screen {
       justify-content: flex-start;
@@ -378,7 +414,7 @@
       position: relative;
       width: 100%;
       max-width: 380px;
-      max-height: 42vh;
+      max-height: 50vh;
       min-height: 100px;
       background: #fff;
       border-radius: 14px;
@@ -387,7 +423,9 @@
       border: 1.5px solid var(--border);
       box-shadow: 0 4px 20px var(--shadow);
     }
-    .img-panel .panel-img { max-height: 42vh; object-fit: contain; }
+    /* FIX 6 — increased max-height so overlay gallery doesn't cramp the composite */
+    .img-panel .panel-img { max-height: 50vh; object-fit: contain; }
+    .img-panel { max-height: 50vh; }
     .panel-img {
       width: 100%;
       display: block;
@@ -781,8 +819,9 @@
 
     /* ── THANK YOU ─────────────────────────────────── */
     #thankyou .img-panel { max-width: 280px; }
-    /* qrcode.js renders both a canvas and a hidden img — do NOT force display on both */
-    #qr-container canvas { border-radius: 4px; }
+    /* FIX 16 — QR on mobile: ensure canvas shows, hide duplicate img qrcode.js injects */
+    #qr-container { position: relative; }
+    #qr-container canvas { display: block; border-radius: 4px; }
 
     /* ── SCREEN TRANSITIONS ────────────────────────── */
     .screen.active { animation: screenIn 0.22s cubic-bezier(0.22,1,0.36,1) both; }
@@ -827,11 +866,11 @@
       background: rgba(255,255,255,0.92);
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      opacity: 0; transform: scale(0.6);
+      /* FIX 5 — always visible */
+      opacity: 1; transform: scale(1);
       transition: opacity 0.15s, transform 0.15s;
       color: var(--orange);
     }
-    .retake-thumb:hover .retake-icon-wrap { opacity: 1; transform: scale(1); }
 
     /* ── ADMIN MODAL ───────────────────────────────── */
     .admin-ov-row {
@@ -932,9 +971,18 @@
   <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
 
+  <!-- FIX 13: camera loading overlay -->
+  <div id="cam-loading">
+    <div class="spin-ring" style="width:32px;height:32px;border-width:3px"></div>
+    Starting camera…
+  </div>
+
   <div class="cam-overlay">
+    <!-- FIX 1: 4:3 crop guide sits between top controls and bottom -->
+    <div class="cam-crop-guide"></div>
     <div class="cam-top">
-      <button class="icon-btn" onclick="goHome()" aria-label="Close">✕</button>
+      <!-- FIX 3: X button closes camera but keeps photos if any exist -->
+      <button class="icon-btn" onclick="closeCameraKeepPhotos()" aria-label="Close">✕</button>
       <div id="thumb-strip"></div>
       <button class="icon-btn" onclick="flipCamera()" aria-label="Flip camera">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1045,9 +1093,17 @@
     </div>
   </div>
 
-  <div class="action-row">
-    <button class="btn-ghost" onclick="backToPreview()">← Back</button>
-    <button class="btn-warm"  onclick="showGetPhotoModal()">Get Your Photo →</button>
+  <!-- FIX 12: two-row action area — row1: Back + Download, row2: QR + Email -->
+  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;flex-shrink:0">
+    <div class="action-row">
+      <button class="btn-ghost" onclick="backToPreview()">← Back</button>
+      <button class="btn-ghost" onclick="downloadCurrentExport()">⬇ Download</button>
+    </div>
+    <div class="action-row">
+      <!-- FIX 4: QR and Email buttons -->
+      <button class="btn-ghost" onclick="doGetQR()">📱 Get QR</button>
+      <button class="btn-warm"  onclick="showGetPhotoModal()">📧 Send Email</button>
+    </div>
   </div>
 
 </div>
@@ -1061,7 +1117,10 @@
       <h2 id="ty-name">Enjoy your photo!</h2>
       <p>Your file has been saved to this device</p>
     </div>
-    <div style="width:40px"></div>
+    <!-- FIX 11: print button on thank-you screen -->
+    <button class="home-btn" onclick="printPhoto()" aria-label="Print" title="Print photo">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    </button>
   </div>
 
   <div class="img-panel">
@@ -1070,6 +1129,7 @@
 
   <div class="prev-section" style="text-align:center">
     <p class="section-label">Scan to get it on your phone</p>
+    <!-- FIX 2: stable #qr-box wrapper; only #qr-container contents are replaced -->
     <div id="qr-box" style="display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 4px 20px var(--shadow);min-width:164px;min-height:164px">
       <div id="qr-container"></div>
     </div>
@@ -1126,6 +1186,15 @@
             <div id="admin-usage" style="font-family:var(--font-brand);font-size:2rem;font-weight:700;color:var(--orange);line-height:1.1">0</div>
           </div>
           <button onclick="resetUsage()" style="margin-left:auto;background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:0.75rem;color:var(--muted);cursor:pointer">Reset</button>
+        </div>
+        <!-- FIX 14: Default Layout selector -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Default Layout</div>
+          <div style="display:flex;gap:8px">
+            <button onclick="setDefaultLayout('single')" id="dl-single" class="delay-btn">Single</button>
+            <button onclick="setDefaultLayout('strip')"  id="dl-strip"  class="delay-btn">Strip</button>
+            <button onclick="setDefaultLayout('quad')"   id="dl-quad"   class="delay-btn">Quad</button>
+          </div>
         </div>
         <!-- Overlay templates -->
         <p class="section-label" style="text-align:left;margin-bottom:10px">Overlay Templates</p>
@@ -1224,8 +1293,18 @@
   let gifWorking  = false;
   let _workerBlob = null;
 
-  const LS_KEY          = 'hb_overlays';
+  const LS_KEY           = 'hb_overlays';
   const LS_STOCK_ENABLED = 'hb_stock_enabled';
+  const LS_LAST_OVERLAY  = 'hb_last_overlay';   // FIX 7
+  const LS_DEFAULT_LAYOUT = 'hb_default_layout'; // FIX 14
+
+  /* FIX 15 — EmailJS config (fill in from emailjs.com) */
+  const EMAILJS_PUBLIC_KEY  = '';
+  const EMAILJS_SERVICE_ID  = '';
+  const EMAILJS_TEMPLATE_ID = '';
+
+  /* FIX 8 — auto-save flag */
+  let _autoSaved = false;
 
   /* ─── Stock overlays ──────────────────────────────── */
   const STOCK_OVERLAYS = (() => {
@@ -1415,16 +1494,37 @@
   /* ─── Camera ──────────────────────────────────────── */
   async function startCamera() {
     stopStream();
+    // FIX 9 — request 4:3 with fallback; FIX 13 — show loading overlay
+    const camLoading = $('cam-loading');
+    if (camLoading) camLoading.classList.remove('hidden');
+    const constraints = {
+      video: {
+        facingMode,
+        width: { ideal: 1280 },
+        height: { ideal: 960 },
+        aspectRatio: { ideal: 4/3 }
+      },
+      audio: false
+    };
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false
-      });
-      video.srcObject = stream;
-      video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'none';
-    } catch (err) {
-      alert('Camera unavailable: ' + err.message);
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+      } catch (err) {
+        if (camLoading) camLoading.classList.add('hidden');
+        alert('Camera unavailable: ' + err.message);
+        return;
+      }
     }
+    video.srcObject = stream;
+    // FIX 9 — Firefox needs explicit play(); mirror front camera
+    await video.play().catch(() => {});
+    video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'none';
+    // FIX 13 — hide loading when video actually starts playing
+    video.onplaying = () => { if (camLoading) camLoading.classList.add('hidden'); };
+    // Fallback: hide after 3 s regardless
+    setTimeout(() => { if (camLoading) camLoading.classList.add('hidden'); }, 3000);
   }
 
   function stopStream() {
@@ -1460,6 +1560,16 @@
     stopStream();
     photos = [];
     showScreen('home');
+  }
+
+  /* FIX 3 — X on camera: go back to preview if photos exist, else home */
+  function closeCameraKeepPhotos() {
+    busy = false;
+    cdOverlay.classList.remove('show');
+    shutter.disabled = false;
+    stopStream();
+    if (photos.length > 0) showPreviewScreen();
+    else showScreen('home');
   }
 
   /* ─── Capture sequence ────────────────────────────── */
@@ -1628,6 +1738,16 @@
     img.src = compositeDataUrl;
     img.style.opacity = '1';
     spinner.classList.add('hidden');
+    // FIX 8 — auto-save composite on first render after a new session
+    if (!_autoSaved && compositeDataUrl) {
+      _autoSaved = true;
+      try {
+        const a = document.createElement('a');
+        a.href = compositeDataUrl;
+        a.download = `hando-booth-${Date.now()}.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } catch {}
+    }
   }
 
   /* ─── Filters ─────────────────────────────────────── */
@@ -1687,6 +1807,11 @@
     const all = [...STOCK_OVERLAYS, ...overlays];
     activeOverlay = (activeOverlay && activeOverlay.id === id)
       ? null : all.find(o => o.id === id) || null;
+    // FIX 7 — persist selection
+    try {
+      if (activeOverlay) localStorage.setItem(LS_LAST_OVERLAY, activeOverlay.id);
+      else localStorage.removeItem(LS_LAST_OVERLAY);
+    } catch {}
     renderOverlayGallery();
     reRenderComposite();
   }
@@ -1746,9 +1871,19 @@
   /* ─── Preview screen ──────────────────────────────── */
   function showPreviewScreen() {
     stopStream();
-    activeFilter = 'none'; activeOverlay = null;
+    _autoSaved = false; // FIX 8 — reset so next render triggers auto-save
+    activeFilter = 'none';
     document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === 'none'));
-    loadOverlays(); renderOverlayGallery();
+    loadOverlays();
+    // FIX 7 — restore last selected overlay from localStorage
+    const savedOvId = localStorage.getItem(LS_LAST_OVERLAY);
+    if (savedOvId) {
+      const all = [...STOCK_OVERLAYS, ...overlays];
+      activeOverlay = all.find(o => o.id === savedOvId) || null;
+    } else {
+      activeOverlay = null;
+    }
+    renderOverlayGallery();
     compositeDataUrl = null;
     $('composite-img').src = ''; $('composite-img').style.opacity = '0';
     $('composite-spinner').classList.remove('hidden');
@@ -1779,6 +1914,12 @@
       wrap.onclick = () => startRetakeSingle(i);
       strip.appendChild(wrap);
     });
+    // FIX 5 — "Tap to retake" hint below strip
+    const hint = document.createElement('p');
+    hint.style.cssText = 'font-size:0.65rem;color:var(--muted);text-align:center;margin-top:4px;width:100%';
+    hint.textContent = 'Tap a photo to retake it';
+    // Insert hint after the strip in the DOM
+    strip.insertAdjacentElement('afterend', hint);
   }
 
   async function startRetakeSingle(index) {
@@ -1807,6 +1948,16 @@
     $('export-spinner').classList.add('hidden');
     document.querySelectorAll('.delay-btn').forEach(b => b.classList.toggle('active', b.dataset.d === '500'));
     frameDelay = 500;
+    // FIX 10 — single layout: hide GIF mode toggle, show only photo mode
+    const modeToggle = document.querySelector('.mode-toggle');
+    const gifScreenHead = document.querySelector('#gif-screen .screen-head p');
+    if (layout === 'single') {
+      if (modeToggle) modeToggle.style.display = 'none';
+      if (gifScreenHead) gifScreenHead.textContent = 'Save your photo';
+    } else {
+      if (modeToggle) modeToggle.style.display = '';
+      if (gifScreenHead) gifScreenHead.textContent = 'Choose photo or animated GIF';
+    }
     showScreen('gif-screen');
   }
 
@@ -1909,11 +2060,44 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
+  /* FIX 12 — download current export (photo or GIF) */
+  function downloadCurrentExport() {
+    const url = exportMode === 'gif' ? gifUrl : compositeDataUrl;
+    if (!url) { alert('Nothing ready to download yet.'); return; }
+    const ext = exportMode === 'gif' ? 'gif' : 'png';
+    const a = document.createElement('a');
+    a.href = url; a.download = `hando-booth-${Date.now()}.${ext}`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  /* FIX 4 — Get QR: skip intake form, show thank-you immediately then upload */
+  function doGetQR() {
+    $('ty-name').textContent = 'Enjoy your photo!';
+    $('ty-img').src = compositeDataUrl || '';
+    // Show loading spinner in qr-container (FIX 2 — don't replace #qr-box)
+    $('qr-container').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div><span style="font-size:0.72rem;color:var(--muted)">Uploading…</span></div>';
+    $('qr-hint').textContent = 'Uploading your photo…';
+    showScreen('thankyou');
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      uploadPhotoToSupabase(compositeDataUrl)
+        .then(publicUrl => renderQR(publicUrl))
+        .catch(err => {
+          console.error('Supabase upload failed:', err);
+          $('qr-container').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Upload failed.<br>Ask staff for your photo.</p>';
+          $('qr-hint').textContent = '';
+        });
+    } else {
+      $('qr-container').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Cloud sharing<br>not configured.</p>';
+      $('qr-hint').textContent = '';
+    }
+  }
+
   /* ═══════════════════════════════════════════════════
      PRINT
   ═══════════════════════════════════════════════════ */
   function printPhoto() {
-    const url = exportMode === 'gif' ? compositeDataUrl : (compositeDataUrl || '');
+    // FIX 11 — always print composite (works from gif-screen and thank-you screen)
+    const url = compositeDataUrl || '';
     if (!url) { alert('Nothing to print yet.'); return; }
     $('print-target-img').src = url;
     window.print();
@@ -1991,6 +2175,12 @@
 
   function renderAdminPanel() {
     $('admin-usage').textContent = localStorage.getItem(LS_USAGE) || '0';
+    // FIX 14 — highlight active default layout button
+    const savedLayout = localStorage.getItem(LS_DEFAULT_LAYOUT) || layout;
+    ['single','strip','quad'].forEach(n => {
+      const btn = $('dl-' + n);
+      if (btn) btn.classList.toggle('active', n === savedLayout);
+    });
     loadOverlays();
     const list = $('admin-ov-list');
     list.innerHTML = '';
@@ -2233,9 +2423,9 @@
     const firstName = name.split(' ')[0];
     $('ty-name').textContent = `Thanks, ${firstName}! 🎉`;
     $('ty-img').src = compositeDataUrl || '';
-    $('qr-container').innerHTML = '';
+    // FIX 2 — only replace #qr-container content, keep #qr-box intact
+    $('qr-container').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div><span style="font-size:0.72rem;color:var(--muted)">Uploading…</span></div>';
     $('qr-hint').textContent = 'Uploading your photo…';
-    $('qr-box').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div><span style="font-size:0.72rem;color:var(--muted)">Uploading…</span></div>';
     showScreen('thankyou');
 
     // 2. Trigger local download immediately
@@ -2250,24 +2440,34 @@
     // 3. Upload composite PNG to Supabase, then render QR with public URL
     if (SUPABASE_URL && SUPABASE_KEY) {
       uploadPhotoToSupabase(compositeDataUrl)
-        .then(publicUrl => renderQR(publicUrl))
+        .then(publicUrl => {
+          renderQR(publicUrl);
+          // FIX 15 — send email via EmailJS if configured
+          if (EMAILJS_PUBLIC_KEY && publicUrl) {
+            emailjs.init(EMAILJS_PUBLIC_KEY);
+            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+              to_name: name,
+              to_email: email,
+              photo_url: publicUrl,
+              from_name: 'Hando Booth'
+            }).catch(e => console.warn('Email failed:', e));
+          }
+        })
         .catch(err => {
           console.error('Supabase upload failed:', err);
-          $('qr-box').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Upload failed.<br>Ask staff for your photo.</p>';
+          $('qr-container').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Upload failed.<br>Ask staff for your photo.</p>';
           $('qr-hint').textContent = '';
         });
     } else {
-      $('qr-box').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Cloud sharing<br>not configured.</p>';
+      $('qr-container').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Cloud sharing<br>not configured.</p>';
       $('qr-hint').textContent = '';
     }
   }
 
+  /* FIX 2 + FIX 16 — renderQR: clear only #qr-container; hide duplicate img qrcode.js injects */
   function renderQR(url) {
-    const box = $('qr-box');
-    box.innerHTML = '';
-    const wrap = document.createElement('div');
-    wrap.id = 'qr-container';
-    box.appendChild(wrap);
+    const wrap = $('qr-container');
+    wrap.innerHTML = '';
     if (typeof QRCode !== 'undefined') {
       new QRCode(wrap, {
         text: url,
@@ -2275,6 +2475,11 @@
         colorDark: '#2e1e08', colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
+      // FIX 16 — qrcode.js injects both a canvas and an img; hide the img so only canvas shows
+      setTimeout(() => {
+        wrap.querySelectorAll('img').forEach(i => { i.style.display = 'none'; });
+        wrap.querySelectorAll('canvas').forEach(c => { c.style.display = 'block'; });
+      }, 100);
     } else {
       wrap.innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:8px">QR unavailable</p>';
     }
@@ -2287,7 +2492,28 @@
     showScreen('home');
   }
 
+  /* FIX 14 — Admin: set default layout */
+  function setDefaultLayout(name) {
+    localStorage.setItem(LS_DEFAULT_LAYOUT, name);
+    ['single','strip','quad'].forEach(n => {
+      const btn = $('dl-' + n);
+      if (btn) btn.classList.toggle('active', n === name);
+    });
+    // Apply to home screen immediately
+    const card = document.querySelector(`.layout-card[data-layout="${name}"]`);
+    if (card) selectLayout(card, name);
+  }
+
   /* QR now links directly to Supabase public URL — no ?get= param needed */
+
+  /* ─── Init: apply saved default layout on load ────── */
+  (function init() {
+    const savedLayout = localStorage.getItem(LS_DEFAULT_LAYOUT);
+    if (savedLayout) {
+      const card = document.querySelector(`.layout-card[data-layout="${savedLayout}"]`);
+      if (card) selectLayout(card, savedLayout);
+    }
+  })();
 </script>
 </body>
 </html>
