@@ -2445,7 +2445,6 @@
           renderQR(publicUrl);
           // FIX 15 — send email via EmailJS if configured
           if (EMAILJS_PUBLIC_KEY && publicUrl) {
-            emailjs.init(EMAILJS_PUBLIC_KEY);
             emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
               to_name: name,
               to_email: email,
@@ -2513,6 +2512,10 @@
     if (savedLayout) {
       const card = document.querySelector(`.layout-card[data-layout="${savedLayout}"]`);
       if (card) selectLayout(card, savedLayout);
+    }
+    // Init EmailJS v4 once on page load
+    if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
     }
   })();
 </script>
