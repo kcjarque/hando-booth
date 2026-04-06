@@ -144,14 +144,14 @@
 
     /* Layout picker */
     .layout-grid {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 10px;
       width: 100%;
       max-width: 380px;
     }
 
     .layout-card {
-      flex: 1;
       background: #fff;
       border: 2px solid var(--border);
       border-radius: 16px;
@@ -173,7 +173,7 @@
       box-shadow: 0 2px 16px rgba(200,131,28,0.2);
     }
 
-    .icon-single, .icon-strip, .icon-quad { display: flex; flex-direction: column; gap: 3px; }
+    .icon-single, .icon-double, .icon-strip, .icon-quad { display: flex; flex-direction: column; gap: 3px; }
     .icon-row { display: flex; gap: 3px; }
     .icon-cell {
       background: var(--border);
@@ -930,6 +930,15 @@
         <div class="layout-count">1 photo</div>
       </div>
 
+      <div class="layout-card" data-layout="double" onclick="selectLayout(this,'double')">
+        <div class="icon-double">
+          <div class="icon-cell" style="width:44px;height:24px"></div>
+          <div class="icon-cell" style="width:44px;height:24px"></div>
+        </div>
+        <div class="layout-label">Double</div>
+        <div class="layout-count">2 photos</div>
+      </div>
+
       <div class="layout-card" data-layout="strip" onclick="selectLayout(this,'strip')">
         <div class="icon-strip">
           <div class="icon-cell" style="width:44px;height:18px"></div>
@@ -1093,17 +1102,10 @@
     </div>
   </div>
 
-  <!-- FIX 12: two-row action area — row1: Back + Download, row2: QR + Email -->
-  <div style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;flex-shrink:0">
-    <div class="action-row">
-      <button class="btn-ghost" onclick="backToPreview()">← Back</button>
-      <button class="btn-ghost" onclick="downloadCurrentExport()">⬇ Download</button>
-    </div>
-    <div class="action-row">
-      <!-- FIX 4: QR and Email buttons -->
-      <button class="btn-ghost" onclick="doGetQR()">📱 Get QR</button>
-      <button class="btn-warm"  onclick="showGetPhotoModal()">📧 Send Email</button>
-    </div>
+  <!-- Simplified action row: Back + Get Photo -->
+  <div class="action-row" style="max-width:380px;width:100%">
+    <button class="btn-ghost" onclick="backToPreview()">← Back</button>
+    <button class="btn-warm"  onclick="doGetPhoto()">📷 Get Photo</button>
   </div>
 
 </div>
@@ -1141,6 +1143,51 @@
     <button class="btn-warm" style="font-size:1rem" onclick="startOver()">✦ Start Over</button>
   </div>
 
+</div>
+
+<!-- ════════════ CLAIM SCREEN (shown when ?photo= param detected) ════════════ -->
+<div id="claim-screen" class="screen warm-screen">
+  <div class="screen-top">
+    <div style="width:40px"></div>
+    <div class="screen-head">
+      <h2>Get Your Photo! 🎉</h2>
+      <p>Enter your details to receive it</p>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+
+  <div id="claim-form-wrap" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:0">
+    <div class="img-panel" style="margin-bottom:16px">
+      <img id="claim-img" class="panel-img" alt="Your photo" style="opacity:0.85">
+    </div>
+    <form id="claim-form" onsubmit="submitClaim(event)" novalidate style="display:contents">
+      <div style="background:#fff;border-radius:16px;border:1.5px solid var(--border);padding:18px;margin-bottom:12px;display:flex;flex-direction:column;gap:14px">
+        <div class="form-field">
+          <label class="field-label">Your Name <span class="req">*</span></label>
+          <input id="claim-name" class="text-input" type="text" placeholder="Your name" autocomplete="name">
+          <span class="field-err" id="claim-err-name"></span>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Email <span class="req">*</span></label>
+          <input id="claim-email" class="text-input" type="email" placeholder="your@email.com" autocomplete="email">
+          <span class="field-err" id="claim-err-email"></span>
+        </div>
+      </div>
+      <input type="hidden" id="claim-photo-url">
+      <div class="action-row">
+        <button type="submit" class="btn-warm" style="font-size:1rem">⬇ Download &amp; Send →</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="claim-done" style="display:none;width:100%;max-width:380px;text-align:center;display:none">
+    <div style="font-size:4rem;margin-bottom:16px">🎉</div>
+    <h3 style="font-family:var(--font-brand);font-size:1.6rem;color:var(--text);margin-bottom:8px">You're all set!</h3>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:24px">Check your email — your photo is on the way!</p>
+    <div class="img-panel">
+      <img id="claim-done-img" class="panel-img" alt="Your photo">
+    </div>
+  </div>
 </div>
 
 <!-- Print target (only visible when printing) -->
@@ -1188,11 +1235,26 @@
           </div>
           <button onclick="resetUsage()" style="margin-left:auto;background:none;border:1.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:0.75rem;color:var(--muted);cursor:pointer">Reset</button>
         </div>
+        <!-- Countdown Timer -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Countdown Timer</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="delay-btn cd-btn active" data-cd="3"  onclick="setCountdownSecs(3)">3s</button>
+            <button class="delay-btn cd-btn"        data-cd="4"  onclick="setCountdownSecs(4)">4s</button>
+            <button class="delay-btn cd-btn"        data-cd="5"  onclick="setCountdownSecs(5)">5s</button>
+            <button class="delay-btn cd-btn"        data-cd="6"  onclick="setCountdownSecs(6)">6s</button>
+            <button class="delay-btn cd-btn"        data-cd="7"  onclick="setCountdownSecs(7)">7s</button>
+            <button class="delay-btn cd-btn"        data-cd="8"  onclick="setCountdownSecs(8)">8s</button>
+            <button class="delay-btn cd-btn"        data-cd="9"  onclick="setCountdownSecs(9)">9s</button>
+            <button class="delay-btn cd-btn"        data-cd="10" onclick="setCountdownSecs(10)">10s</button>
+          </div>
+        </div>
         <!-- FIX 14: Default Layout selector -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Default Layout</div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button onclick="setDefaultLayout('single')" id="dl-single" class="delay-btn">Single</button>
+            <button onclick="setDefaultLayout('double')" id="dl-double" class="delay-btn">Double</button>
             <button onclick="setDefaultLayout('strip')"  id="dl-strip"  class="delay-btn">Strip</button>
             <button onclick="setDefaultLayout('quad')"   id="dl-quad"   class="delay-btn">Quad</button>
           </div>
@@ -1202,9 +1264,10 @@
         <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:20px">
           <p style="font-size:0.75rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Download a template PNG for each layout. Design your overlay on top — the checkerboard areas are where photos will show through.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onclick="downloadOverlayTemplate('single')" style="flex:1;min-width:80px;padding:9px 8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Single<br><span style="font-weight:400;color:var(--muted)">864×664</span></button>
-            <button onclick="downloadOverlayTemplate('strip')"  style="flex:1;min-width:80px;padding:9px 8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Strip<br><span style="font-weight:400;color:var(--muted)">864×1896</span></button>
-            <button onclick="downloadOverlayTemplate('quad')"   style="flex:1;min-width:80px;padding:9px 8px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Quad<br><span style="font-weight:400;color:var(--muted)">1680×1280</span></button>
+            <button onclick="downloadOverlayTemplate('single')" style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Single<br><span style="font-weight:400;color:var(--muted)">864×664</span></button>
+            <button onclick="downloadOverlayTemplate('double')" style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Double<br><span style="font-weight:400;color:var(--muted)">864×1280</span></button>
+            <button onclick="downloadOverlayTemplate('strip')"  style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Strip<br><span style="font-weight:400;color:var(--muted)">864×1896</span></button>
+            <button onclick="downloadOverlayTemplate('quad')"   style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Quad<br><span style="font-weight:400;color:var(--muted)">1680×1280</span></button>
           </div>
         </div>
         <!-- Custom overlays -->
@@ -1218,6 +1281,7 @@
             <label class="field-label" style="font-size:0.75rem">For Layout</label>
             <select id="admin-ov-layout" class="text-input" style="padding:10px 12px;font-size:0.83rem;cursor:pointer">
               <option value="single">Single (1 photo)</option>
+              <option value="double">Double (2 photos)</option>
               <option value="strip">Strip (3 photos)</option>
               <option value="quad">Quad (4 photos)</option>
               <option value="all">All layouts</option>
@@ -1274,7 +1338,7 @@
 
 <script>
   /* ─── Capture state ───────────────────────────────── */
-  const COUNTS = { single: 1, strip: 3, quad: 4 };
+  const COUNTS = { single: 1, double: 2, strip: 3, quad: 4 };
   let layout     = 'single';
   let facingMode = 'user';
   let stream     = null;
@@ -1298,6 +1362,8 @@
   const LS_STOCK_ENABLED = 'hb_stock_enabled';
   const LS_LAST_OVERLAY  = 'hb_last_overlay';   // FIX 7
   const LS_DEFAULT_LAYOUT = 'hb_default_layout'; // FIX 14
+  const LS_COUNTDOWN      = 'hb_countdown';
+  let   countdownSecs     = 3;
 
   /* FIX 15 — EmailJS config (fill in from emailjs.com) */
   const EMAILJS_PUBLIC_KEY  = 'XU6XBK8cXhIS5GyLs';
@@ -1613,7 +1679,7 @@
     return new Promise(resolve => {
       cdLabel.textContent = label;
       cdOverlay.classList.add('show');
-      let n = 3;
+      let n = countdownSecs;
       function tick() {
         if (n === 0) { resolve(); return; }
         cdNum.textContent = n;
@@ -1659,6 +1725,10 @@
     if (layout === 'single') return {
       cw: CELL_W+2*PAD, ch: CELL_H+2*PAD,
       positions: [{ x:PAD, y:PAD }]
+    };
+    if (layout === 'double') return {
+      cw: CELL_W+2*PAD, ch: 2*CELL_H+GAP+2*PAD,
+      positions: [{x:PAD,y:PAD}, {x:PAD,y:PAD+CELL_H+GAP}]
     };
     if (layout === 'strip') return {
       cw: CELL_W+2*PAD, ch: 3*CELL_H+2*GAP+2*PAD,
@@ -2071,6 +2141,40 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
 
+  /* Get Photo — upload composite/GIF, show QR with claim URL for guest to scan */
+  function doGetPhoto() {
+    if (!compositeDataUrl) { alert('No photo yet.'); return; }
+    // Show uploading spinner on the export panel
+    const spinner = $('export-spinner');
+    const lbl     = $('export-spinner-label');
+    spinner.classList.remove('hidden');
+    lbl.textContent = 'Uploading…';
+
+    const isGif = exportMode === 'gif' && gifUrl;
+    const uploadSrc = isGif ? gifUrl : compositeDataUrl;
+    const ct  = isGif ? 'image/gif' : 'image/png';
+    const ext = isGif ? 'gif'       : 'png';
+
+    uploadPhotoToSupabase(uploadSrc, ct, ext)
+      .then(publicUrl => {
+        spinner.classList.add('hidden');
+        // Build the claim URL — guest scans this, fills form, gets photo
+        const claimUrl = `${location.origin}${location.pathname}?photo=${encodeURIComponent(publicUrl)}`;
+        // Show thank-you screen with claim QR
+        $('ty-name').textContent = 'Your photo is ready!';
+        $('ty-img').src = compositeDataUrl || '';
+        $('qr-container').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div></div>';
+        $('qr-hint').textContent = '';
+        showScreen('thankyou');
+        renderQR(claimUrl);
+        $('qr-hint').textContent = 'Guest scans this QR → fills in details → gets the photo';
+      })
+      .catch(err => {
+        spinner.classList.add('hidden');
+        alert('Upload failed: ' + err.message);
+      });
+  }
+
   /* FIX 4 — Get QR: skip intake form, show thank-you immediately then upload */
   function doGetQR() {
     $('ty-name').textContent = 'Enjoy your photo!';
@@ -2268,6 +2372,9 @@
     if (layoutName === 'single') {
       cw = CW + 2*P; ch = CH + 2*P;
       positions = [{x: P, y: P}];
+    } else if (layoutName === 'double') {
+      cw = CW + 2*P; ch = 2*CH + G + 2*P;
+      positions = [{x:P,y:P},{x:P,y:P+CH+G}];
     } else if (layoutName === 'strip') {
       cw = CW + 2*P; ch = 3*CH + 2*G + 2*P;
       positions = [{x:P,y:P},{x:P,y:P+CH+G},{x:P,y:P+2*(CH+G)}];
@@ -2349,21 +2456,15 @@
   const SUPABASE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenNqZ3doaG9oeGxyenhvamdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzOTkyOTYsImV4cCI6MjA5MDk3NTI5Nn0.K677qTL0E813GSkW9HuALOCLyKh86YOSAgS1RvS_odw';
   const SUPABASE_BUCKET = 'photos';
 
-  async function uploadPhotoToSupabase(dataUrl) {
+  async function uploadPhotoToSupabase(dataUrl, contentType = 'image/png', ext = 'png') {
     const res  = await fetch(dataUrl);
     const blob = await res.blob();
-    const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.png`;
+    const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const r = await fetch(
       `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'image/png',
-          'x-upsert': 'false'
-        },
-        body: blob
-      }
+      { method: 'POST',
+        headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': contentType, 'x-upsert': 'false' },
+        body: blob }
     );
     if (!r.ok) throw new Error(await r.text());
     return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
@@ -2372,6 +2473,54 @@
   /* ═══════════════════════════════════════════════════
      SHARE FLOW — INTAKE MODAL
   ═══════════════════════════════════════════════════ */
+
+  /* Claim screen — guest fills form after scanning QR */
+  function submitClaim(e) {
+    e.preventDefault();
+    const name  = $('claim-name').value.trim();
+    const email = $('claim-email').value.trim();
+    let valid = true;
+    if (name.length < 2) {
+      $('claim-err-name').textContent = 'Please enter your name.';
+      $('claim-name').classList.add('invalid');
+      valid = false;
+    } else {
+      $('claim-err-name').textContent = '';
+      $('claim-name').classList.remove('invalid');
+    }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(email)) {
+      $('claim-err-email').textContent = 'Please enter a valid email.';
+      $('claim-email').classList.add('invalid');
+      valid = false;
+    } else {
+      $('claim-err-email').textContent = '';
+      $('claim-email').classList.remove('invalid');
+    }
+    if (!valid) return;
+
+    const photoUrl = $('claim-photo-url').value;
+
+    // Trigger download
+    const a = document.createElement('a');
+    a.href = photoUrl; a.download = 'hando-booth-photo.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+    // Send email via EmailJS
+    if (EMAILJS_PUBLIC_KEY) {
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_name: name, to_email: email, photo_url: photoUrl, from_name: 'Hando Booth'
+      }).catch(err => console.warn('Email send failed:', err));
+    }
+
+    // Show done state
+    $('claim-form-wrap').style.display = 'none';
+    const done = $('claim-done');
+    done.style.display = 'flex';
+    done.style.flexDirection = 'column';
+    done.style.alignItems = 'center';
+    $('claim-done-img').src = photoUrl;
+  }
 
   function showGetPhotoModal() {
     // Reset form state
@@ -2492,12 +2641,19 @@
     showScreen('home');
   }
 
+  /* Countdown timer setting */
+  function setCountdownSecs(n) {
+    countdownSecs = n;
+    try { localStorage.setItem(LS_COUNTDOWN, String(n)); } catch {}
+    document.querySelectorAll('.cd-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd) === n));
+  }
+
   /* FIX 14 — Admin: set default layout */
   function setDefaultLayout(name) {
     localStorage.setItem(LS_DEFAULT_LAYOUT, name);
-    ['single','strip','quad'].forEach(n => {
-      const btn = $('dl-' + n);
-      if (btn) btn.classList.toggle('active', n === name);
+    ['single','double','strip','quad'].forEach(n => {
+      const btn = $('dl-'+n);
+      if (btn) btn.classList.toggle('active', n===name);
     });
     // Apply to home screen immediately
     const card = document.querySelector(`.layout-card[data-layout="${name}"]`);
@@ -2512,6 +2668,21 @@
     if (savedLayout) {
       const card = document.querySelector(`.layout-card[data-layout="${savedLayout}"]`);
       if (card) selectLayout(card, savedLayout);
+    }
+    // Detect claim flow: ?photo=URL means a guest scanned the QR
+    const _claimPhotoUrl = new URLSearchParams(window.location.search).get('photo');
+    if (_claimPhotoUrl) {
+      const decodedUrl = decodeURIComponent(_claimPhotoUrl);
+      $('claim-photo-url').value = decodedUrl;
+      $('claim-img').src = decodedUrl;
+      showScreen('claim-screen');
+      return; // skip rest of init (default layout etc.)
+    }
+    // Restore saved countdown duration
+    const savedCd = parseInt(localStorage.getItem(LS_COUNTDOWN) || '3');
+    if (savedCd >= 3 && savedCd <= 10) {
+      countdownSecs = savedCd;
+      document.querySelectorAll('.cd-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd) === savedCd));
     }
     // Init EmailJS v4 once on page load
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
