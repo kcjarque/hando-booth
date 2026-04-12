@@ -347,10 +347,26 @@
       aspect-ratio: 4/3;
       max-width: 100%;
       pointer-events: none;
-      border-left: 3px solid rgba(255,255,255,0.7);
-      border-right: 3px solid rgba(255,255,255,0.7);
+      border: 3px solid rgba(255,255,255,0.7);
       box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6);
       z-index: 1;
+    }
+    .cam-crop-guide::before,
+    .cam-crop-guide::after {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-color: #fff;
+      border-style: solid;
+    }
+    .cam-crop-guide::before {
+      top: 8px; left: 8px;
+      border-width: 3px 0 0 3px;
+    }
+    .cam-crop-guide::after {
+      top: 8px; right: 8px;
+      border-width: 3px 3px 0 0;
     }
 
     /* ── PREVIEW + GIF shared ──────────────────────── */
@@ -1991,6 +2007,19 @@
     vid.muted = false;
     vid.play().catch(() => {});
     showScreen('video-preview');
+    // Auto-download video
+    if (_recordedBlobUrl) {
+      setTimeout(() => {
+        fetch(_recordedBlobUrl).then(r => r.blob()).then(blob => {
+          const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'hando-booth-' + Date.now() + '.' + ext;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      }, 500);
+    }
   }
 
   function retakeVideo() {
@@ -2015,15 +2044,35 @@
     try {
       const resp = await fetch(_recordedBlobUrl);
       const blob = await resp.blob();
-      const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      const file = new File([blob], 'hando-booth.' + ext, { type: blob.type });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Hando Booth Video' });
+      // Try mp4 first (better app support), fall back to webm
+      let shareBlob = blob;
+      let ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+      // Some apps reject webm — try sharing as mp4 mime
+      const mimeType = ext === 'mp4' ? 'video/mp4' : 'video/webm';
+      const file = new File([shareBlob], 'hando-booth.' + ext, { type: mimeType });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Hando Booth Video',
+          text: 'Check out my Hando Booth video!'
+        });
+      } else if (navigator.share) {
+        // Fallback: share without file (just text)
+        await navigator.share({
+          title: 'Hando Booth Video',
+          text: 'Check out my Hando Booth video!'
+        });
       } else {
-        alert('Sharing is not supported on this device. Try downloading instead.');
+        alert('Sharing is not supported on this browser. Try downloading instead.');
       }
     } catch (err) {
-      if (err.name !== 'AbortError') console.warn('Share failed:', err);
+      if (err.name === 'AbortError') return; // user cancelled
+      if (err.name === 'NotAllowedError') {
+        alert('Share was blocked. Please try again.');
+      } else {
+        // Fallback to download
+        doGetVideo();
+      }
     }
   }
 
@@ -2197,9 +2246,11 @@
       c.restore();
     }
 
-    if (activeOverlay) {
-      const ov = await loadImg(activeOverlay.dataUrl);
-      c.drawImage(ov, 0, 0, cw, ch);
+    if (activeOverlay && activeOverlay.dataUrl) {
+      try {
+        const ov = await loadImg(activeOverlay.dataUrl);
+        c.drawImage(ov, 0, 0, cw, ch);
+      } catch (e) { console.warn('Overlay load failed:', e); }
     }
     return comp.toDataURL('image/png');
   }
@@ -2416,6 +2467,14 @@
       generateGif();
     }
     showScreen('gif-screen');
+    // Auto-download photo
+    if (compositeDataUrl) {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = compositeDataUrl; a.download = 'hando-booth-' + Date.now() + '.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      }, 500);
+    }
   }
 
   function backToPreview() { showScreen('preview'); }
@@ -2538,10 +2597,10 @@
     spinner.classList.remove('hidden');
     lbl.textContent = 'Uploading…';
 
-    const isGif = exportMode === 'gif' && gifUrl;
+    const hasGif = gifUrl && photos.length > 1;
     let uploadPromise;
 
-    if (isGif) {
+    if (hasGif) {
       uploadPromise = Promise.all([
         uploadPhotoToSupabase(compositeDataUrl, 'image/png', 'png'),
         uploadPhotoToSupabase(gifUrl, 'image/gif', 'gif')
