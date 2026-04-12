@@ -104,10 +104,11 @@
 
     /* ── HOME ──────────────────────────────────────── */
     #home {
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
-      gap: clamp(18px, 3.5vh, 30px);
-      padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+      gap: clamp(14px, 2.5vh, 24px);
+      padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+      padding-top: clamp(20px, 4vh, 40px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       background: radial-gradient(ellipse at 60% 10%, #fce8c8 0%, var(--bg) 65%);
@@ -999,12 +1000,10 @@
         <div class="layout-count">4 photos</div>
       </div>
 
-      <div class="layout-card" data-layout="video" onclick="selectLayout(this,'video')">
-        <div style="display:flex;align-items:center;justify-content:center;width:44px;height:34px">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--border)"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-        </div>
-        <div class="layout-label">Video</div>
-        <div class="layout-count">Recording</div>
+      <div class="layout-card" data-layout="video" onclick="selectLayout(this,'video')" style="grid-column:1/-1;flex-direction:row;padding:12px 18px;gap:12px;justify-content:center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--border);flex-shrink:0"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        <div class="layout-label" style="margin:0">Video</div>
+        <div class="layout-count" style="margin:0">Recording</div>
       </div>
 
     </div>
@@ -1012,10 +1011,13 @@
 
   <button class="start-btn" onclick="startBooth()">&#x25B6;&ensp;Start Session</button>
 
-  <!-- Admin button — password protected -->
-  <button onclick="openAdminModal()" aria-label="Admin" style="position:absolute;bottom:max(20px,env(safe-area-inset-bottom));right:20px;width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent;z-index:10">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-  </button>
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px">
+    <!-- Admin button -->
+    <button onclick="openAdminModal()" aria-label="Admin" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v2.4</span>
+  </div>
 </div>
 
 <!-- ════════════ CAMERA ════════════ -->
@@ -1178,11 +1180,7 @@
   </div>
   <div class="action-row" style="max-width:380px;width:100%">
     <button class="btn-ghost" onclick="retakeVideo()">↩ Retake</button>
-    <button class="btn-warm" onclick="doGetVideo()">📷 Get Video</button>
-  </div>
-  <div id="vid-spinner" class="panel-spinner hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center">
-    <span class="spin-ring"></span>
-    <span id="vid-spinner-label" style="color:#fff;margin-left:12px">Uploading…</span>
+    <button class="btn-warm" onclick="doGetVideo()">⬇ Download</button>
   </div>
 </div>
 
@@ -1922,41 +1920,16 @@
     startBooth();
   }
 
-  async function doGetVideo() {
+  function doGetVideo() {
     if (!_recordedBlobUrl) { alert('No video yet.'); return; }
-    const spinner = $('vid-spinner');
-    spinner.classList.remove('hidden');
-    spinner.style.display = 'flex';
-    $('vid-spinner-label').textContent = 'Uploading…';
-    try {
-      const blob = await fetch(_recordedBlobUrl).then(r => r.blob());
+    fetch(_recordedBlobUrl).then(r => r.blob()).then(blob => {
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-      const r = await fetch(
-        `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`,
-        { method: 'POST',
-          headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': blob.type, 'x-upsert': 'false' },
-          body: blob }
-      );
-      if (!r.ok) throw new Error(await r.text());
-      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
-      spinner.classList.add('hidden');
-      spinner.style.display = '';
-      const claimUrl = `${location.origin}${location.pathname}?video=${encodeURIComponent(publicUrl)}`;
-      $('ty-name').textContent = 'Your video is ready!';
-      $('ty-img').src = '';
-      $('ty-img').style.display = 'none';
-      $('qr-container').innerHTML = '';
-      $('qr-hint').textContent = '';
-      showScreen('thankyou');
-      renderQR(claimUrl);
-      $('qr-hint').textContent = 'Scan QR → fill in details → get the video';
-    } catch(err) {
-      spinner.classList.add('hidden');
-      spinner.style.display = '';
-      console.error('Video upload failed:', err);
-      alert('Upload failed. Please try again.');
-    }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'hando-booth-' + Date.now() + '.' + ext;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
   }
 
   function setVideoDuration(val) {
@@ -3052,10 +3025,14 @@
       $('hbtn-default').classList.remove('active');
     }
     const color = hex || '';
-    document.querySelectorAll('.btn-warm, .start-btn, .btn-ghost, .fpill').forEach(btn => {
-      btn.style.background = color || '';
+    document.querySelectorAll('.btn-warm, .start-btn, .btn-ghost, .fpill, .layout-card').forEach(btn => {
       btn.style.borderColor = color || '';
     });
+    document.querySelectorAll('.btn-warm, .start-btn, .btn-ghost, .fpill').forEach(btn => {
+      btn.style.background = color || '';
+    });
+    // Update CSS variable for selected card + icon colors
+    document.documentElement.style.setProperty('--orange', color || '#c8831c');
   }
 
   /* Home background customization */
@@ -3152,10 +3129,10 @@
       canvas.onpointerdown = editorPointerDown;
       canvas.onpointermove = editorPointerMove;
       canvas.onpointerup = editorPointerUp;
-      // Touch events for pinch-to-resize
-      canvas.ontouchstart = editorTouchStart;
-      canvas.ontouchmove = editorTouchMove;
-      canvas.ontouchend = editorTouchEnd;
+      // Touch events for pinch-to-resize (passive:false needed for iOS preventDefault)
+      canvas.addEventListener('touchstart', editorTouchStart, { passive: false });
+      canvas.addEventListener('touchmove', editorTouchMove, { passive: false });
+      canvas.addEventListener('touchend', editorTouchEnd);
     };
     img.src = compositeDataUrl;
   }
@@ -3352,13 +3329,27 @@
   }
 
   function editorTouchStart(e) {
-    if (e.touches.length === 2 && _editorSel >= 0) {
+    if (e.touches.length === 2) {
       e.preventDefault();
-      _editorPinch = {
-        dist: _getTouchDist(e.touches[0], e.touches[1]),
-        origW: _editorItems[_editorSel].w,
-        origH: _editorItems[_editorSel].h
-      };
+      _editorDrag = null; // cancel any drag
+      // Auto-select item under first touch if nothing selected
+      if (_editorSel < 0) {
+        const canvas = $('editor-canvas');
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const px = (e.touches[0].clientX - rect.left) * scaleX;
+        const py = (e.touches[0].clientY - rect.top) * scaleY;
+        const hit = _editorHitTest(px, py);
+        if (hit >= 0) { _editorSel = hit; drawEditor(); }
+      }
+      if (_editorSel >= 0) {
+        _editorPinch = {
+          dist: _getTouchDist(e.touches[0], e.touches[1]),
+          origW: _editorItems[_editorSel].w,
+          origH: _editorItems[_editorSel].h
+        };
+      }
     }
   }
 
@@ -3366,7 +3357,7 @@
     if (e.touches.length === 2 && _editorPinch && _editorSel >= 0) {
       e.preventDefault();
       const newDist = _getTouchDist(e.touches[0], e.touches[1]);
-      const scale = newDist / _editorPinch.dist;
+      const scale = Math.max(0.2, Math.min(5, newDist / _editorPinch.dist));
       const it = _editorItems[_editorSel];
       const cx = it.x + it.w/2, cy = it.y + it.h/2;
       it.w = Math.max(20, Math.round(_editorPinch.origW * scale));
