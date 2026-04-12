@@ -951,6 +951,36 @@
       display: flex; gap: 8px; flex-wrap: wrap;
       justify-content: center; padding: 8px 0;
     }
+    /* Touch-friendly range sliders */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--orange);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--orange);
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      cursor: pointer;
+    }
+
     .sticker-btn {
       width: 44px; height: 44px;
       font-size: 1.5rem;
@@ -1060,7 +1090,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.0</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.1</span>
   </div>
 </div>
 
@@ -1224,8 +1254,7 @@
   </div>
   <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="retakeVideo()" style="flex:1;min-width:80px">↩ Retake</button>
-    <button class="btn-warm" onclick="doGetVideo()" style="flex:1;min-width:80px">⬇ Download</button>
-    <button class="btn-ghost" onclick="shareVideo()" id="share-video-btn" style="flex:1;min-width:80px">↗ Share</button>
+    <button class="btn-warm" onclick="shareVideo()" id="share-video-btn" style="flex:1;min-width:80px">↗ Share</button>
   </div>
 </div>
 
@@ -1337,7 +1366,7 @@
       <img id="claim-done-img" class="panel-img" alt="Your photo" crossorigin="anonymous">
     </div>
     <div class="action-row" style="max-width:320px;width:100%;gap:8px;margin-bottom:10px">
-      <button class="btn-ghost" onclick="shareClaimPhoto()" style="flex:1;min-width:100px">↗ Share</button>
+      <button class="btn-ghost" onclick="shareClaimPhoto()" style="flex:1;min-width:100px">↗ Share Photo</button>
       <button id="claim-dl-gif-btn" onclick="shareClaimGif()" class="btn-warm" style="display:none;flex:1;min-width:100px">↗ Share GIF</button>
     </div>
   </div>
@@ -1483,30 +1512,49 @@
         <!-- Layout Sizes -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Layout Sizes</div>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px;line-height:1.4">Adjust photo cell dimensions, gap, and padding for the composite layout.</p>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Width</label>
-              <input type="range" id="ls-cellw" min="400" max="1600" step="50" value="800" oninput="updateLayoutSize('cellW',this.value)" style="flex:1">
-              <span id="ls-cellw-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">800</span>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;line-height:1.4">Adjust photo cell dimensions, gap, and padding.</p>
+          <!-- Live preview -->
+          <div style="display:flex;gap:10px;margin-bottom:14px;justify-content:center;align-items:flex-end;flex-wrap:wrap">
+            <div style="text-align:center">
+              <canvas id="ls-preview-single" width="200" height="160" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:90px;height:72px"></canvas>
+              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Single</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Height</label>
-              <input type="range" id="ls-cellh" min="300" max="1200" step="50" value="600" oninput="updateLayoutSize('cellH',this.value)" style="flex:1">
-              <span id="ls-cellh-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">600</span>
+            <div style="text-align:center">
+              <canvas id="ls-preview-double" width="160" height="240" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:56px;height:84px"></canvas>
+              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Double</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Gap</label>
-              <input type="range" id="ls-gap" min="0" max="50" step="2" value="16" oninput="updateLayoutSize('gap',this.value)" style="flex:1">
-              <span id="ls-gap-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">16</span>
+            <div style="text-align:center">
+              <canvas id="ls-preview-strip" width="130" height="320" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:40px;height:98px"></canvas>
+              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Strip</div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Padding</label>
-              <input type="range" id="ls-pad" min="0" max="60" step="4" value="32" oninput="updateLayoutSize('pad',this.value)" style="flex:1">
-              <span id="ls-pad-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">32</span>
+            <div style="text-align:center">
+              <canvas id="ls-preview-quad" width="240" height="200" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:90px;height:75px"></canvas>
+              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Quad</div>
             </div>
           </div>
-          <button onclick="resetLayoutSizes()" style="margin-top:10px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;width:100%">Reset to Default</button>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Width</label>
+              <input type="range" id="ls-cellw" min="400" max="1600" step="50" value="800" oninput="updateLayoutSize('cellW',this.value)" style="flex:1;height:28px">
+              <span id="ls-cellw-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">800</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Height</label>
+              <input type="range" id="ls-cellh" min="300" max="1200" step="50" value="600" oninput="updateLayoutSize('cellH',this.value)" style="flex:1;height:28px">
+              <span id="ls-cellh-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">600</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Gap</label>
+              <input type="range" id="ls-gap" min="0" max="50" step="2" value="16" oninput="updateLayoutSize('gap',this.value)" style="flex:1;height:28px">
+              <span id="ls-gap-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">16</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Padding</label>
+              <input type="range" id="ls-pad" min="0" max="60" step="4" value="32" oninput="updateLayoutSize('pad',this.value)" style="flex:1;height:28px">
+              <span id="ls-pad-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">32</span>
+            </div>
+          </div>
+          <button onclick="resetLayoutSizes()" style="margin-top:12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;width:100%">Reset to Default</button>
         </div>
         <!-- Home Screen Logo -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
@@ -2224,17 +2272,15 @@
     try {
       const resp = await fetch(_recordedBlobUrl);
       const blob = await resp.blob();
-      // Use actual blob type for file — don't mislabel webm as mp4
-      const isMp4 = blob.type.includes('mp4');
-      const ext = isMp4 ? 'mp4' : 'webm';
-      const mime = isMp4 ? 'video/mp4' : 'video/webm';
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
+      // Detect format from blob type or MediaRecorder mime
+      const recMime = _mediaRecorder ? _mediaRecorder.mimeType : '';
+      const isMp4 = blob.type.includes('mp4') || recMime.includes('mp4');
+      // Always use .mp4 extension — most apps (Messenger, IG) reject .webm
+      // On iOS Safari the data IS mp4; on Android it's webm but .mp4 ext helps some apps accept it
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.mp4', { type: isMp4 ? 'video/mp4' : 'video/mp4' });
       await _shareFile(file, 'Hando Booth Video', 'Check out my Hando Booth video!', () => {
-        // If share fails, download + tell user to share from camera roll
         doGetVideo();
-        if (!isMp4) {
-          setTimeout(() => alert('Video saved! To share on Instagram or Messenger, open it from your Downloads or Files app.'), 800);
-        }
+        setTimeout(() => alert('Video saved! To share on Messenger, open it from your Downloads or Photos app.'), 800);
       });
     } catch (err) {
       if (err.name !== 'AbortError') doGetVideo();
@@ -2983,6 +3029,7 @@
     $('hlogo-picker').style.display = hlogoType==='custom' ? 'block' : 'none';
     renderAdminStickerList();
     renderVideoOverlayPreview();
+    drawLayoutPreviews();
     loadOverlays();
     const list = $('admin-ov-list');
     list.innerHTML = '';
@@ -3274,9 +3321,10 @@
     const imgSrc = $('claim-done-img').src;
     if (!imgSrc) { alert('No photo to share.'); return; }
     try {
-      // Convert to JPEG for better Messenger/Instagram/email compatibility
-      const blob = await _dataUrlToJpeg(imgSrc);
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      // Fetch the image directly (avoids CORS canvas taint issues with remote URLs)
+      const resp = await fetch(imgSrc);
+      const blob = await resp.blob();
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.png', { type: blob.type || 'image/png' });
       await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', () => {
         // Download fallback
         const u = URL.createObjectURL(blob);
@@ -3934,6 +3982,7 @@
     _saveLayoutSizes();
     // Update overlay template dimension labels
     updateTemplateDimLabels();
+    drawLayoutPreviews();
   }
 
   function resetLayoutSizes() {
@@ -3949,6 +3998,55 @@
     localStorage.removeItem('hb_layout_sizes');
     _updateCropRatio();
     updateTemplateDimLabels();
+    drawLayoutPreviews();
+  }
+
+  function drawLayoutPreviews() {
+    const layouts = {
+      single: { positions: [{x:0,y:0}], cols: 1, rows: 1 },
+      double: { positions: [{x:0,y:0},{x:0,y:1}], cols: 1, rows: 2 },
+      strip:  { positions: [{x:0,y:0},{x:0,y:1},{x:0,y:2}], cols: 1, rows: 3 },
+      quad:   { positions: [{x:0,y:0},{x:1,y:0},{x:0,y:1},{x:1,y:1}], cols: 2, rows: 2 }
+    };
+    Object.keys(layouts).forEach(name => {
+      const cv = $('ls-preview-' + name);
+      if (!cv) return;
+      const ctx = cv.getContext('2d');
+      const l = layouts[name];
+      // Calculate total composite size
+      const totalW = l.cols * CELL_W + (l.cols - 1) * GAP + 2 * PAD;
+      const totalH = l.rows * CELL_H + (l.rows - 1) * GAP + 2 * PAD;
+      // Scale to fit canvas
+      const scale = Math.min((cv.width - 4) / totalW, (cv.height - 4) / totalH);
+      const offX = (cv.width - totalW * scale) / 2;
+      const offY = (cv.height - totalH * scale) / 2;
+      // Clear
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      // Draw background
+      ctx.fillStyle = '#fdf0de';
+      ctx.fillRect(offX, offY, totalW * scale, totalH * scale);
+      // Draw outline
+      ctx.strokeStyle = '#c8a97a';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(offX, offY, totalW * scale, totalH * scale);
+      // Draw cells
+      l.positions.forEach(pos => {
+        const cx = offX + (PAD + pos.x * (CELL_W + GAP)) * scale;
+        const cy = offY + (PAD + pos.y * (CELL_H + GAP)) * scale;
+        const cw = CELL_W * scale;
+        const ch = CELL_H * scale;
+        ctx.fillStyle = '#d4a96a';
+        ctx.beginPath();
+        const r = Math.max(2, 12 * scale);
+        ctx.moveTo(cx + r, cy);
+        ctx.arcTo(cx + cw, cy, cx + cw, cy + ch, r);
+        ctx.arcTo(cx + cw, cy + ch, cx, cy + ch, r);
+        ctx.arcTo(cx, cy + ch, cx, cy, r);
+        ctx.arcTo(cx, cy, cx + cw, cy, r);
+        ctx.closePath();
+        ctx.fill();
+      });
+    });
   }
 
   function _saveLayoutSizes() {
@@ -3978,6 +4076,7 @@
       const lg = $('ls-gap-val'); if (lg) lg.textContent = GAP;
       const lp = $('ls-pad-val'); if (lp) lp.textContent = PAD;
       _updateCropRatio();
+      drawLayoutPreviews();
     } catch {}
   }
 
@@ -4118,6 +4217,7 @@
     // Restore layout sizes
     _restoreLayoutSizes();
     updateTemplateDimLabels();
+    drawLayoutPreviews();
     // Init EmailJS v4 once on page load
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
