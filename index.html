@@ -111,10 +111,8 @@
       padding-top: clamp(20px, 4vh, 40px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      background: var(--bg);
     }
-    #home::before {
-      content: '';
+    #home-bg {
       position: fixed;
       inset: 0;
       background: radial-gradient(ellipse at 60% 10%, #fce8c8 0%, var(--bg) 65%);
@@ -231,6 +229,7 @@
       flex-direction: column;
       justify-content: space-between;
       padding: 20px 20px 36px;
+      z-index: 10;
     }
 
     .cam-top {
@@ -306,6 +305,7 @@
       align-items: center;
       justify-content: center;
       gap: 14px;
+      z-index: 15;
       background: transparent;
     }
     #countdown.show { display: flex; }
@@ -334,7 +334,7 @@
     }
 
     /* ── FLASH ─────────────────────────────────────── */
-    #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+    #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 20; }
     #flash.pop { animation: flashAnim 0.35s ease-out forwards; }
     @keyframes flashAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
 
@@ -956,6 +956,7 @@
 
 <!-- ════════════ HOME ════════════ -->
 <div id="home" class="screen active">
+  <div id="home-bg"></div>
   <div class="logo-wrap" onclick="handleLogoTap()" style="-webkit-tap-highlight-color:transparent;cursor:default;user-select:none">
     <span class="logo-hando">Hando</span>
     <span class="logo-booth">Booth</span>
@@ -1292,13 +1293,13 @@
   </div>
 
   <div id="claim-done" style="display:none;width:100%;max-width:420px;text-align:center;padding-top:clamp(20px,4vh,40px)">
-    <div class="img-panel" style="margin-bottom:16px">
-      <img id="claim-done-img" class="panel-img" alt="Your photo" crossorigin="anonymous">
-    </div>
-    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:12px;letter-spacing:0.05em">Long press the photo to save it to your device</p>
     <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
     <h3 style="font-family:var(--font-brand);font-size:1.4rem;color:var(--text);margin-bottom:6px">You're all set!</h3>
-    <p style="color:var(--muted);font-size:0.8rem">Check your email — your photo is on the way!</p>
+    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:16px">Check your email — your photo is on the way!</p>
+    <div class="img-panel" style="margin-bottom:12px">
+      <img id="claim-done-img" class="panel-img" alt="Your photo" crossorigin="anonymous">
+    </div>
+    <p style="color:var(--muted);font-size:0.8rem;letter-spacing:0.05em">Long press the photo to save it to your device</p>
   </div>
 </div>
 
@@ -1484,7 +1485,6 @@
               <option value="strip">Strip (3 photos)</option>
               <option value="quad">Quad (4 photos)</option>
               <option value="logo">Logo</option>
-              <option value="video">Video</option>
               <option value="all">All layouts</option>
             </select>
           </div>
@@ -2062,10 +2062,23 @@
   }
 
   function snap() {
-    const w = video.videoWidth || 1280, h = video.videoHeight || 720;
-    canvas.width = w; canvas.height = h;
-    if (facingMode === 'user') { ctx.save(); ctx.translate(w,0); ctx.scale(-1,1); }
-    ctx.drawImage(video, 0, 0, w, h);
+    const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
+    // Crop to 4:3 centered (matches composite cell ratio)
+    const targetRatio = 4/3;
+    const videoRatio = vw / vh;
+    let sx = 0, sy = 0, sw = vw, sh = vh;
+    if (videoRatio > targetRatio) {
+      // Video is wider than 4:3 — crop sides
+      sw = Math.round(vh * targetRatio);
+      sx = Math.round((vw - sw) / 2);
+    } else if (videoRatio < targetRatio) {
+      // Video is taller than 4:3 — crop top/bottom
+      sh = Math.round(vw / targetRatio);
+      sy = Math.round((vh - sh) / 2);
+    }
+    canvas.width = sw; canvas.height = sh;
+    if (facingMode === 'user') { ctx.save(); ctx.translate(sw, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
     if (facingMode === 'user') ctx.restore();
     return canvas.toDataURL('image/jpeg', 0.88);
   }
@@ -3134,13 +3147,13 @@
     if (type==='default') {
       localStorage.removeItem('hb_home_bg_type');
       localStorage.removeItem('hb_home_bg_value');
-      document.getElementById('home').style.background = 'radial-gradient(ellipse at 60% 10%, #fce8c8 0%, var(--bg) 65%)';
+      $('home-bg').style.background = 'radial-gradient(ellipse at 60% 10%, #fce8c8 0%, var(--bg) 65%)';
     }
   }
   function applyHomeBgColor(hex) {
     localStorage.setItem('hb_home_bg_type', 'color');
     localStorage.setItem('hb_home_bg_value', hex);
-    $('home').style.background = hex;
+    $('home-bg').style.background = hex;
   }
   function handleHomeBgImage(input) {
     const file = input.files[0];
@@ -3150,7 +3163,7 @@
       const url = e.target.result;
       localStorage.setItem('hb_home_bg_type', 'image');
       localStorage.setItem('hb_home_bg_value', url);
-      $('home').style.background = `url(${url}) center/cover no-repeat`;
+      $('home-bg').style.background = `url(${url}) center/cover no-repeat`;
     };
     reader.readAsDataURL(file);
   }
@@ -3658,8 +3671,8 @@
     // Restore home background
     const _bgType = localStorage.getItem('hb_home_bg_type');
     const _bgVal = localStorage.getItem('hb_home_bg_value');
-    if (_bgType === 'color' && _bgVal) $('home').style.background = _bgVal;
-    else if (_bgType === 'image' && _bgVal) $('home').style.background = 'url(' + _bgVal + ') center/cover no-repeat';
+    if (_bgType === 'color' && _bgVal) $('home-bg').style.background = _bgVal;
+    else if (_bgType === 'image' && _bgVal) $('home-bg').style.background = 'url(' + _bgVal + ') center/cover no-repeat';
     // Restore home logo
     const _savedLogo = localStorage.getItem('hb_home_logo');
     if (_savedLogo) applyHomeLogo(_savedLogo);
