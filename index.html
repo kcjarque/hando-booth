@@ -770,6 +770,7 @@
     .delay-btn:active { transform: scale(0.96); }
 
     canvas { display: none; }
+    #ls-preview-canvas { display: block; }
 
     /* ── INTAKE MODAL ──────────────────────────────── */
     /* ── MODAL — always a centered popup ──────────────── */
@@ -955,31 +956,37 @@
     input[type="range"] {
       -webkit-appearance: none;
       appearance: none;
-      height: 6px;
+      height: 8px;
       background: var(--border);
-      border-radius: 3px;
+      border-radius: 4px;
       outline: none;
+      margin: 0;
+      padding: 0;
+      touch-action: none;
     }
     input[type="range"]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: var(--orange);
       border: 3px solid #fff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
       cursor: pointer;
     }
     input[type="range"]::-moz-range-thumb {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       background: var(--orange);
       border: 3px solid #fff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
       cursor: pointer;
     }
+    /* Layout size tabs */
+    .ls-tab { background: transparent; color: var(--muted); }
+    .ls-tab.active { background: var(--orange); color: #fff; }
 
     .sticker-btn {
       width: 44px; height: 44px;
@@ -1090,7 +1097,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.1</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.2</span>
   </div>
 </div>
 
@@ -1510,51 +1517,73 @@
           </div>
         </div>
         <!-- Layout Sizes -->
-        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
-          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Layout Sizes</div>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;line-height:1.4">Adjust photo cell dimensions, gap, and padding.</p>
-          <!-- Live preview -->
-          <div style="display:flex;gap:10px;margin-bottom:14px;justify-content:center;align-items:flex-end;flex-wrap:wrap">
-            <div style="text-align:center">
-              <canvas id="ls-preview-single" width="200" height="160" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:90px;height:72px"></canvas>
-              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Single</div>
+        <div style="background:var(--surface2);border-radius:14px;padding:16px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:12px">Layout Sizes</div>
+
+          <!-- Live preview — large, prominent -->
+          <div id="ls-preview-area" style="background:var(--surface2);border-radius:12px;padding:16px 12px 10px;margin-bottom:16px">
+            <div style="display:flex;justify-content:center;margin-bottom:10px">
+              <div style="display:flex;gap:6px;background:var(--surface2);border-radius:8px;padding:3px">
+                <button class="ls-tab active" onclick="switchLayoutTab('single')" data-ls-tab="single" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Single</button>
+                <button class="ls-tab" onclick="switchLayoutTab('double')" data-ls-tab="double" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Double</button>
+                <button class="ls-tab" onclick="switchLayoutTab('strip')" data-ls-tab="strip" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Strip</button>
+                <button class="ls-tab" onclick="switchLayoutTab('quad')" data-ls-tab="quad" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Quad</button>
+              </div>
             </div>
-            <div style="text-align:center">
-              <canvas id="ls-preview-double" width="160" height="240" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:56px;height:84px"></canvas>
-              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Double</div>
+            <div style="display:flex;justify-content:center;align-items:center;min-height:180px">
+              <canvas id="ls-preview-canvas" width="400" height="320" style="border-radius:10px;max-width:100%;max-height:200px;border:2px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,0.08)"></canvas>
             </div>
-            <div style="text-align:center">
-              <canvas id="ls-preview-strip" width="130" height="320" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:40px;height:98px"></canvas>
-              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Strip</div>
+            <div id="ls-dim-label" style="text-align:center;font-size:0.7rem;color:var(--muted);margin-top:6px;font-weight:600"></div>
+          </div>
+
+          <!-- Sliders + number inputs for touch editing -->
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <label style="font-size:0.8rem;color:var(--text);font-weight:700">Cell Width</label>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <button onclick="nudgeLayout('cellW',-50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+                  <input type="number" id="ls-cellw-num" value="800" min="400" max="1600" step="50" onchange="updateLayoutSize('cellW',this.value)" style="width:60px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700;color:var(--text);background:#fff">
+                  <button onclick="nudgeLayout('cellW',50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+                </div>
+              </div>
+              <input type="range" id="ls-cellw" min="400" max="1600" step="50" value="800" oninput="updateLayoutSize('cellW',this.value)" style="width:100%;height:36px;touch-action:none">
             </div>
-            <div style="text-align:center">
-              <canvas id="ls-preview-quad" width="240" height="200" style="border-radius:8px;border:1.5px solid var(--border);background:#fdf0de;width:90px;height:75px"></canvas>
-              <div style="font-size:0.65rem;color:var(--muted);margin-top:3px;font-weight:600">Quad</div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <label style="font-size:0.8rem;color:var(--text);font-weight:700">Cell Height</label>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <button onclick="nudgeLayout('cellH',-50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+                  <input type="number" id="ls-cellh-num" value="600" min="300" max="1200" step="50" onchange="updateLayoutSize('cellH',this.value)" style="width:60px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700;color:var(--text);background:#fff">
+                  <button onclick="nudgeLayout('cellH',50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+                </div>
+              </div>
+              <input type="range" id="ls-cellh" min="300" max="1200" step="50" value="600" oninput="updateLayoutSize('cellH',this.value)" style="width:100%;height:36px;touch-action:none">
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <label style="font-size:0.8rem;color:var(--text);font-weight:700">Gap</label>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <button onclick="nudgeLayout('gap',-2)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+                  <input type="number" id="ls-gap-num" value="16" min="0" max="50" step="2" onchange="updateLayoutSize('gap',this.value)" style="width:60px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700;color:var(--text);background:#fff">
+                  <button onclick="nudgeLayout('gap',2)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+                </div>
+              </div>
+              <input type="range" id="ls-gap" min="0" max="50" step="2" value="16" oninput="updateLayoutSize('gap',this.value)" style="width:100%;height:36px;touch-action:none">
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <label style="font-size:0.8rem;color:var(--text);font-weight:700">Padding</label>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <button onclick="nudgeLayout('pad',-4)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+                  <input type="number" id="ls-pad-num" value="32" min="0" max="60" step="4" onchange="updateLayoutSize('pad',this.value)" style="width:60px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700;color:var(--text);background:#fff">
+                  <button onclick="nudgeLayout('pad',4)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+                </div>
+              </div>
+              <input type="range" id="ls-pad" min="0" max="60" step="4" value="32" oninput="updateLayoutSize('pad',this.value)" style="width:100%;height:36px;touch-action:none">
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;gap:12px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Width</label>
-              <input type="range" id="ls-cellw" min="400" max="1600" step="50" value="800" oninput="updateLayoutSize('cellW',this.value)" style="flex:1;height:28px">
-              <span id="ls-cellw-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">800</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Height</label>
-              <input type="range" id="ls-cellh" min="300" max="1200" step="50" value="600" oninput="updateLayoutSize('cellH',this.value)" style="flex:1;height:28px">
-              <span id="ls-cellh-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">600</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Gap</label>
-              <input type="range" id="ls-gap" min="0" max="50" step="2" value="16" oninput="updateLayoutSize('gap',this.value)" style="flex:1;height:28px">
-              <span id="ls-gap-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">16</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <label style="font-size:0.75rem;color:var(--text);min-width:65px;font-weight:600">Padding</label>
-              <input type="range" id="ls-pad" min="0" max="60" step="4" value="32" oninput="updateLayoutSize('pad',this.value)" style="flex:1;height:28px">
-              <span id="ls-pad-val" style="font-size:0.75rem;color:var(--muted);min-width:40px;text-align:right;font-weight:600">32</span>
-            </div>
-          </div>
-          <button onclick="resetLayoutSizes()" style="margin-top:12px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.75rem;font-weight:700;color:var(--text);cursor:pointer;width:100%">Reset to Default</button>
+          <button onclick="resetLayoutSizes()" style="margin-top:14px;background:var(--orange);border:none;border-radius:10px;padding:12px 14px;font-size:0.8rem;font-weight:700;color:#fff;cursor:pointer;width:100%">Reset to Default</button>
         </div>
         <!-- Home Screen Logo -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
@@ -2272,16 +2301,26 @@
     try {
       const resp = await fetch(_recordedBlobUrl);
       const blob = await resp.blob();
-      // Detect format from blob type or MediaRecorder mime
       const recMime = _mediaRecorder ? _mediaRecorder.mimeType : '';
-      const isMp4 = blob.type.includes('mp4') || recMime.includes('mp4');
-      // Always use .mp4 extension — most apps (Messenger, IG) reject .webm
-      // On iOS Safari the data IS mp4; on Android it's webm but .mp4 ext helps some apps accept it
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.mp4', { type: isMp4 ? 'video/mp4' : 'video/mp4' });
-      await _shareFile(file, 'Hando Booth Video', 'Check out my Hando Booth video!', () => {
-        doGetVideo();
-        setTimeout(() => alert('Video saved! To share on Messenger, open it from your Downloads or Photos app.'), 800);
-      });
+      const isActualMp4 = blob.type.includes('mp4') || recMime.includes('mp4');
+      // Use correct type so the OS can process the file correctly
+      const ext = isActualMp4 ? 'mp4' : 'webm';
+      const mime = isActualMp4 ? 'video/mp4' : 'video/webm';
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'Hando Booth Video', text: 'Check out my Hando Booth video!' });
+          return;
+        } catch (e) {
+          if (e.name === 'AbortError') return;
+          // Share failed — fall through to download + instructions
+        }
+      }
+      // Fallback: download the video and show instructions
+      doGetVideo();
+      if (!isActualMp4) {
+        setTimeout(() => alert('Video saved to Downloads!\n\nTo share on Messenger or Instagram:\n1. Open your Photos/Gallery app\n2. Find the video in Downloads\n3. Tap Share from there'), 600);
+      }
     } catch (err) {
       if (err.name !== 'AbortError') doGetVideo();
     }
@@ -3967,87 +4006,119 @@
   }
 
   /* ─── Layout size customization ─────────────────── */
+  let _activeLayoutTab = 'single';
+
+  function switchLayoutTab(name) {
+    _activeLayoutTab = name;
+    document.querySelectorAll('.ls-tab').forEach(t => t.classList.toggle('active', t.dataset.lsTab === name));
+    drawLayoutPreview();
+  }
+
   function updateLayoutSize(prop, val) {
     val = parseInt(val);
+    if (isNaN(val)) return;
+    // Clamp to valid range
+    const ranges = { cellW: [400,1600], cellH: [300,1200], gap: [0,50], pad: [0,60] };
+    const r = ranges[prop];
+    if (r) val = Math.max(r[0], Math.min(r[1], val));
     if (prop === 'cellW') CELL_W = val;
     else if (prop === 'cellH') CELL_H = val;
     else if (prop === 'gap') GAP = val;
     else if (prop === 'pad') PAD = val;
-    // Update label
-    const labelEl = $('ls-' + prop.replace('cellW','cellw').replace('cellH','cellh') + '-val');
-    if (labelEl) labelEl.textContent = val;
-    // Update crop guide aspect ratio
+    // Sync slider + number input
+    const key = prop.replace('cellW','cellw').replace('cellH','cellh');
+    const slider = $('ls-' + key);
+    const numInput = $('ls-' + key + '-num');
+    if (slider) slider.value = val;
+    if (numInput) numInput.value = val;
     _updateCropRatio();
-    // Persist
     _saveLayoutSizes();
-    // Update overlay template dimension labels
     updateTemplateDimLabels();
-    drawLayoutPreviews();
+    drawLayoutPreview();
+  }
+
+  function nudgeLayout(prop, delta) {
+    const current = prop === 'cellW' ? CELL_W : prop === 'cellH' ? CELL_H : prop === 'gap' ? GAP : PAD;
+    updateLayoutSize(prop, current + delta);
   }
 
   function resetLayoutSizes() {
     CELL_W = 800; CELL_H = 600; GAP = 16; PAD = 32;
-    const s = $('ls-cellw'); if (s) s.value = 800;
-    const s2 = $('ls-cellh'); if (s2) s2.value = 600;
-    const s3 = $('ls-gap'); if (s3) s3.value = 16;
-    const s4 = $('ls-pad'); if (s4) s4.value = 32;
-    $('ls-cellw-val').textContent = '800';
-    $('ls-cellh-val').textContent = '600';
-    $('ls-gap-val').textContent = '16';
-    $('ls-pad-val').textContent = '32';
+    ['cellw','cellh','gap','pad'].forEach((key, i) => {
+      const vals = [800, 600, 16, 32];
+      const s = $('ls-' + key); if (s) s.value = vals[i];
+      const n = $('ls-' + key + '-num'); if (n) n.value = vals[i];
+    });
     localStorage.removeItem('hb_layout_sizes');
     _updateCropRatio();
     updateTemplateDimLabels();
-    drawLayoutPreviews();
+    drawLayoutPreview();
   }
 
-  function drawLayoutPreviews() {
+  function drawLayoutPreview() {
+    const cv = $('ls-preview-canvas');
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
     const layouts = {
       single: { positions: [{x:0,y:0}], cols: 1, rows: 1 },
       double: { positions: [{x:0,y:0},{x:0,y:1}], cols: 1, rows: 2 },
       strip:  { positions: [{x:0,y:0},{x:0,y:1},{x:0,y:2}], cols: 1, rows: 3 },
       quad:   { positions: [{x:0,y:0},{x:1,y:0},{x:0,y:1},{x:1,y:1}], cols: 2, rows: 2 }
     };
-    Object.keys(layouts).forEach(name => {
-      const cv = $('ls-preview-' + name);
-      if (!cv) return;
-      const ctx = cv.getContext('2d');
-      const l = layouts[name];
-      // Calculate total composite size
-      const totalW = l.cols * CELL_W + (l.cols - 1) * GAP + 2 * PAD;
-      const totalH = l.rows * CELL_H + (l.rows - 1) * GAP + 2 * PAD;
-      // Scale to fit canvas
-      const scale = Math.min((cv.width - 4) / totalW, (cv.height - 4) / totalH);
-      const offX = (cv.width - totalW * scale) / 2;
-      const offY = (cv.height - totalH * scale) / 2;
-      // Clear
-      ctx.clearRect(0, 0, cv.width, cv.height);
-      // Draw background
-      ctx.fillStyle = '#fdf0de';
-      ctx.fillRect(offX, offY, totalW * scale, totalH * scale);
-      // Draw outline
-      ctx.strokeStyle = '#c8a97a';
+    const l = layouts[_activeLayoutTab] || layouts.single;
+    const totalW = l.cols * CELL_W + (l.cols - 1) * GAP + 2 * PAD;
+    const totalH = l.rows * CELL_H + (l.rows - 1) * GAP + 2 * PAD;
+    // Resize canvas to match aspect ratio nicely
+    const maxW = 400, maxH = 300;
+    const dispScale = Math.min(maxW / totalW, maxH / totalH);
+    cv.width = Math.round(totalW * dispScale);
+    cv.height = Math.round(totalH * dispScale);
+    const scale = dispScale;
+    // Background
+    ctx.fillStyle = '#fdf0de';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    // Border
+    ctx.strokeStyle = '#c8a97a';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, cv.width - 2, cv.height - 2);
+    // Cells
+    l.positions.forEach(pos => {
+      const cx = (PAD + pos.x * (CELL_W + GAP)) * scale;
+      const cy = (PAD + pos.y * (CELL_H + GAP)) * scale;
+      const cw = CELL_W * scale;
+      const ch = CELL_H * scale;
+      const r = Math.max(3, 14 * scale);
+      // Cell shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      _roundRect(ctx, cx + 2, cy + 2, cw, ch, r);
+      ctx.fill();
+      // Cell
+      ctx.fillStyle = '#d4a96a';
+      _roundRect(ctx, cx, cy, cw, ch, r);
+      ctx.fill();
+      // Cell inner highlight
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(offX, offY, totalW * scale, totalH * scale);
-      // Draw cells
-      l.positions.forEach(pos => {
-        const cx = offX + (PAD + pos.x * (CELL_W + GAP)) * scale;
-        const cy = offY + (PAD + pos.y * (CELL_H + GAP)) * scale;
-        const cw = CELL_W * scale;
-        const ch = CELL_H * scale;
-        ctx.fillStyle = '#d4a96a';
-        ctx.beginPath();
-        const r = Math.max(2, 12 * scale);
-        ctx.moveTo(cx + r, cy);
-        ctx.arcTo(cx + cw, cy, cx + cw, cy + ch, r);
-        ctx.arcTo(cx + cw, cy + ch, cx, cy + ch, r);
-        ctx.arcTo(cx, cy + ch, cx, cy, r);
-        ctx.arcTo(cx, cy, cx + cw, cy, r);
-        ctx.closePath();
-        ctx.fill();
-      });
+      _roundRect(ctx, cx + 1, cy + 1, cw - 2, ch - 2, r - 1);
+      ctx.stroke();
     });
+    // Dimension label
+    const dimLabel = $('ls-dim-label');
+    if (dimLabel) dimLabel.textContent = totalW + ' × ' + totalH + ' px  (' + CELL_W + '×' + CELL_H + ' cells)';
   }
+
+  function _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // Keep old name as alias for any existing callers
+  function drawLayoutPreviews() { drawLayoutPreview(); }
 
   function _saveLayoutSizes() {
     try {
@@ -4066,17 +4137,14 @@
       if (s.cellH) CELL_H = s.cellH;
       if (s.gap !== undefined) GAP = s.gap;
       if (s.pad !== undefined) PAD = s.pad;
-      // Update admin sliders
-      const sw = $('ls-cellw'); if (sw) { sw.value = CELL_W; }
-      const sh = $('ls-cellh'); if (sh) { sh.value = CELL_H; }
-      const sg = $('ls-gap'); if (sg) { sg.value = GAP; }
-      const sp = $('ls-pad'); if (sp) { sp.value = PAD; }
-      const lw = $('ls-cellw-val'); if (lw) lw.textContent = CELL_W;
-      const lh = $('ls-cellh-val'); if (lh) lh.textContent = CELL_H;
-      const lg = $('ls-gap-val'); if (lg) lg.textContent = GAP;
-      const lp = $('ls-pad-val'); if (lp) lp.textContent = PAD;
+      // Sync sliders + number inputs
+      const vals = { cellw: CELL_W, cellh: CELL_H, gap: GAP, pad: PAD };
+      Object.keys(vals).forEach(key => {
+        const slider = $('ls-' + key); if (slider) slider.value = vals[key];
+        const num = $('ls-' + key + '-num'); if (num) num.value = vals[key];
+      });
       _updateCropRatio();
-      drawLayoutPreviews();
+      drawLayoutPreview();
     } catch {}
   }
 
