@@ -861,6 +861,61 @@
     }
     .admin-ov-row:last-child { border-bottom: none; }
 
+    /* ── VIDEO RECORDING ───────────────────────────── */
+    .rec-btn {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: #e53935;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      transition: transform 0.15s, background 0.15s;
+      position: relative;
+    }
+    .rec-btn:active { transform: scale(0.91); }
+    .rec-btn.recording {
+      animation: recPulse 1s ease-in-out infinite;
+      background: #c62828;
+    }
+    .rec-btn.recording::after {
+      content: '';
+      position: absolute;
+      inset: 16px;
+      border-radius: 4px;
+      background: #fff;
+    }
+    @keyframes recPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    #rec-timer {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      font-size: 2.5rem; font-weight: 700; font-family: var(--font-brand);
+      color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      pointer-events: none; display: none;
+    }
+
+    /* ── CUSTOM EDITOR ─────────────────────────────── */
+    #editor-screen .editor-canvas-wrap {
+      position: relative;
+      width: 100%; max-width: 520px;
+      background: #222; border-radius: 14px;
+      overflow: hidden; touch-action: none;
+    }
+    #editor-screen .editor-canvas-wrap canvas {
+      display: block; width: 100%; height: auto;
+    }
+    .sticker-bar {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      justify-content: center; padding: 8px 0;
+    }
+    .sticker-btn {
+      width: 44px; height: 44px;
+      font-size: 1.5rem;
+      display: flex; align-items: center; justify-content: center;
+      background: #fff; border: 1.5px solid var(--border);
+      border-radius: 10px; cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.15s;
+    }
+    .sticker-btn:active { transform: scale(0.92); }
+
     /* ── PRINT ─────────────────────────────────────── */
     #print-target {
       display: none;
@@ -943,6 +998,14 @@
         <div class="layout-count">4 photos</div>
       </div>
 
+      <div class="layout-card" data-layout="video" onclick="selectLayout(this,'video')">
+        <div style="display:flex;align-items:center;justify-content:center;width:44px;height:34px">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--border)"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </div>
+        <div class="layout-label">Video</div>
+        <div class="layout-count">Recording</div>
+      </div>
+
     </div>
   </div>
 
@@ -975,7 +1038,9 @@
     </div>
     <div class="cam-bottom">
       <button class="shutter" id="shutter" onclick="startCapture()" aria-label="Take photo"></button>
+      <button class="rec-btn" id="rec-btn" onclick="toggleRecording()" aria-label="Record video" style="display:none"></button>
     </div>
+    <div id="rec-timer">0:00</div>
   </div>
 
   <div id="countdown">
@@ -1086,12 +1151,76 @@
     </div>
   </div>
 
-  <!-- Simplified action row: Back + Get Photo -->
-  <div class="action-row" style="max-width:380px;width:100%">
-    <button class="btn-ghost" onclick="backToPreview()">← Back</button>
-    <button class="btn-warm"  onclick="doGetPhoto()">📷 Get Photo</button>
+  <!-- Simplified action row: Back + Custom Edit + Get Photo -->
+  <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
+    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:80px">← Back</button>
+    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:80px">✎ Edit</button>
+    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:80px">📷 Get Photo</button>
   </div>
 
+</div>
+
+<!-- ════════════ VIDEO PREVIEW ════════════ -->
+<div id="video-preview" class="screen warm-screen">
+  <div class="screen-top">
+    <button class="home-btn" onclick="goHome()" aria-label="Back to home">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
+    <div class="screen-head">
+      <h2>Your Video</h2>
+      <p>Preview your recording</p>
+    </div>
+    <div style="width:40px"></div>
+  </div>
+  <div class="img-panel" style="background:#000;border-radius:14px;overflow:hidden">
+    <video id="vid-playback" class="panel-img" style="object-fit:contain;background:#000" playsinline loop muted autoplay></video>
+  </div>
+  <div class="action-row" style="max-width:380px;width:100%">
+    <button class="btn-ghost" onclick="retakeVideo()">↩ Retake</button>
+    <button class="btn-warm" onclick="doGetVideo()">📷 Get Video</button>
+  </div>
+  <div id="vid-spinner" class="panel-spinner hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center">
+    <span class="spin-ring"></span>
+    <span id="vid-spinner-label" style="color:#fff;margin-left:12px">Uploading…</span>
+  </div>
+</div>
+
+<!-- ════════════ CUSTOM EDITOR ════════════ -->
+<div id="editor-screen" class="screen warm-screen">
+  <div class="screen-top">
+    <button class="home-btn" onclick="closeEditor()" aria-label="Back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="screen-head">
+      <h2>Custom Edit</h2>
+      <p>Add stickers &amp; photos</p>
+    </div>
+    <button class="home-btn" onclick="editorAddPhoto()" aria-label="Add photo" title="Add photo from device">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    </button>
+  </div>
+  <div class="editor-canvas-wrap">
+    <canvas id="editor-canvas"></canvas>
+  </div>
+  <div class="sticker-bar" id="sticker-bar">
+    <button class="sticker-btn" onclick="editorAddSticker('❤️')">❤️</button>
+    <button class="sticker-btn" onclick="editorAddSticker('⭐')">⭐</button>
+    <button class="sticker-btn" onclick="editorAddSticker('🎉')">🎉</button>
+    <button class="sticker-btn" onclick="editorAddSticker('😍')">😍</button>
+    <button class="sticker-btn" onclick="editorAddSticker('🔥')">🔥</button>
+    <button class="sticker-btn" onclick="editorAddSticker('✨')">✨</button>
+    <button class="sticker-btn" onclick="editorAddSticker('🥳')">🥳</button>
+    <button class="sticker-btn" onclick="editorAddSticker('💯')">💯</button>
+    <button class="sticker-btn" onclick="editorAddSticker('🎀')">🎀</button>
+    <button class="sticker-btn" onclick="editorAddSticker('💕')">💕</button>
+    <button class="sticker-btn" onclick="editorAddSticker('🌟')">🌟</button>
+    <button class="sticker-btn" onclick="editorAddSticker('📸')">📸</button>
+  </div>
+  <input type="file" id="editor-photo-input" accept="image/*" style="display:none" onchange="handleEditorPhoto(this)">
+  <div class="action-row" style="max-width:380px;width:100%">
+    <button class="btn-ghost" onclick="editorUndo()">↩ Undo</button>
+    <button class="btn-warm" onclick="editorSave()">✓ Save</button>
+  </div>
 </div>
 
 <!-- ════════════ THANK YOU ════════════ -->
@@ -1231,6 +1360,14 @@
             <button class="delay-btn cd-btn"        data-cd="8"  onclick="setCountdownSecs(8)">8s</button>
             <button class="delay-btn cd-btn"        data-cd="9"  onclick="setCountdownSecs(9)">9s</button>
             <button class="delay-btn cd-btn"        data-cd="10" onclick="setCountdownSecs(10)">10s</button>
+          </div>
+        </div>
+        <!-- Video Duration -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Video Duration</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <input type="range" id="vid-dur-slider" min="5" max="30" value="10" step="1" oninput="setVideoDuration(this.value)" style="flex:1;accent-color:var(--orange)">
+            <span id="vid-dur-label" style="font-size:0.85rem;font-weight:700;min-width:32px;text-align:center">10s</span>
           </div>
         </div>
         <!-- Camera Sound -->
@@ -1399,6 +1536,18 @@
   let _soundPreset = 'default';
   let _customSoundUrl = null;
   let _customAudio = null;
+
+  /* ─── Video recording state ────────────────────── */
+  let videoDuration = parseInt(localStorage.getItem('hb_vid_dur') || '10');
+  let _mediaRecorder = null;
+  let _recordedChunks = [];
+  let _recordedBlobUrl = null;
+  let _recInterval = null;
+
+  /* ─── Custom editor state ──────────────────────── */
+  let _editorItems = [];   // [{type:'sticker'|'photo', emoji?, img?, x, y, w, h}]
+  let _editorBgImg = null;
+  let _editorDrag  = null; // {idx, offX, offY}
 
   /* FIX 15 — EmailJS config (fill in from emailjs.com) */
   const EMAILJS_PUBLIC_KEY  = 'XU6XBK8cXhIS5GyLs';
@@ -1611,7 +1760,7 @@
   }
 
   /* ─── Camera ──────────────────────────────────────── */
-  async function startCamera() {
+  async function startCamera(withAudio) {
     stopStream();
     // FIX 9 — request 4:3 with fallback
     const constraints = {
@@ -1621,7 +1770,7 @@
         height: { ideal: 960 },
         aspectRatio: { ideal: 4/3 }
       },
-      audio: false
+      audio: !!withAudio
     };
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -1660,8 +1809,17 @@
   /* ─── Session flow ────────────────────────────────── */
   async function startBooth() {
     photos = [];
-    await startCamera();
-    buildThumbs();
+    const isVideo = (layout === 'video');
+    await startCamera(isVideo);
+    if (isVideo) {
+      thumbStrip.innerHTML = '';
+      $('shutter').style.display = 'none';
+      $('rec-btn').style.display = '';
+    } else {
+      $('shutter').style.display = '';
+      $('rec-btn').style.display = 'none';
+      buildThumbs();
+    }
     showScreen('camera');
   }
 
@@ -1682,6 +1840,115 @@
     stopStream();
     if (photos.length > 0) showPreviewScreen();
     else showScreen('home');
+  }
+
+  /* ─── Video recording ──────────────────────────────── */
+  function toggleRecording() {
+    if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }
+
+  function startRecording() {
+    if (!stream) return;
+    _recordedChunks = [];
+    // Request audio too for video
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+                   : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm'
+                   : 'video/mp4';
+    _mediaRecorder = new MediaRecorder(stream, { mimeType });
+    _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
+    _mediaRecorder.onstop = () => {
+      const blob = new Blob(_recordedChunks, { type: _mediaRecorder.mimeType });
+      if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
+      _recordedBlobUrl = URL.createObjectURL(blob);
+      stopStream();
+      showVideoPreview();
+    };
+    _mediaRecorder.start(100);
+    $('rec-btn').classList.add('recording');
+    // Timer display
+    let elapsed = 0;
+    const timerEl = $('rec-timer');
+    timerEl.style.display = 'block';
+    timerEl.textContent = formatRecTime(0);
+    _recInterval = setInterval(() => {
+      elapsed++;
+      timerEl.textContent = formatRecTime(elapsed);
+      if (elapsed >= videoDuration) stopRecording();
+    }, 1000);
+    playShutter();
+  }
+
+  function stopRecording() {
+    if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+      _mediaRecorder.stop();
+    }
+    $('rec-btn').classList.remove('recording');
+    $('rec-timer').style.display = 'none';
+    if (_recInterval) { clearInterval(_recInterval); _recInterval = null; }
+  }
+
+  function formatRecTime(s) {
+    return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  }
+
+  function showVideoPreview() {
+    const vid = $('vid-playback');
+    vid.src = _recordedBlobUrl;
+    vid.muted = false;
+    vid.play().catch(() => {});
+    showScreen('video-preview');
+  }
+
+  function retakeVideo() {
+    layout = 'video';
+    startBooth();
+  }
+
+  async function doGetVideo() {
+    if (!_recordedBlobUrl) { alert('No video yet.'); return; }
+    const spinner = $('vid-spinner');
+    spinner.classList.remove('hidden');
+    spinner.style.display = 'flex';
+    $('vid-spinner-label').textContent = 'Uploading…';
+    try {
+      const blob = await fetch(_recordedBlobUrl).then(r => r.blob());
+      const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+      const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+      const r = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`,
+        { method: 'POST',
+          headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': blob.type, 'x-upsert': 'false' },
+          body: blob }
+      );
+      if (!r.ok) throw new Error(await r.text());
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
+      spinner.classList.add('hidden');
+      spinner.style.display = '';
+      const claimUrl = `${location.origin}${location.pathname}?video=${encodeURIComponent(publicUrl)}`;
+      $('ty-name').textContent = 'Your video is ready!';
+      $('ty-img').src = '';
+      $('ty-img').style.display = 'none';
+      $('qr-container').innerHTML = '';
+      $('qr-hint').textContent = '';
+      showScreen('thankyou');
+      renderQR(claimUrl);
+      $('qr-hint').textContent = 'Scan QR → fill in details → get the video';
+    } catch(err) {
+      spinner.classList.add('hidden');
+      spinner.style.display = '';
+      console.error('Video upload failed:', err);
+      alert('Upload failed. Please try again.');
+    }
+  }
+
+  function setVideoDuration(val) {
+    videoDuration = parseInt(val);
+    localStorage.setItem('hb_vid_dur', val);
+    $('vid-dur-label').textContent = val + 's';
   }
 
   /* ─── Capture sequence ────────────────────────────── */
@@ -2558,34 +2825,47 @@
     if (!valid) return;
 
     const photoUrl = $('claim-photo-url').value;
-
-    // Download photo as blob file
-    fetch(photoUrl).then(r => r.blob()).then(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'hando-booth-' + Date.now() + '.png';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }).catch(() => { window.open(photoUrl, '_blank'); });
-
-    // Download GIF as blob file if available
     const gifEl = $('claim-gif-url');
-    if (gifEl && gifEl.value) {
-      setTimeout(() => {
-        fetch(gifEl.value).then(r => r.blob()).then(blob => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = 'hando-booth-' + Date.now() + '.gif';
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }).catch(() => { window.open(gifEl.value, '_blank'); });
-      }, 800);
+    const gifUrl = gifEl && gifEl.value ? gifEl.value : null;
+    const vidEl = $('claim-video-url');
+    const vidUrl = vidEl && vidEl.value ? vidEl.value : null;
+
+    // Download video OR photo+GIF
+    if (vidUrl) {
+      fetch(vidUrl).then(r => r.blob()).then(blob => {
+        const ext = vidUrl.includes('.mp4') ? 'mp4' : 'webm';
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u; a.download = 'hando-booth-' + Date.now() + '.' + ext;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(u);
+      }).catch(() => { window.open(vidUrl, '_blank'); });
+    } else if (photoUrl) {
+      const downloads = [fetch(photoUrl).then(r => r.blob())];
+      if (gifUrl) downloads.push(fetch(gifUrl).then(r => r.blob()));
+      Promise.all(downloads).then(blobs => {
+        const pUrl = URL.createObjectURL(blobs[0]);
+        const a = document.createElement('a');
+        a.href = pUrl; a.download = 'hando-booth-' + Date.now() + '.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(pUrl);
+        if (blobs[1]) {
+          const gUrl = URL.createObjectURL(blobs[1]);
+          const b = document.createElement('a');
+          b.href = gUrl; b.download = 'hando-booth-' + Date.now() + '.gif';
+          document.body.appendChild(b); b.click(); document.body.removeChild(b);
+          URL.revokeObjectURL(gUrl);
+        }
+      }).catch(() => {
+        window.open(photoUrl, '_blank');
+        if (gifUrl) window.open(gifUrl, '_blank');
+      });
     }
 
     // Send email via EmailJS
     if (EMAILJS_PUBLIC_KEY) {
       emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        to_name: name, to_email: email, photo_url: photoUrl, from_name: 'Hando Booth'
+        to_name: name, to_email: email, photo_url: vidUrl || photoUrl, from_name: 'Hando Booth'
       }).catch(err => console.warn('Email send failed:', err));
     }
 
@@ -2595,7 +2875,8 @@
     done.style.display = 'flex';
     done.style.flexDirection = 'column';
     done.style.alignItems = 'center';
-    $('claim-done-img').src = photoUrl;
+    $('claim-done-img').src = vidUrl ? '' : photoUrl;
+    if (vidUrl) $('claim-done-img').style.display = 'none';
   }
 
   function showGetPhotoModal() {
@@ -2756,8 +3037,9 @@
       $('hbtn-default').classList.remove('active');
     }
     const color = hex || '';
-    document.querySelectorAll('.btn-warm, .start-btn').forEach(btn => {
+    document.querySelectorAll('.btn-warm, .start-btn, .btn-ghost, .fpill').forEach(btn => {
       btn.style.background = color || '';
+      btn.style.borderColor = color || '';
     });
   }
 
@@ -2833,10 +3115,170 @@
 
   /* QR now links directly to Supabase public URL — no ?get= param needed */
 
+  /* ════════════════════════��══════════════════════════
+     CUSTOM EDITOR — stickers & photos on composite
+  ═══════════════════════════════════════════════════ */
+  function openEditor() {
+    if (!compositeDataUrl) { alert('No photo yet.'); return; }
+    _editorItems = [];
+    _editorDrag = null;
+    const canvas = $('editor-canvas');
+    const img = new Image();
+    img.onload = () => {
+      // Scale canvas to fit
+      canvas.width = img.width;
+      canvas.height = img.height;
+      _editorBgImg = img;
+      drawEditor();
+      showScreen('editor-screen');
+      // Attach touch/mouse events
+      canvas.onpointerdown = editorPointerDown;
+      canvas.onpointermove = editorPointerMove;
+      canvas.onpointerup = editorPointerUp;
+    };
+    img.src = compositeDataUrl;
+  }
+
+  function closeEditor() {
+    showScreen('gif-screen');
+  }
+
+  function drawEditor() {
+    const canvas = $('editor-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (_editorBgImg) ctx.drawImage(_editorBgImg, 0, 0);
+    for (const item of _editorItems) {
+      if (item.type === 'sticker') {
+        ctx.font = item.h + 'px serif';
+        ctx.textBaseline = 'top';
+        ctx.fillText(item.emoji, item.x, item.y);
+      } else if (item.type === 'photo' && item.img) {
+        ctx.drawImage(item.img, item.x, item.y, item.w, item.h);
+      }
+    }
+  }
+
+  function editorAddSticker(emoji) {
+    const canvas = $('editor-canvas');
+    const size = Math.round(canvas.width * 0.12);
+    _editorItems.push({
+      type: 'sticker', emoji,
+      x: Math.round(canvas.width/2 - size/2),
+      y: Math.round(canvas.height/2 - size/2),
+      w: size, h: size
+    });
+    drawEditor();
+  }
+
+  function editorAddPhoto() {
+    $('editor-photo-input').click();
+  }
+
+  function handleEditorPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = $('editor-canvas');
+        const maxW = Math.round(canvas.width * 0.3);
+        const ratio = img.height / img.width;
+        const w = maxW, h = Math.round(maxW * ratio);
+        _editorItems.push({
+          type: 'photo', img,
+          x: Math.round(canvas.width/2 - w/2),
+          y: Math.round(canvas.height/2 - h/2),
+          w, h
+        });
+        drawEditor();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  function editorPointerDown(e) {
+    const canvas = $('editor-canvas');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const px = (e.clientX - rect.left) * scaleX;
+    const py = (e.clientY - rect.top) * scaleY;
+    // Hit test from top (last added = on top)
+    for (let i = _editorItems.length - 1; i >= 0; i--) {
+      const it = _editorItems[i];
+      if (px >= it.x && px <= it.x + it.w && py >= it.y && py <= it.y + it.h) {
+        _editorDrag = { idx: i, offX: px - it.x, offY: py - it.y };
+        canvas.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
+    _editorDrag = null;
+  }
+
+  function editorPointerMove(e) {
+    if (!_editorDrag) return;
+    const canvas = $('editor-canvas');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const px = (e.clientX - rect.left) * scaleX;
+    const py = (e.clientY - rect.top) * scaleY;
+    const it = _editorItems[_editorDrag.idx];
+    it.x = px - _editorDrag.offX;
+    it.y = py - _editorDrag.offY;
+    drawEditor();
+  }
+
+  function editorPointerUp() {
+    _editorDrag = null;
+  }
+
+  function editorUndo() {
+    if (_editorItems.length === 0) return;
+    _editorItems.pop();
+    drawEditor();
+  }
+
+  function editorSave() {
+    const canvas = $('editor-canvas');
+    compositeDataUrl = canvas.toDataURL('image/png');
+    // Update previews
+    const expImg = $('export-img');
+    if (expImg) expImg.src = compositeDataUrl;
+    const compImg = $('composite-img');
+    if (compImg) compImg.src = compositeDataUrl;
+    showScreen('gif-screen');
+  }
+
   /* ─── Init ────── */
   (function init() {
-    // Detect claim flow: ?photo=URL means a guest scanned the QR
+    // Detect claim flow
     const _claimParams = new URLSearchParams(window.location.search);
+    // Video claim: ?video=URL
+    const _claimVideoUrl = _claimParams.get('video');
+    if (_claimVideoUrl) {
+      const decodedUrl = decodeURIComponent(_claimVideoUrl);
+      // Store video URL in hidden input
+      const vidInput = document.createElement('input');
+      vidInput.type = 'hidden'; vidInput.id = 'claim-video-url';
+      vidInput.value = decodedUrl;
+      $('claim-form').appendChild(vidInput);
+      $('claim-photo-url').value = ''; // no photo
+      $('claim-img').src = '';
+      $('claim-img').style.display = 'none';
+      // Show a video icon placeholder
+      $('claim-img').insertAdjacentHTML('afterend', '<div style="padding:20px;text-align:center;color:var(--muted);font-size:2rem">🎬 Video Ready</div>');
+      if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
+        emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      }
+      showScreen('claim-screen');
+      return;
+    }
+    // Photo claim: ?photo=URL
     const _claimPhotoUrl = _claimParams.get('photo');
     const _claimGifUrl = _claimParams.get('gif');
     if (_claimPhotoUrl) {
@@ -2890,6 +3332,13 @@
     // Restore home logo
     const _savedLogo = localStorage.getItem('hb_home_logo');
     if (_savedLogo) applyHomeLogo(_savedLogo);
+    // Restore video duration
+    const _savedVidDur = localStorage.getItem('hb_vid_dur');
+    if (_savedVidDur) {
+      videoDuration = parseInt(_savedVidDur);
+      const sl = $('vid-dur-slider'); if (sl) sl.value = videoDuration;
+      const lb = $('vid-dur-label'); if (lb) lb.textContent = videoDuration + 's';
+    }
     // Init EmailJS v4 once on page load
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
