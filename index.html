@@ -347,26 +347,41 @@
       aspect-ratio: 4/3;
       max-width: 100%;
       pointer-events: none;
-      border: 3px solid rgba(255,255,255,0.7);
-      box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6);
+      border: 4px solid #fff;
+      box-shadow: 0 0 0 100vmax rgba(0,0,0,0.65), inset 0 0 0 1px rgba(0,0,0,0.3);
       z-index: 1;
     }
     .cam-crop-guide::before,
     .cam-crop-guide::after {
       content: '';
       position: absolute;
-      width: 24px;
-      height: 24px;
+      width: 30px;
+      height: 30px;
       border-color: #fff;
       border-style: solid;
     }
     .cam-crop-guide::before {
-      top: 8px; left: 8px;
-      border-width: 3px 0 0 3px;
+      top: 6px; left: 6px;
+      border-width: 4px 0 0 4px;
     }
     .cam-crop-guide::after {
-      top: 8px; right: 8px;
-      border-width: 3px 3px 0 0;
+      top: 6px; right: 6px;
+      border-width: 4px 4px 0 0;
+    }
+    .crop-corner {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-color: #fff;
+      border-style: solid;
+    }
+    .crop-bl {
+      bottom: 6px; left: 6px;
+      border-width: 0 0 4px 4px;
+    }
+    .crop-br {
+      bottom: 6px; right: 6px;
+      border-width: 0 4px 4px 0;
     }
 
     /* ── PREVIEW + GIF shared ──────────────────────── */
@@ -1056,7 +1071,10 @@
 
   <div class="cam-overlay">
     <!-- FIX 1: 4:3 crop guide sits between top controls and bottom -->
-    <div class="cam-crop-guide"></div>
+    <div class="cam-crop-guide">
+      <span class="crop-corner crop-bl"></span>
+      <span class="crop-corner crop-br"></span>
+    </div>
     <div class="cam-top">
       <!-- FIX 3: X button closes camera but keeps photos if any exist -->
       <button class="icon-btn" onclick="closeCameraKeepPhotos()" aria-label="Close">✕</button>
@@ -1183,12 +1201,11 @@
     </div>
   </div>
 
-  <!-- Simplified action row: Back + Custom Edit + Share + Download -->
-  <div class="action-row" style="max-width:420px;width:100%;flex-wrap:wrap;gap:8px">
-    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:70px">← Back</button>
-    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:70px">✎ Edit</button>
-    <button class="btn-ghost" onclick="sharePhoto()" style="flex:1;min-width:70px">↗ Share</button>
-    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:70px">⬇ Download</button>
+  <!-- Simplified action row: Back + Custom Edit + Download -->
+  <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
+    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:80px">← Back</button>
+    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:80px">✎ Edit</button>
+    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:80px">⬇ Download</button>
   </div>
 
 </div>
@@ -1322,8 +1339,10 @@
     <div class="img-panel" style="margin-bottom:12px">
       <img id="claim-done-img" class="panel-img" alt="Your photo" crossorigin="anonymous">
     </div>
-    <p style="color:var(--muted);font-size:0.8rem;letter-spacing:0.05em;margin-bottom:14px">Long press the photo to save it to your device</p>
-    <button id="claim-dl-gif-btn" onclick="downloadClaimGif()" class="btn-warm" style="display:none;width:100%;max-width:280px;padding:14px;font-size:0.9rem">⬇ Download GIF</button>
+    <div class="action-row" style="max-width:320px;width:100%;gap:8px;margin-bottom:10px">
+      <button class="btn-ghost" onclick="shareClaimPhoto()" style="flex:1;min-width:100px">↗ Share</button>
+      <button id="claim-dl-gif-btn" onclick="downloadClaimGif()" class="btn-warm" style="display:none;flex:1;min-width:100px">⬇ GIF</button>
+    </div>
   </div>
 </div>
 
@@ -1816,12 +1835,32 @@
     } catch(e) { /* storage full — ignore */ }
   }
 
+  // Save state when user leaves the page (swipe away, switch apps, etc.)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      const active = document.querySelector('.screen.active');
+      if (active && active.id !== 'home') _saveSession(active.id);
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    const active = document.querySelector('.screen.active');
+    if (active && active.id !== 'home') _saveSession(active.id);
+  });
+
   function _restoreSession() {
     try {
       const raw = sessionStorage.getItem('hb_session');
       if (!raw) return false;
       const s = JSON.parse(raw);
-      if (!s.screen || s.screen === 'home' || s.screen === 'camera') return false;
+      if (!s.screen || s.screen === 'home') return false;
+      // For camera screen, if we have photos go to preview, else go home
+      if (s.screen === 'camera') {
+        if (!s.photos || s.photos.length === 0) return false;
+        s.screen = 'preview';
+      }
+      // For video-preview, we can't restore the recorded blob — go home
+      if (s.screen === 'video-preview') return false;
+      // Need photos for photo screens
       if (!s.photos || s.photos.length === 0) return false;
       layout = s.layout || 'single';
       photos = s.photos;
@@ -1839,9 +1878,7 @@
         c.classList.toggle('selected', c.dataset.layout === layout);
       });
       // Restore to the right screen
-      if (s.screen === 'preview') {
-        showPreviewScreen();
-      } else if (s.screen === 'gif-screen') {
+      if (s.screen === 'gif-screen' || s.screen === 'editor-screen' || s.screen === 'thankyou') {
         if (compositeDataUrl) {
           $('export-img').src = compositeDataUrl;
           $('export-img').style.opacity = '1';
@@ -2085,9 +2122,8 @@
     try {
       const resp = await fetch(_recordedBlobUrl);
       const blob = await resp.blob();
-      const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      const mime = ext === 'mp4' ? 'video/mp4' : 'video/webm';
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
+      // Force mp4 mime type for maximum app compatibility (Messenger, Instagram, email)
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.mp4', { type: 'video/mp4' });
       await _shareFile(file, 'Hando Booth Video', 'Check out my Hando Booth video!', doGetVideo);
     } catch (err) {
       if (err.name !== 'AbortError') doGetVideo();
@@ -2097,38 +2133,54 @@
   async function sharePhoto() {
     if (!compositeDataUrl) { alert('No photo yet.'); return; }
     try {
-      const resp = await fetch(compositeDataUrl);
-      const blob = await resp.blob();
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.png', { type: 'image/png' });
+      // Convert to JPEG for wider app compatibility (Messenger, Instagram, email)
+      const blob = await _dataUrlToJpeg(compositeDataUrl);
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
       await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', doGetPhoto);
     } catch (err) {
       if (err.name !== 'AbortError') doGetPhoto();
     }
   }
 
+  function _dataUrlToJpeg(dataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0);
+        c.toBlob(b => resolve(b), 'image/jpeg', 0.92);
+      };
+      img.onerror = () => {
+        // Fallback: just fetch original as blob
+        fetch(dataUrl).then(r => r.blob()).then(resolve);
+      };
+      img.src = dataUrl;
+    });
+  }
+
   async function _shareFile(file, title, text, downloadFallback) {
-    if (navigator.share) {
-      try {
-        // Try sharing with file first
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title, text });
-          return;
-        }
-      } catch (e) {
-        if (e.name === 'AbortError') throw e;
-        // File share failed, try text-only
-      }
-      // Text-only share for apps that don't support file sharing
-      try {
-        await navigator.share({ title, text });
-        return;
-      } catch (e) {
-        if (e.name === 'AbortError') throw e;
-      }
+    if (!navigator.share) {
+      if (downloadFallback) downloadFallback();
+      else alert('Sharing is not supported on this browser. Try downloading instead.');
+      return;
     }
-    // Final fallback: download
-    if (downloadFallback) downloadFallback();
-    else alert('Sharing is not supported on this browser. Try downloading instead.');
+    try {
+      // Try sharing with file (works for Messenger, email, WhatsApp, etc.)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title, text });
+        return;
+      }
+      // Some browsers support share but not files — share text only
+      await navigator.share({ title, text });
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      // Share failed entirely — fall back to download
+      if (downloadFallback) downloadFallback();
+    }
   }
 
   function setVideoDuration(val) {
@@ -3107,6 +3159,26 @@
     // Show GIF download button if GIF is available
     const gifBtn = $('claim-dl-gif-btn');
     if (gifBtn) gifBtn.style.display = gifUrl ? '' : 'none';
+  }
+
+  async function shareClaimPhoto() {
+    const imgSrc = $('claim-done-img').src;
+    if (!imgSrc) { alert('No photo to share.'); return; }
+    try {
+      const resp = await fetch(imgSrc);
+      const blob = await resp.blob();
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.png', { type: 'image/png' });
+      await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', () => {
+        // Download fallback
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u; a.download = file.name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(u);
+      });
+    } catch (err) {
+      if (err.name !== 'AbortError') alert('Could not share. Try saving the photo instead.');
+    }
   }
 
   function downloadClaimGif() {
