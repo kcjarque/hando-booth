@@ -111,7 +111,15 @@
       padding-top: clamp(20px, 4vh, 40px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      background: var(--bg);
+    }
+    #home::before {
+      content: '';
+      position: fixed;
+      inset: 0;
       background: radial-gradient(ellipse at 60% 10%, #fce8c8 0%, var(--bg) 65%);
+      z-index: -1;
+      pointer-events: none;
     }
 
     /* Logo */
@@ -273,7 +281,7 @@
       border-radius: 50%;
       background: rgba(242,228,204,0.92);
       border: 4px solid rgba(242,228,204,0.4);
-      box-shadow: 0 0 0 6px rgba(200,131,28,0.2);
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--orange) 20%, transparent);
       cursor: pointer;
       transition: transform 0.1s;
       -webkit-tap-highlight-color: transparent;
@@ -308,7 +316,7 @@
       font-family: var(--font-brand);
       line-height: 1;
       color: var(--cream);
-      text-shadow: 0 0 80px rgba(200,131,28,0.8), 0 0 20px rgba(200,131,28,0.4);
+      text-shadow: 0 0 80px var(--orange), 0 0 20px var(--orange);
       animation: cdPop 1s cubic-bezier(0.22,1,0.36,1) forwards;
     }
     #cd-label {
@@ -955,7 +963,6 @@
   </div>
 
   <div style="width:100%;max-width:380px">
-    <p class="section-label">Choose your layout</p>
     <div class="layout-grid">
 
       <div class="layout-card selected" data-layout="single" onclick="selectLayout(this,'single')">
@@ -1013,10 +1020,10 @@
 
   <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px">
     <!-- Admin button -->
-    <button onclick="openAdminModal()" aria-label="Admin" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
+    <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v2.4</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v2.5</span>
   </div>
 </div>
 
@@ -1051,6 +1058,7 @@
     <div id="cd-label">Get ready!</div>
   </div>
   <div id="flash"></div>
+  <img id="video-overlay-img" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;z-index:5;display:none" alt="">
 </div>
 
 <!-- ════════════ PREVIEW ════════════ -->
@@ -1086,7 +1094,6 @@
       <button class="fpill"        data-f="sepia" onclick="setFilter('sepia')">Sepia</button>
       <button class="fpill"        data-f="warm"  onclick="setFilter('warm')">Warm</button>
       <button class="fpill"        data-f="cool"  onclick="setFilter('cool')">Cool</button>
-            <button class="fpill" data-f="vintage" onclick="setFilter('vintage')">Vintage</button>
     </div>
   </div>
 
@@ -1158,7 +1165,7 @@
   <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:80px">← Back</button>
     <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:80px">✎ Edit</button>
-    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:80px">📷 Get Photo</button>
+    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:80px">⬇ Download</button>
   </div>
 
 </div>
@@ -1417,6 +1424,21 @@
           </label>
           <div id="admin-sticker-list"></div>
         </div>
+        <!-- Video Overlay -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Video Overlay</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Upload a transparent PNG shown on top of the video while recording.</p>
+          <label class="file-btn" style="margin-bottom:10px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload PNG (max 3 MB)
+            <input type="file" id="admin-vidoverlay-file" accept="image/png" onchange="handleVideoOverlayUpload(this)">
+          </label>
+          <div id="admin-vidoverlay-preview" style="display:none;text-align:center">
+            <img id="admin-vidoverlay-img" style="max-width:100%;max-height:120px;border-radius:8px;border:1.5px solid var(--border);margin-bottom:8px" alt="Video overlay preview">
+            <br>
+            <button onclick="removeVideoOverlay()" style="background:#e53935;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.75rem;font-weight:700;cursor:pointer">Remove Overlay</button>
+          </div>
+        </div>
         <!-- Home Screen Logo -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Home Logo</div>
@@ -1442,6 +1464,10 @@
             <button onclick="downloadOverlayTemplate('strip')"  style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Strip<br><span style="font-weight:400;color:var(--muted)">864×1896</span></button>
             <button onclick="downloadOverlayTemplate('quad')"   style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Quad<br><span style="font-weight:400;color:var(--muted)">1680×1280</span></button>
           </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button onclick="downloadOverlayTemplate('logo')"  style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Logo<br><span style="font-weight:400;color:var(--muted)">864×864</span></button>
+            <button onclick="downloadOverlayTemplate('video')" style="flex:1;min-width:70px;padding:9px 6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;line-height:1.3">⬇ Video<br><span style="font-weight:400;color:var(--muted)">1280×720</span></button>
+          </div>
         </div>
         <!-- Custom overlays -->
         <p class="section-label" style="text-align:left;margin-bottom:12px">Custom Overlays</p>
@@ -1457,6 +1483,8 @@
               <option value="double">Double (2 photos)</option>
               <option value="strip">Strip (3 photos)</option>
               <option value="quad">Quad (4 photos)</option>
+              <option value="logo">Logo</option>
+              <option value="video">Video</option>
               <option value="all">All layouts</option>
             </select>
           </div>
@@ -1651,16 +1679,6 @@
         px[i]   = Math.max(0,   r*0.88 - 8);
         px[i+1] = Math.min(255, g*1.02 + 2);
         px[i+2] = Math.min(255, b*1.10 + 12);
-      } else if (name === 'vintage') {
-        // Classic photobooth: high-contrast B&W with warm sepia tint
-        let lum = r*0.299 + g*0.587 + b*0.114;
-        // Boost contrast
-        lum = lum < 128 ? lum * 0.8 : lum * 1.15;
-        lum = Math.min(255, Math.max(0, lum));
-        // Warm sepia tint
-        px[i]   = Math.min(255, lum * 1.12 + 10);
-        px[i+1] = Math.min(255, lum * 1.0 + 5);
-        px[i+2] = Math.min(255, lum * 0.82);
       }
     }
     cc.putImageData(d, 0, 0);
@@ -1873,9 +1891,11 @@
       thumbStrip.innerHTML = '';
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
+      showVideoOverlayOnCamera(true);
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
+      showVideoOverlayOnCamera(false);
       buildThumbs();
     }
     showScreen('camera');
@@ -2646,10 +2666,11 @@
     });
     $('hlogo-picker').style.display = hlogoType==='custom' ? 'block' : 'none';
     renderAdminStickerList();
+    renderVideoOverlayPreview();
     loadOverlays();
     const list = $('admin-ov-list');
     list.innerHTML = '';
-    const LAYOUT_LABELS = { single: 'Single', strip: 'Strip', quad: 'Quad', all: 'All' };
+    const LAYOUT_LABELS = { single: 'Single', double: 'Double', strip: 'Strip', quad: 'Quad', logo: 'Logo', video: 'Video', all: 'All' };
 
     function makeRow(ov, isStock) {
       const row = document.createElement('div');
@@ -2738,6 +2759,15 @@
     } else if (layoutName === 'strip') {
       cw = CW + 2*P; ch = 3*CH + 2*G + 2*P;
       positions = [{x:P,y:P},{x:P,y:P+CH+G},{x:P,y:P+2*(CH+G)}];
+    } else if (layoutName === 'logo') {
+      // Logo layout: square canvas — photo area top, logo area bottom
+      cw = CW + 2*P; ch = CW + 2*P; // 864×864 square
+      positions = [{x:P, y:P, w:CW, h:CW - 200, label:'PHOTO'}];
+    } else if (layoutName === 'video') {
+      // Video overlay: 16:9 frame
+      const VW = 1280, VH = 720;
+      cw = VW; ch = VH;
+      positions = [{x:0, y:0, w:VW, h:VH, label:'VIDEO'}];
     } else {
       cw = 2*CW + G + 2*P; ch = 2*CH + G + 2*P;
       positions = [{x:P,y:P},{x:P+CW+G,y:P},{x:P,y:P+CH+G},{x:P+CW+G,y:P+CH+G}];
@@ -2752,12 +2782,15 @@
 
     // Draw checkerboard in each photo cell (design reference)
     const SQ = 30;
-    positions.forEach(({x, y}) => {
-      for (let row = 0; row < CH; row += SQ) {
-        for (let col = 0; col < CW; col += SQ) {
+    positions.forEach((pos) => {
+      const px = pos.x, py = pos.y;
+      const pw = pos.w || CW, ph = pos.h || CH;
+      const lbl = pos.label || 'PHOTO SHOWS HERE';
+      for (let row = 0; row < ph; row += SQ) {
+        for (let col = 0; col < pw; col += SQ) {
           c.fillStyle = ((Math.floor(row/SQ) + Math.floor(col/SQ)) % 2 === 0)
             ? 'rgba(180,180,180,0.55)' : 'rgba(230,230,230,0.55)';
-          c.fillRect(x+col, y+row, Math.min(SQ, CW-col), Math.min(SQ, CH-row));
+          c.fillRect(px+col, py+row, Math.min(SQ, pw-col), Math.min(SQ, ph-row));
         }
       }
       // Red dashed cell border
@@ -2765,17 +2798,17 @@
       c.strokeStyle = '#e74c3c';
       c.lineWidth = 3;
       c.setLineDash([14, 7]);
-      c.strokeRect(x+1.5, y+1.5, CW-3, CH-3);
+      c.strokeRect(px+1.5, py+1.5, pw-3, ph-3);
       c.restore();
       // Center label
       c.save();
       c.fillStyle = 'rgba(231,76,60,0.85)';
-      c.font = `bold ${Math.round(CH*0.055)}px system-ui, sans-serif`;
+      c.font = `bold ${Math.round(ph*0.055)}px system-ui, sans-serif`;
       c.textAlign = 'center'; c.textBaseline = 'middle';
-      c.fillText('PHOTO SHOWS HERE', x + CW/2, y + CH/2 - CH*0.07);
-      c.font = `${Math.round(CH*0.04)}px system-ui, sans-serif`;
+      c.fillText(lbl, px + pw/2, py + ph/2 - ph*0.07);
+      c.font = `${Math.round(ph*0.04)}px system-ui, sans-serif`;
       c.fillStyle = 'rgba(180,60,40,0.75)';
-      c.fillText(`${CW} × ${CH} px`, x + CW/2, y + CH/2 + CH*0.06);
+      c.fillText(`${pw} × ${ph} px`, px + pw/2, py + ph/2 + ph*0.06);
       c.restore();
     });
 
@@ -3240,7 +3273,7 @@
         ctx.strokeRect(item.x - 4, item.y - 4, item.w + 8, item.h + 8);
         ctx.setLineDash([]);
         // X delete circle
-        const xR = Math.max(16, canvas.width * 0.025);
+        const xR = Math.max(20, canvas.width * 0.03);
         const xX = item.x + item.w + 4;
         const xY = item.y - 4;
         ctx.fillStyle = '#e53935';
@@ -3328,11 +3361,21 @@
     if (_editorSel < 0 || _editorSel >= _editorItems.length) return false;
     const it = _editorItems[_editorSel];
     const canvas = $('editor-canvas');
-    const xR = Math.max(16, canvas.width * 0.025);
+    const xR = Math.max(20, canvas.width * 0.03);
     const xX = it.x + it.w + 4;
     const xY = it.y - 4;
-    const dx = px - xX, dy = py - xY;
-    return (dx*dx + dy*dy) <= (xR+8)*(xR+8);
+    // Account for rotation — transform click point into item's local space
+    const rot = it.rot || 0;
+    let lpx = px, lpy = py;
+    if (rot) {
+      const cx = it.x + it.w/2, cy = it.y + it.h/2;
+      const cos = Math.cos(-rot), sin = Math.sin(-rot);
+      const dx = px - cx, dy = py - cy;
+      lpx = cx + dx*cos - dy*sin;
+      lpy = cy + dx*sin + dy*cos;
+    }
+    const dx = lpx - xX, dy = lpy - xY;
+    return (dx*dx + dy*dy) <= (xR+12)*(xR+12);
   }
 
   function editorPointerDown(e) {
@@ -3480,6 +3523,51 @@
     _customStickers.splice(idx, 1);
     try { localStorage.setItem('hb_custom_stickers', JSON.stringify(_customStickers)); } catch {}
     renderAdminStickerList();
+  }
+
+  /* ─── Video overlay ───────────────────────────────── */
+  let _videoOverlayUrl = localStorage.getItem('hb_video_overlay') || null;
+
+  function handleVideoOverlayUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 3*1024*1024) { alert('File too large (max 3 MB)'); input.value=''; return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      _videoOverlayUrl = reader.result;
+      localStorage.setItem('hb_video_overlay', _videoOverlayUrl);
+      renderVideoOverlayPreview();
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  function removeVideoOverlay() {
+    _videoOverlayUrl = null;
+    localStorage.removeItem('hb_video_overlay');
+    renderVideoOverlayPreview();
+    $('video-overlay-img').style.display = 'none';
+  }
+
+  function renderVideoOverlayPreview() {
+    const wrap = $('admin-vidoverlay-preview');
+    if (!wrap) return;
+    if (_videoOverlayUrl) {
+      $('admin-vidoverlay-img').src = _videoOverlayUrl;
+      wrap.style.display = 'block';
+    } else {
+      wrap.style.display = 'none';
+    }
+  }
+
+  function showVideoOverlayOnCamera(show) {
+    const el = $('video-overlay-img');
+    if (show && _videoOverlayUrl) {
+      el.src = _videoOverlayUrl;
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
   }
 
   function renderAdminStickerList() {
