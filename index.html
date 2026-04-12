@@ -921,11 +921,16 @@
     #editor-screen .editor-canvas-wrap {
       position: relative;
       width: 100%; max-width: 520px;
+      max-height: 55vh;
       background: #222; border-radius: 14px;
       overflow: hidden; touch-action: none;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #editor-screen .editor-canvas-wrap canvas {
-      display: block; width: 100%; height: auto;
+      display: block; max-width: 100%; max-height: 55vh;
     }
     .sticker-bar {
       display: flex; gap: 8px; flex-wrap: wrap;
@@ -1178,11 +1183,12 @@
     </div>
   </div>
 
-  <!-- Simplified action row: Back + Custom Edit + Get Photo -->
-  <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
-    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:80px">← Back</button>
-    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:80px">✎ Edit</button>
-    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:80px">⬇ Download</button>
+  <!-- Simplified action row: Back + Custom Edit + Share + Download -->
+  <div class="action-row" style="max-width:420px;width:100%;flex-wrap:wrap;gap:8px">
+    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:70px">← Back</button>
+    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:70px">✎ Edit</button>
+    <button class="btn-ghost" onclick="sharePhoto()" style="flex:1;min-width:70px">↗ Share</button>
+    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:70px">⬇ Download</button>
   </div>
 
 </div>
@@ -1200,7 +1206,7 @@
     <div style="width:40px"></div>
   </div>
   <div class="img-panel" style="background:#000;border-radius:14px;overflow:hidden">
-    <video id="vid-playback" class="panel-img" style="object-fit:contain;background:#000" playsinline loop muted autoplay></video>
+    <video id="vid-playback" class="panel-img" style="object-fit:contain;background:#000" playsinline loop controls></video>
   </div>
   <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="retakeVideo()" style="flex:1;min-width:80px">↩ Retake</button>
@@ -1957,16 +1963,62 @@
     }
   }
 
+  let _recCanvas = null;
+  let _recAnimId = null;
+
   function startRecording() {
     if (!stream) return;
     _recordedChunks = [];
-    // Request audio too for video
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+
+    // Create a canvas that composites video + overlay
+    const vid = $('video');
+    const vw = vid.videoWidth || 640, vh = vid.videoHeight || 480;
+    const rc = document.createElement('canvas');
+    rc.width = vw; rc.height = vh;
+    _recCanvas = rc;
+    const rctx = rc.getContext('2d');
+
+    // Load overlay image if present
+    let ovImg = null;
+    if (_videoOverlayUrl) {
+      ovImg = new Image();
+      ovImg.src = _videoOverlayUrl;
+    }
+
+    // Draw loop: video (mirror if front cam) + overlay onto canvas
+    function drawFrame() {
+      rctx.save();
+      if (facingMode === 'user') {
+        rctx.translate(vw, 0);
+        rctx.scale(-1, 1);
+      }
+      rctx.drawImage(vid, 0, 0, vw, vh);
+      rctx.restore();
+      if (ovImg && ovImg.complete && ovImg.naturalWidth) {
+        rctx.drawImage(ovImg, 0, 0, vw, vh);
+      }
+      _recAnimId = requestAnimationFrame(drawFrame);
+    }
+    drawFrame();
+
+    // Capture canvas stream + audio from original stream
+    const canvasStream = rc.captureStream(30);
+    const audioTracks = stream.getAudioTracks();
+    audioTracks.forEach(t => canvasStream.addTrack(t));
+
+    // Prefer mp4, fall back to webm
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ? 'video/mp4;codecs=avc1'
+                   : MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+                   : MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
                    : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm'
-                   : 'video/mp4';
-    _mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 800000 });
+                   : '';
+    const opts = { videoBitsPerSecond: 2500000 };
+    if (mimeType) opts.mimeType = mimeType;
+    _mediaRecorder = new MediaRecorder(canvasStream, opts);
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
     _mediaRecorder.onstop = () => {
+      if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
+      _recCanvas = null;
       const blob = new Blob(_recordedChunks, { type: _mediaRecorder.mimeType });
       if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
       _recordedBlobUrl = URL.createObjectURL(blob);
@@ -1992,6 +2044,8 @@
     if (_mediaRecorder && _mediaRecorder.state === 'recording') {
       _mediaRecorder.stop();
     }
+    if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
+    _recCanvas = null;
     $('rec-btn').classList.remove('recording');
     $('rec-timer').style.display = 'none';
     if (_recInterval) { clearInterval(_recInterval); _recInterval = null; }
@@ -2005,21 +2059,8 @@
     const vid = $('vid-playback');
     vid.src = _recordedBlobUrl;
     vid.muted = false;
-    vid.play().catch(() => {});
+    // Don't autoplay — let user tap play
     showScreen('video-preview');
-    // Auto-download video
-    if (_recordedBlobUrl) {
-      setTimeout(() => {
-        fetch(_recordedBlobUrl).then(r => r.blob()).then(blob => {
-          const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = 'hando-booth-' + Date.now() + '.' + ext;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        });
-      }, 500);
-    }
   }
 
   function retakeVideo() {
@@ -2044,36 +2085,50 @@
     try {
       const resp = await fetch(_recordedBlobUrl);
       const blob = await resp.blob();
-      // Try mp4 first (better app support), fall back to webm
-      let shareBlob = blob;
-      let ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      // Some apps reject webm — try sharing as mp4 mime
-      const mimeType = ext === 'mp4' ? 'video/mp4' : 'video/webm';
-      const file = new File([shareBlob], 'hando-booth.' + ext, { type: mimeType });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'Hando Booth Video',
-          text: 'Check out my Hando Booth video!'
-        });
-      } else if (navigator.share) {
-        // Fallback: share without file (just text)
-        await navigator.share({
-          title: 'Hando Booth Video',
-          text: 'Check out my Hando Booth video!'
-        });
-      } else {
-        alert('Sharing is not supported on this browser. Try downloading instead.');
-      }
+      const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+      const mime = ext === 'mp4' ? 'video/mp4' : 'video/webm';
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
+      await _shareFile(file, 'Hando Booth Video', 'Check out my Hando Booth video!', doGetVideo);
     } catch (err) {
-      if (err.name === 'AbortError') return; // user cancelled
-      if (err.name === 'NotAllowedError') {
-        alert('Share was blocked. Please try again.');
-      } else {
-        // Fallback to download
-        doGetVideo();
+      if (err.name !== 'AbortError') doGetVideo();
+    }
+  }
+
+  async function sharePhoto() {
+    if (!compositeDataUrl) { alert('No photo yet.'); return; }
+    try {
+      const resp = await fetch(compositeDataUrl);
+      const blob = await resp.blob();
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.png', { type: 'image/png' });
+      await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', doGetPhoto);
+    } catch (err) {
+      if (err.name !== 'AbortError') doGetPhoto();
+    }
+  }
+
+  async function _shareFile(file, title, text, downloadFallback) {
+    if (navigator.share) {
+      try {
+        // Try sharing with file first
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title, text });
+          return;
+        }
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
+        // File share failed, try text-only
+      }
+      // Text-only share for apps that don't support file sharing
+      try {
+        await navigator.share({ title, text });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') throw e;
       }
     }
+    // Final fallback: download
+    if (downloadFallback) downloadFallback();
+    else alert('Sharing is not supported on this browser. Try downloading instead.');
   }
 
   function setVideoDuration(val) {
