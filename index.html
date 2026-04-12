@@ -1341,7 +1341,7 @@
     </div>
     <div class="action-row" style="max-width:320px;width:100%;gap:8px;margin-bottom:10px">
       <button class="btn-ghost" onclick="shareClaimPhoto()" style="flex:1;min-width:100px">↗ Share</button>
-      <button id="claim-dl-gif-btn" onclick="downloadClaimGif()" class="btn-warm" style="display:none;flex:1;min-width:100px">⬇ GIF</button>
+      <button id="claim-dl-gif-btn" onclick="shareClaimGif()" class="btn-warm" style="display:none;flex:1;min-width:100px">↗ Share GIF</button>
     </div>
   </div>
 </div>
@@ -2096,8 +2096,20 @@
     const vid = $('vid-playback');
     vid.src = _recordedBlobUrl;
     vid.muted = false;
-    // Don't autoplay — let user tap play
     showScreen('video-preview');
+    // Auto-download video
+    if (_recordedBlobUrl) {
+      setTimeout(() => {
+        fetch(_recordedBlobUrl).then(r => r.blob()).then(blob => {
+          const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'hando-booth-' + Date.now() + '.' + ext;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      }, 600);
+    }
   }
 
   function retakeVideo() {
@@ -2122,9 +2134,18 @@
     try {
       const resp = await fetch(_recordedBlobUrl);
       const blob = await resp.blob();
-      // Force mp4 mime type for maximum app compatibility (Messenger, Instagram, email)
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.mp4', { type: 'video/mp4' });
-      await _shareFile(file, 'Hando Booth Video', 'Check out my Hando Booth video!', doGetVideo);
+      // Use actual blob type for file — don't mislabel webm as mp4
+      const isMp4 = blob.type.includes('mp4');
+      const ext = isMp4 ? 'mp4' : 'webm';
+      const mime = isMp4 ? 'video/mp4' : 'video/webm';
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
+      await _shareFile(file, 'Hando Booth Video', 'Check out my Hando Booth video!', () => {
+        // If share fails, download + tell user to share from camera roll
+        doGetVideo();
+        if (!isMp4) {
+          setTimeout(() => alert('Video saved! To share on Instagram or Messenger, open it from your Downloads or Files app.'), 800);
+        }
+      });
     } catch (err) {
       if (err.name !== 'AbortError') doGetVideo();
     }
@@ -3165,9 +3186,9 @@
     const imgSrc = $('claim-done-img').src;
     if (!imgSrc) { alert('No photo to share.'); return; }
     try {
-      const resp = await fetch(imgSrc);
-      const blob = await resp.blob();
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.png', { type: 'image/png' });
+      // Convert to JPEG for better Messenger/Instagram/email compatibility
+      const blob = await _dataUrlToJpeg(imgSrc);
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
       await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', () => {
         // Download fallback
         const u = URL.createObjectURL(blob);
@@ -3181,17 +3202,25 @@
     }
   }
 
-  function downloadClaimGif() {
+  async function shareClaimGif() {
     const gifEl = $('claim-gif-url');
     const url = gifEl && gifEl.value ? gifEl.value : null;
     if (!url) return;
-    fetch(url).then(r => r.blob()).then(blob => {
-      const u = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = u; a.download = 'hando-booth-' + Date.now() + '.gif';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(u);
-    }).catch(() => { window.open(url, '_blank'); });
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.gif', { type: 'image/gif' });
+      await _shareFile(file, 'Hando Booth GIF', 'Check out my Hando Booth GIF!', () => {
+        // Download fallback
+        const u = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = u; a.download = file.name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(u);
+      });
+    } catch {
+      window.open(url, '_blank');
+    }
   }
 
   function showGetPhotoModal() {
