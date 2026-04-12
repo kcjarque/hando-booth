@@ -344,7 +344,7 @@
       top: 0; left: 50%;
       transform: translateX(-50%);
       height: 100%;
-      aspect-ratio: 4/3;
+      aspect-ratio: var(--crop-ratio, 1.333);
       max-width: 100%;
       pointer-events: none;
       border: 4px solid #fff;
@@ -1060,7 +1060,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v2.5</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.0</span>
   </div>
 </div>
 
@@ -1079,12 +1079,9 @@
       <!-- FIX 3: X button closes camera but keeps photos if any exist -->
       <button class="icon-btn" onclick="closeCameraKeepPhotos()" aria-label="Close">✕</button>
       <div id="thumb-strip"></div>
-      <button class="icon-btn" onclick="flipCamera()" aria-label="Flip camera">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 4v6h6"/><path d="M23 20v-6h-6"/>
-          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15"/>
-        </svg>
-      </button>
+      <select id="cam-select" onchange="switchCamera(this.value)" aria-label="Select camera" style="background:rgba(0,0,0,0.45);color:#fff;border:1.5px solid rgba(255,255,255,0.4);border-radius:10px;padding:6px 10px;font-size:0.7rem;max-width:120px;cursor:pointer;-webkit-appearance:none;appearance:none;text-overflow:ellipsis">
+        <option value="">Loading…</option>
+      </select>
     </div>
     <div class="cam-bottom">
       <button class="shutter" id="shutter" onclick="startCapture()" aria-label="Take photo"></button>
@@ -1483,6 +1480,34 @@
             <button onclick="removeVideoOverlay()" style="background:#e53935;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.75rem;font-weight:700;cursor:pointer">Remove Overlay</button>
           </div>
         </div>
+        <!-- Layout Sizes -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Layout Sizes</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px;line-height:1.4">Adjust photo cell dimensions, gap, and padding for the composite layout.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Width</label>
+              <input type="range" id="ls-cellw" min="400" max="1600" step="50" value="800" oninput="updateLayoutSize('cellW',this.value)" style="flex:1">
+              <span id="ls-cellw-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">800</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Height</label>
+              <input type="range" id="ls-cellh" min="300" max="1200" step="50" value="600" oninput="updateLayoutSize('cellH',this.value)" style="flex:1">
+              <span id="ls-cellh-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">600</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Gap</label>
+              <input type="range" id="ls-gap" min="0" max="50" step="2" value="16" oninput="updateLayoutSize('gap',this.value)" style="flex:1">
+              <span id="ls-gap-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">16</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <label style="font-size:0.72rem;color:var(--text);min-width:70px;font-weight:600">Padding</label>
+              <input type="range" id="ls-pad" min="0" max="60" step="4" value="32" oninput="updateLayoutSize('pad',this.value)" style="flex:1">
+              <span id="ls-pad-val" style="font-size:0.72rem;color:var(--muted);min-width:36px;text-align:right">32</span>
+            </div>
+          </div>
+          <button onclick="resetLayoutSizes()" style="margin-top:10px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;width:100%">Reset to Default</button>
+        </div>
         <!-- Home Screen Logo -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Home Logo</div>
@@ -1728,7 +1753,7 @@
   }
 
   /* ─── Composite geometry ──────────────────────────── */
-  const CELL_W = 800, CELL_H = 600, GAP = 16, PAD = 32;
+  let CELL_W = 800, CELL_H = 600, GAP = 16, PAD = 32;
 
   /* ─── DOM refs ────────────────────────────────────── */
   const $         = id => document.getElementById(id);
@@ -1904,41 +1929,106 @@
   }
 
   /* ─── Camera ──────────────────────────────────────── */
+  let _selectedDeviceId = null;
+  let _cameraDevices = [];
+
   async function startCamera(withAudio) {
     stopStream();
-    // FIX 9 — request 4:3 with fallback
-    const constraints = {
-      video: {
+    const cropRatio = CELL_W / CELL_H;
+    // Build video constraints
+    let vidConstraint;
+    if (_selectedDeviceId) {
+      vidConstraint = {
+        deviceId: { exact: _selectedDeviceId },
+        width: { ideal: withAudio ? 640 : 1280 },
+        height: { ideal: withAudio ? 480 : 960 },
+        aspectRatio: { ideal: cropRatio }
+      };
+    } else {
+      vidConstraint = {
         facingMode,
         width: { ideal: withAudio ? 640 : 1280 },
         height: { ideal: withAudio ? 480 : 960 },
-        aspectRatio: { ideal: 4/3 }
-      },
-      audio: !!withAudio
-    };
+        aspectRatio: { ideal: cropRatio }
+      };
+    }
+    const constraints = { video: vidConstraint, audio: !!withAudio };
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
     } catch {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+        // Fallback: simpler constraints
+        const fallback = _selectedDeviceId
+          ? { video: { deviceId: { exact: _selectedDeviceId } }, audio: false }
+          : { video: { facingMode }, audio: false };
+        stream = await navigator.mediaDevices.getUserMedia(fallback);
       } catch (err) {
         alert('Camera unavailable: ' + err.message);
         return;
       }
     }
     video.srcObject = stream;
-    // FIX 9 — Firefox needs explicit play(); mirror front camera
     await video.play().catch(() => {});
-    video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'none';
+    // Smart mirror: only mirror front-facing / user cameras
+    const shouldMirror = _isFrontCamera();
+    video.style.transform = shouldMirror ? 'scaleX(-1)' : 'none';
+    // Populate camera list after permission is granted
+    populateCameraList();
+  }
+
+  function _isFrontCamera() {
+    if (_selectedDeviceId && _cameraDevices.length > 0) {
+      const dev = _cameraDevices.find(d => d.deviceId === _selectedDeviceId);
+      if (dev && dev.label) {
+        const lbl = dev.label.toLowerCase();
+        return lbl.includes('front') || lbl.includes('facetime') || lbl.includes('user');
+      }
+      // If no label, assume first device is front camera
+      return _cameraDevices[0]?.deviceId === _selectedDeviceId;
+    }
+    return facingMode === 'user';
   }
 
   function stopStream() {
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   }
 
-  async function flipCamera() {
-    facingMode = facingMode === 'user' ? 'environment' : 'user';
-    await startCamera();
+  async function populateCameraList() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      _cameraDevices = devices.filter(d => d.kind === 'videoinput');
+      const sel = $('cam-select');
+      if (!sel || _cameraDevices.length === 0) return;
+      sel.innerHTML = '';
+      _cameraDevices.forEach((dev, i) => {
+        const opt = document.createElement('option');
+        opt.value = dev.deviceId;
+        opt.textContent = dev.label || ('Camera ' + (i + 1));
+        sel.appendChild(opt);
+      });
+      // Select current device
+      if (_selectedDeviceId) {
+        sel.value = _selectedDeviceId;
+      } else if (stream) {
+        const activeTrack = stream.getVideoTracks()[0];
+        if (activeTrack) {
+          const settings = activeTrack.getSettings();
+          if (settings.deviceId) {
+            sel.value = settings.deviceId;
+            _selectedDeviceId = settings.deviceId;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not enumerate cameras:', e);
+    }
+  }
+
+  async function switchCamera(deviceId) {
+    if (!deviceId) return;
+    _selectedDeviceId = deviceId;
+    const isVideo = (layout === 'video');
+    await startCamera(isVideo);
   }
 
   function buildThumbs() {
@@ -2025,7 +2115,7 @@
     // Draw loop: video (mirror if front cam) + overlay onto canvas
     function drawFrame() {
       rctx.save();
-      if (facingMode === 'user') {
+      if (_isFrontCamera()) {
         rctx.translate(vw, 0);
         rctx.scale(-1, 1);
       }
@@ -2269,7 +2359,7 @@
   function snap() {
     const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
     // Crop to 4:3 centered (matches composite cell ratio)
-    const targetRatio = 4/3;
+    const targetRatio = CELL_W / CELL_H;
     const videoRatio = vw / vh;
     let sx = 0, sy = 0, sw = vw, sh = vh;
     if (videoRatio > targetRatio) {
@@ -2282,9 +2372,9 @@
       sy = Math.round((vh - sh) / 2);
     }
     canvas.width = sw; canvas.height = sh;
-    if (facingMode === 'user') { ctx.save(); ctx.translate(sw, 0); ctx.scale(-1, 1); }
+    if (_isFrontCamera()) { ctx.save(); ctx.translate(sw, 0); ctx.scale(-1, 1); }
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-    if (facingMode === 'user') ctx.restore();
+    if (_isFrontCamera()) ctx.restore();
     return canvas.toDataURL('image/jpeg', 0.88);
   }
 
@@ -2974,7 +3064,7 @@
   }
 
   function downloadOverlayTemplate(layoutName) {
-    const CW = 800, CH = 600, G = 16, P = 32;
+    const CW = CELL_W, CH = CELL_H, G = GAP, P = PAD;
     let cw, ch, positions;
     if (layoutName === 'single') {
       cw = CW + 2*P; ch = CH + 2*P;
@@ -2986,11 +3076,9 @@
       cw = CW + 2*P; ch = 3*CH + 2*G + 2*P;
       positions = [{x:P,y:P},{x:P,y:P+CH+G},{x:P,y:P+2*(CH+G)}];
     } else if (layoutName === 'logo') {
-      // Logo layout: square canvas — photo area top, logo area bottom
-      cw = CW + 2*P; ch = CW + 2*P; // 864×864 square
+      cw = CW + 2*P; ch = CW + 2*P;
       positions = [{x:P, y:P, w:CW, h:CW - 200, label:'PHOTO'}];
     } else if (layoutName === 'video') {
-      // Video overlay: 16:9 frame
       const VW = 1280, VH = 720;
       cw = VW; ch = VH;
       positions = [{x:0, y:0, w:VW, h:VH, label:'VIDEO'}];
@@ -3830,6 +3918,93 @@
     }
   }
 
+  /* ─── Layout size customization ─────────────────── */
+  function updateLayoutSize(prop, val) {
+    val = parseInt(val);
+    if (prop === 'cellW') CELL_W = val;
+    else if (prop === 'cellH') CELL_H = val;
+    else if (prop === 'gap') GAP = val;
+    else if (prop === 'pad') PAD = val;
+    // Update label
+    const labelEl = $('ls-' + prop.replace('cellW','cellw').replace('cellH','cellh') + '-val');
+    if (labelEl) labelEl.textContent = val;
+    // Update crop guide aspect ratio
+    _updateCropRatio();
+    // Persist
+    _saveLayoutSizes();
+    // Update overlay template dimension labels
+    updateTemplateDimLabels();
+  }
+
+  function resetLayoutSizes() {
+    CELL_W = 800; CELL_H = 600; GAP = 16; PAD = 32;
+    const s = $('ls-cellw'); if (s) s.value = 800;
+    const s2 = $('ls-cellh'); if (s2) s2.value = 600;
+    const s3 = $('ls-gap'); if (s3) s3.value = 16;
+    const s4 = $('ls-pad'); if (s4) s4.value = 32;
+    $('ls-cellw-val').textContent = '800';
+    $('ls-cellh-val').textContent = '600';
+    $('ls-gap-val').textContent = '16';
+    $('ls-pad-val').textContent = '32';
+    localStorage.removeItem('hb_layout_sizes');
+    _updateCropRatio();
+    updateTemplateDimLabels();
+  }
+
+  function _saveLayoutSizes() {
+    try {
+      localStorage.setItem('hb_layout_sizes', JSON.stringify({
+        cellW: CELL_W, cellH: CELL_H, gap: GAP, pad: PAD
+      }));
+    } catch {}
+  }
+
+  function _restoreLayoutSizes() {
+    try {
+      const raw = localStorage.getItem('hb_layout_sizes');
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s.cellW) CELL_W = s.cellW;
+      if (s.cellH) CELL_H = s.cellH;
+      if (s.gap !== undefined) GAP = s.gap;
+      if (s.pad !== undefined) PAD = s.pad;
+      // Update admin sliders
+      const sw = $('ls-cellw'); if (sw) { sw.value = CELL_W; }
+      const sh = $('ls-cellh'); if (sh) { sh.value = CELL_H; }
+      const sg = $('ls-gap'); if (sg) { sg.value = GAP; }
+      const sp = $('ls-pad'); if (sp) { sp.value = PAD; }
+      const lw = $('ls-cellw-val'); if (lw) lw.textContent = CELL_W;
+      const lh = $('ls-cellh-val'); if (lh) lh.textContent = CELL_H;
+      const lg = $('ls-gap-val'); if (lg) lg.textContent = GAP;
+      const lp = $('ls-pad-val'); if (lp) lp.textContent = PAD;
+      _updateCropRatio();
+    } catch {}
+  }
+
+  function _updateCropRatio() {
+    const ratio = CELL_W / CELL_H;
+    document.querySelectorAll('.cam-crop-guide').forEach(el => {
+      el.style.setProperty('--crop-ratio', ratio.toFixed(4));
+    });
+  }
+
+  function updateTemplateDimLabels() {
+    const cw = CELL_W, ch = CELL_H, g = GAP, p = PAD;
+    const dims = {
+      single: [(cw + 2*p) + '×' + (ch + 2*p)],
+      double: [(cw + 2*p) + '×' + (2*ch + g + 2*p)],
+      strip:  [(cw + 2*p) + '×' + (3*ch + 2*g + 2*p)],
+      quad:   [(2*cw + g + 2*p) + '×' + (2*ch + g + 2*p)]
+    };
+    document.querySelectorAll('[onclick^="downloadOverlayTemplate"]').forEach(btn => {
+      const match = btn.getAttribute('onclick').match(/'(\w+)'/);
+      if (match && dims[match[1]]) {
+        const span = btn.querySelector('span');
+        if (span) span.textContent = dims[match[1]][0];
+      }
+    });
+  }
+
   function showVideoOverlayOnCamera(show) {
     const el = $('video-overlay-img');
     if (show && _videoOverlayUrl) {
@@ -3940,6 +4115,9 @@
       const sl = $('vid-dur-slider'); if (sl) sl.value = videoDuration;
       const lb = $('vid-dur-label'); if (lb) lb.textContent = videoDuration + 's';
     }
+    // Restore layout sizes
+    _restoreLayoutSizes();
+    updateTemplateDimLabels();
     // Init EmailJS v4 once on page load
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
