@@ -915,6 +915,7 @@
       transition: transform 0.1s, box-shadow 0.15s;
     }
     .sticker-btn:active { transform: scale(0.92); }
+    .sticker-btn img { width: 32px; height: 32px; object-fit: contain; }
 
     /* ── PRINT ─────────────────────────────────────── */
     #print-target {
@@ -1415,6 +1416,16 @@
             <input type="color" id="hbtn-color-input" value="#c8831c" onchange="applyButtonColor(this.value)" style="width:50px;height:36px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px">
           </div>
         </div>
+        <!-- Custom Stickers -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Custom Stickers</div>
+          <label class="file-btn" style="margin-bottom:10px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Sticker (PNG, max 512 KB)
+            <input type="file" id="admin-sticker-file" accept="image/png,image/webp,image/gif" onchange="handleAdminStickerUpload(this)">
+          </label>
+          <div id="admin-sticker-list"></div>
+        </div>
         <!-- Home Screen Logo -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Home Logo</div>
@@ -1548,6 +1559,9 @@
   let _editorItems = [];   // [{type:'sticker'|'photo', emoji?, img?, x, y, w, h}]
   let _editorBgImg = null;
   let _editorDrag  = null; // {idx, offX, offY}
+  let _editorSel   = -1;   // selected item index
+  let _editorPinch = null;  // {dist, idx} for pinch-to-resize
+  let _customStickers = JSON.parse(localStorage.getItem('hb_custom_stickers') || '[]');
 
   /* FIX 15 — EmailJS config (fill in from emailjs.com) */
   const EMAILJS_PUBLIC_KEY  = 'XU6XBK8cXhIS5GyLs';
@@ -1766,8 +1780,8 @@
     const constraints = {
       video: {
         facingMode,
-        width: { ideal: 1280 },
-        height: { ideal: 960 },
+        width: { ideal: withAudio ? 640 : 1280 },
+        height: { ideal: withAudio ? 480 : 960 },
         aspectRatio: { ideal: 4/3 }
       },
       audio: !!withAudio
@@ -1858,7 +1872,7 @@
     const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
                    : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm'
                    : 'video/mp4';
-    _mediaRecorder = new MediaRecorder(stream, { mimeType });
+    _mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 800000 });
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
     _mediaRecorder.onstop = () => {
       const blob = new Blob(_recordedChunks, { type: _mediaRecorder.mimeType });
@@ -2611,6 +2625,7 @@
       if (btn) btn.classList.toggle('active', t===hlogoType);
     });
     $('hlogo-picker').style.display = hlogoType==='custom' ? 'block' : 'none';
+    renderAdminStickerList();
     loadOverlays();
     const list = $('admin-ov-list');
     list.innerHTML = '';
@@ -3122,19 +3137,25 @@
     if (!compositeDataUrl) { alert('No photo yet.'); return; }
     _editorItems = [];
     _editorDrag = null;
+    _editorSel = -1;
+    _editorPinch = null;
     const canvas = $('editor-canvas');
     const img = new Image();
     img.onload = () => {
-      // Scale canvas to fit
       canvas.width = img.width;
       canvas.height = img.height;
       _editorBgImg = img;
+      renderEditorStickers();
       drawEditor();
       showScreen('editor-screen');
-      // Attach touch/mouse events
+      // Pointer events for drag
       canvas.onpointerdown = editorPointerDown;
       canvas.onpointermove = editorPointerMove;
       canvas.onpointerup = editorPointerUp;
+      // Touch events for pinch-to-resize
+      canvas.ontouchstart = editorTouchStart;
+      canvas.ontouchmove = editorTouchMove;
+      canvas.ontouchend = editorTouchEnd;
     };
     img.src = compositeDataUrl;
   }
@@ -3143,18 +3164,53 @@
     showScreen('gif-screen');
   }
 
+  function renderEditorStickers() {
+    const bar = $('sticker-bar');
+    // Keep default emoji buttons, add custom sticker images
+    // Remove old custom sticker buttons
+    bar.querySelectorAll('.custom-sticker-btn').forEach(b => b.remove());
+    _customStickers.forEach((dataUrl, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'sticker-btn custom-sticker-btn';
+      btn.onclick = () => editorAddImageSticker(dataUrl);
+      btn.innerHTML = '<img src="' + dataUrl + '" alt="sticker">';
+      bar.appendChild(btn);
+    });
+  }
+
   function drawEditor() {
     const canvas = $('editor-canvas');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (_editorBgImg) ctx.drawImage(_editorBgImg, 0, 0);
-    for (const item of _editorItems) {
+    for (let i = 0; i < _editorItems.length; i++) {
+      const item = _editorItems[i];
       if (item.type === 'sticker') {
         ctx.font = item.h + 'px serif';
         ctx.textBaseline = 'top';
         ctx.fillText(item.emoji, item.x, item.y);
-      } else if (item.type === 'photo' && item.img) {
+      } else if ((item.type === 'photo' || item.type === 'imgsticker') && item.img) {
         ctx.drawImage(item.img, item.x, item.y, item.w, item.h);
+      }
+      // Draw selection border + X button for selected item
+      if (i === _editorSel) {
+        ctx.save();
+        ctx.strokeStyle = '#c8831c';
+        ctx.lineWidth = Math.max(3, canvas.width * 0.004);
+        ctx.setLineDash([8, 4]);
+        ctx.strokeRect(item.x - 4, item.y - 4, item.w + 8, item.h + 8);
+        ctx.setLineDash([]);
+        // X delete circle
+        const xR = Math.max(16, canvas.width * 0.025);
+        const xX = item.x + item.w + 4;
+        const xY = item.y - 4;
+        ctx.fillStyle = '#e53935';
+        ctx.beginPath(); ctx.arc(xX, xY, xR, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold ' + Math.round(xR*1.2) + 'px sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('×', xX, xY + 1);
+        ctx.restore();
       }
     }
   }
@@ -3168,7 +3224,27 @@
       y: Math.round(canvas.height/2 - size/2),
       w: size, h: size
     });
+    _editorSel = _editorItems.length - 1;
     drawEditor();
+  }
+
+  function editorAddImageSticker(dataUrl) {
+    const canvas = $('editor-canvas');
+    const img = new Image();
+    img.onload = () => {
+      const maxW = Math.round(canvas.width * 0.15);
+      const ratio = img.height / img.width;
+      const w = maxW, h = Math.round(maxW * ratio);
+      _editorItems.push({
+        type: 'imgsticker', img,
+        x: Math.round(canvas.width/2 - w/2),
+        y: Math.round(canvas.height/2 - h/2),
+        w, h
+      });
+      _editorSel = _editorItems.length - 1;
+      drawEditor();
+    };
+    img.src = dataUrl;
   }
 
   function editorAddPhoto() {
@@ -3192,12 +3268,32 @@
           y: Math.round(canvas.height/2 - h/2),
           w, h
         });
+        _editorSel = _editorItems.length - 1;
         drawEditor();
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
     input.value = '';
+  }
+
+  function _editorHitTest(px, py) {
+    for (let i = _editorItems.length - 1; i >= 0; i--) {
+      const it = _editorItems[i];
+      if (px >= it.x && px <= it.x + it.w && py >= it.y && py <= it.y + it.h) return i;
+    }
+    return -1;
+  }
+
+  function _editorHitX(px, py) {
+    if (_editorSel < 0 || _editorSel >= _editorItems.length) return false;
+    const it = _editorItems[_editorSel];
+    const canvas = $('editor-canvas');
+    const xR = Math.max(16, canvas.width * 0.025);
+    const xX = it.x + it.w + 4;
+    const xY = it.y - 4;
+    const dx = px - xX, dy = py - xY;
+    return (dx*dx + dy*dy) <= (xR+8)*(xR+8);
   }
 
   function editorPointerDown(e) {
@@ -3207,16 +3303,21 @@
     const scaleY = canvas.height / rect.height;
     const px = (e.clientX - rect.left) * scaleX;
     const py = (e.clientY - rect.top) * scaleY;
-    // Hit test from top (last added = on top)
-    for (let i = _editorItems.length - 1; i >= 0; i--) {
-      const it = _editorItems[i];
-      if (px >= it.x && px <= it.x + it.w && py >= it.y && py <= it.y + it.h) {
-        _editorDrag = { idx: i, offX: px - it.x, offY: py - it.y };
-        canvas.setPointerCapture(e.pointerId);
-        return;
-      }
+    // Check X delete button first
+    if (_editorHitX(px, py)) {
+      editorDeleteSelected();
+      return;
     }
-    _editorDrag = null;
+    // Hit test
+    const hit = _editorHitTest(px, py);
+    if (hit >= 0) {
+      _editorSel = hit;
+      _editorDrag = { idx: hit, offX: px - _editorItems[hit].x, offY: py - _editorItems[hit].y };
+      canvas.setPointerCapture(e.pointerId);
+    } else {
+      _editorSel = -1;
+    }
+    drawEditor();
   }
 
   function editorPointerMove(e) {
@@ -3237,21 +3338,103 @@
     _editorDrag = null;
   }
 
+  function editorDeleteSelected() {
+    if (_editorSel < 0 || _editorSel >= _editorItems.length) return;
+    _editorItems.splice(_editorSel, 1);
+    _editorSel = -1;
+    drawEditor();
+  }
+
+  // Pinch-to-resize via touch events
+  function _getTouchDist(t1, t2) {
+    const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  function editorTouchStart(e) {
+    if (e.touches.length === 2 && _editorSel >= 0) {
+      e.preventDefault();
+      _editorPinch = {
+        dist: _getTouchDist(e.touches[0], e.touches[1]),
+        origW: _editorItems[_editorSel].w,
+        origH: _editorItems[_editorSel].h
+      };
+    }
+  }
+
+  function editorTouchMove(e) {
+    if (e.touches.length === 2 && _editorPinch && _editorSel >= 0) {
+      e.preventDefault();
+      const newDist = _getTouchDist(e.touches[0], e.touches[1]);
+      const scale = newDist / _editorPinch.dist;
+      const it = _editorItems[_editorSel];
+      const cx = it.x + it.w/2, cy = it.y + it.h/2;
+      it.w = Math.max(20, Math.round(_editorPinch.origW * scale));
+      it.h = Math.max(20, Math.round(_editorPinch.origH * scale));
+      it.x = cx - it.w/2;
+      it.y = cy - it.h/2;
+      drawEditor();
+    }
+  }
+
+  function editorTouchEnd(e) {
+    if (e.touches.length < 2) _editorPinch = null;
+  }
+
   function editorUndo() {
     if (_editorItems.length === 0) return;
     _editorItems.pop();
+    _editorSel = -1;
     drawEditor();
   }
 
   function editorSave() {
+    // Deselect before saving so selection border doesn't appear in output
+    _editorSel = -1;
+    drawEditor();
     const canvas = $('editor-canvas');
     compositeDataUrl = canvas.toDataURL('image/png');
-    // Update previews
     const expImg = $('export-img');
     if (expImg) expImg.src = compositeDataUrl;
     const compImg = $('composite-img');
     if (compImg) compImg.src = compositeDataUrl;
     showScreen('gif-screen');
+  }
+
+  /* Admin — custom sticker management */
+  function handleAdminStickerUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 512 * 1024) { alert('Sticker must be under 512 KB.'); input.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      _customStickers.push(e.target.result);
+      try { localStorage.setItem('hb_custom_stickers', JSON.stringify(_customStickers)); } catch {}
+      renderAdminStickerList();
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+  }
+
+  function removeCustomSticker(idx) {
+    _customStickers.splice(idx, 1);
+    try { localStorage.setItem('hb_custom_stickers', JSON.stringify(_customStickers)); } catch {}
+    renderAdminStickerList();
+  }
+
+  function renderAdminStickerList() {
+    const list = $('admin-sticker-list');
+    if (!list) return;
+    if (_customStickers.length === 0) {
+      list.innerHTML = '<p style="font-size:0.72rem;color:var(--muted);text-align:center;padding:8px 0">No custom stickers yet</p>';
+      return;
+    }
+    list.innerHTML = _customStickers.map((url, i) =>
+      '<div style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:6px 8px;margin:4px">' +
+      '<img src="' + url + '" style="width:32px;height:32px;object-fit:contain">' +
+      '<button onclick="removeCustomSticker(' + i + ')" style="background:none;border:none;color:#e53935;font-size:1.1rem;cursor:pointer;padding:0 4px">×</button>' +
+      '</div>'
+    ).join('');
   }
 
   /* ─── Init ────── */
