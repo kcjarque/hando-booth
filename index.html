@@ -347,9 +347,9 @@
       aspect-ratio: 4/3;
       max-width: 100%;
       pointer-events: none;
-      border-left: 2px solid rgba(255,255,255,0.5);
-      border-right: 2px solid rgba(255,255,255,0.5);
-      box-shadow: 0 0 0 100vmax rgba(0,0,0,0.35);
+      border-left: 3px solid rgba(255,255,255,0.7);
+      border-right: 3px solid rgba(255,255,255,0.7);
+      box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6);
       z-index: 1;
     }
 
@@ -1186,9 +1186,10 @@
   <div class="img-panel" style="background:#000;border-radius:14px;overflow:hidden">
     <video id="vid-playback" class="panel-img" style="object-fit:contain;background:#000" playsinline loop muted autoplay></video>
   </div>
-  <div class="action-row" style="max-width:380px;width:100%">
-    <button class="btn-ghost" onclick="retakeVideo()">↩ Retake</button>
-    <button class="btn-warm" onclick="doGetVideo()">⬇ Download</button>
+  <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
+    <button class="btn-ghost" onclick="retakeVideo()" style="flex:1;min-width:80px">↩ Retake</button>
+    <button class="btn-warm" onclick="doGetVideo()" style="flex:1;min-width:80px">⬇ Download</button>
+    <button class="btn-ghost" onclick="shareVideo()" id="share-video-btn" style="flex:1;min-width:80px">↗ Share</button>
   </div>
 </div>
 
@@ -1299,7 +1300,8 @@
     <div class="img-panel" style="margin-bottom:12px">
       <img id="claim-done-img" class="panel-img" alt="Your photo" crossorigin="anonymous">
     </div>
-    <p style="color:var(--muted);font-size:0.8rem;letter-spacing:0.05em">Long press the photo to save it to your device</p>
+    <p style="color:var(--muted);font-size:0.8rem;letter-spacing:0.05em;margin-bottom:14px">Long press the photo to save it to your device</p>
+    <button id="claim-dl-gif-btn" onclick="downloadClaimGif()" class="btn-warm" style="display:none;width:100%;max-width:280px;padding:14px;font-size:0.9rem">⬇ Download GIF</button>
   </div>
 </div>
 
@@ -1784,6 +1786,7 @@
         layout,
         photos,
         activeFilter,
+        activeOverlayId: activeOverlay ? activeOverlay.id : null,
         compositeDataUrl,
         gifUrl
       };
@@ -1803,6 +1806,12 @@
       activeFilter = s.activeFilter || 'none';
       compositeDataUrl = s.compositeDataUrl || null;
       gifUrl = s.gifUrl || null;
+      // Restore overlay selection
+      if (s.activeOverlayId) {
+        loadOverlays();
+        const all = [...STOCK_OVERLAYS, ...overlays];
+        activeOverlay = all.find(o => o.id === s.activeOverlayId) || null;
+      }
       // Highlight layout card
       document.querySelectorAll('.layout-card').forEach(c => {
         c.classList.toggle('selected', c.dataset.layout === layout);
@@ -1885,6 +1894,8 @@
   /* ─── Session flow ────────────────────────────────── */
   async function startBooth() {
     photos = [];
+    activeFilter = 'none';
+    activeOverlay = null;
     const isVideo = (layout === 'video');
     await startCamera(isVideo);
     if (isVideo) {
@@ -1997,6 +2008,23 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
+  }
+
+  async function shareVideo() {
+    if (!_recordedBlobUrl) { alert('No video yet.'); return; }
+    try {
+      const resp = await fetch(_recordedBlobUrl);
+      const blob = await resp.blob();
+      const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+      const file = new File([blob], 'hando-booth.' + ext, { type: blob.type });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Hando Booth Video' });
+      } else {
+        alert('Sharing is not supported on this device. Try downloading instead.');
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') console.warn('Share failed:', err);
+    }
   }
 
   function setVideoDuration(val) {
@@ -2306,10 +2334,8 @@
   /* ─── Preview screen ──────────────────────────────── */
   function showPreviewScreen() {
     stopStream();
-    activeFilter = 'none';
-    document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === 'none'));
+    document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === activeFilter));
     loadOverlays();
-    activeOverlay = null;
     renderOverlayGallery();
     compositeDataUrl = null;
     $('composite-img').src = ''; $('composite-img').style.opacity = '0';
@@ -2964,6 +2990,22 @@
       doneImg.src = $('claim-img').src || photoUrl;
       doneImg.style.display = '';
     }
+    // Show GIF download button if GIF is available
+    const gifBtn = $('claim-dl-gif-btn');
+    if (gifBtn) gifBtn.style.display = gifUrl ? '' : 'none';
+  }
+
+  function downloadClaimGif() {
+    const gifEl = $('claim-gif-url');
+    const url = gifEl && gifEl.value ? gifEl.value : null;
+    if (!url) return;
+    fetch(url).then(r => r.blob()).then(blob => {
+      const u = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = u; a.download = 'hando-booth-' + Date.now() + '.gif';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(u);
+    }).catch(() => { window.open(url, '_blank'); });
   }
 
   function showGetPhotoModal() {
