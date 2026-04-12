@@ -403,8 +403,8 @@
       box-shadow: 0 4px 20px var(--shadow);
     }
     /* FIX 6 — increased max-height so overlay gallery doesn't cramp the composite */
-    .img-panel .panel-img { max-height: 50vh; object-fit: contain; }
-    .img-panel { max-height: 50vh; }
+    .img-panel .panel-img { max-height: 60vh; object-fit: contain; }
+    .img-panel { max-height: 60vh; }
     .panel-img {
       width: 100%;
       display: block;
@@ -797,7 +797,7 @@
     .text-input.invalid { border-color: #c0392b; }
 
     /* ── THANK YOU ─────────────────────────────────── */
-    #thankyou .img-panel { max-width: 280px; }
+    #thankyou .img-panel { max-width: 340px; max-height: 65vh; }
     /* FIX 16 — QR on mobile: ensure canvas shows, hide duplicate img qrcode.js injects */
     #qr-container { position: relative; }
     #qr-container canvas { display: block; border-radius: 4px; }
@@ -1051,18 +1051,28 @@
     </button>
   </div>
 
-  <!-- Mode toggle -->
-  <div class="mode-toggle">
+  <!-- Mode toggle (hidden — both photo and GIF shown together) -->
+  <div class="mode-toggle" style="display:none">
     <button class="mode-btn active" id="mode-photo" onclick="setExportMode('photo')">📷&ensp;Photo</button>
     <button class="mode-btn"        id="mode-gif"   onclick="setExportMode('gif')">🎞&ensp;GIF</button>
   </div>
 
-  <!-- Export preview -->
+  <!-- Photo preview -->
   <div class="img-panel" id="export-panel">
-    <img id="export-img" class="panel-img" alt="Export preview">
+    <img id="export-img" class="panel-img" alt="Photo preview">
     <div id="export-spinner" class="panel-spinner hidden">
       <span class="spin-ring"></span>
       <span id="export-spinner-label">Generating GIF…</span>
+    </div>
+  </div>
+
+  <!-- GIF preview (shown below photo for multi-photo layouts) -->
+  <div class="img-panel" id="gif-panel" style="display:none">
+    <p style="font-size:0.65rem;color:var(--muted);text-align:center;margin:6px 0 2px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;position:absolute;top:-18px;left:0;width:100%">Animated GIF</p>
+    <img id="gif-img" class="panel-img" alt="GIF preview">
+    <div id="gif-spinner" class="panel-spinner">
+      <span class="spin-ring"></span>
+      <span>Generating GIF…</span>
     </div>
   </div>
 
@@ -1113,7 +1123,7 @@
   </div>
 
   <div class="action-row" style="max-width:380px;width:100%">
-    <button class="btn-ghost" style="font-size:1rem;flex:0 0 auto;padding:0 28px" onclick="showPreviewScreen()">← Back</button>
+    <button class="btn-ghost" style="font-size:1rem;flex:0 0 auto;padding:0 28px" onclick="showScreen('gif-screen')">← Back</button>
     <button class="btn-warm" style="font-size:1rem" onclick="startOver()">✦ Start Over</button>
   </div>
 
@@ -1258,6 +1268,14 @@
               Choose Background Image
               <input type="file" id="hbg-image-file" accept="image/*" onchange="handleHomeBgImage(this)">
             </label>
+          </div>
+        </div>
+        <!-- Home Button Color -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Button Color</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button onclick="setButtonColor('default')" id="hbtn-default" class="delay-btn active">Default</button>
+            <input type="color" id="hbtn-color-input" value="#c8831c" onchange="applyButtonColor(this.value)" style="width:50px;height:36px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px">
           </div>
         </div>
         <!-- Home Screen Logo -->
@@ -1480,13 +1498,15 @@
         px[i+1] = Math.min(255, g*1.02 + 2);
         px[i+2] = Math.min(255, b*1.10 + 12);
       } else if (name === 'vintage') {
-        const lum = r*0.299 + g*0.587 + b*0.114;
-        r = r*0.7 + lum*0.3;
-        g = g*0.7 + lum*0.3;
-        b = b*0.7 + lum*0.3;
-        px[i]   = Math.min(255, r * 1.05 + 15);
-        px[i+1] = Math.min(255, g * 1.0 + 8);
-        px[i+2] = Math.min(255, b * 0.85);
+        // Classic photobooth: high-contrast B&W with warm sepia tint
+        let lum = r*0.299 + g*0.587 + b*0.114;
+        // Boost contrast
+        lum = lum < 128 ? lum * 0.8 : lum * 1.15;
+        lum = Math.min(255, Math.max(0, lum));
+        // Warm sepia tint
+        px[i]   = Math.min(255, lum * 1.12 + 10);
+        px[i+1] = Math.min(255, lum * 1.0 + 5);
+        px[i+2] = Math.min(255, lum * 0.82);
       }
     }
     cc.putImageData(d, 0, 0);
@@ -2018,20 +2038,22 @@
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
-    $('export-img').src = compositeDataUrl || '';
-    $('export-img').style.opacity = '1';
+    $('export-img').src = compositeDataUrl || ''; $('export-img').style.opacity = '1';
     $('export-spinner').classList.add('hidden');
-    document.querySelectorAll('.delay-btn').forEach(b => b.classList.toggle('active', b.dataset.d === '500'));
     frameDelay = 500;
-    // FIX 10 — single layout: hide GIF mode toggle, show only photo mode
-    const modeToggle = document.querySelector('.mode-toggle');
+
     const gifScreenHead = document.querySelector('#gif-screen .screen-head p');
     if (layout === 'single') {
-      if (modeToggle) modeToggle.style.display = 'none';
       if (gifScreenHead) gifScreenHead.textContent = 'Save your photo';
+      $('gif-panel').style.display = 'none';
     } else {
-      if (modeToggle) modeToggle.style.display = '';
-      if (gifScreenHead) gifScreenHead.textContent = 'Choose photo or animated GIF';
+      if (gifScreenHead) gifScreenHead.textContent = 'Save your photo & GIF';
+      // Show GIF panel and auto-generate
+      $('gif-panel').style.display = '';
+      $('gif-panel').style.position = 'relative';
+      $('gif-img').src = ''; $('gif-img').style.opacity = '0';
+      $('gif-spinner').classList.remove('hidden');
+      generateGif();
     }
     showScreen('gif-screen');
   }
@@ -2076,7 +2098,9 @@
     if (gifWorking) return;
     gifWorking = true;
 
-    const spinner = $('export-spinner'), img = $('export-img'), lbl = $('export-spinner-label');
+    const img     = $('gif-img');
+    const spinner = $('gif-spinner');
+    const lbl     = $('export-spinner-label');
     spinner.classList.remove('hidden');
     img.style.opacity = gifUrl ? '0.35' : '0';
     lbl.textContent = 'Generating GIF…';
@@ -2148,6 +2172,7 @@
   /* Get Photo — upload composite/GIF, show QR with claim URL for guest to scan */
   function doGetPhoto() {
     if (!compositeDataUrl) { alert('No photo yet.'); return; }
+    if (document.querySelector('#export-spinner:not(.hidden)')) return; // prevent double-click
     const spinner = $('export-spinner');
     const lbl     = $('export-spinner-label');
     spinner.classList.remove('hidden');
@@ -2179,7 +2204,8 @@
       $('qr-hint').textContent = 'Guest scans this QR → fills in details → gets the photo';
     }).catch(err => {
       spinner.classList.add('hidden');
-      alert('Upload failed: ' + err.message);
+      console.error('Upload failed:', err);
+      alert('Upload failed. Please try again.');
     });
   }
 
@@ -2295,6 +2321,10 @@
       if (btn) btn.classList.toggle('active', n===sndPreset);
     });
     if ($('snd-upload')) $('snd-upload').style.display = sndPreset==='custom' ? 'block' : 'none';
+    // Highlight saved button color
+    const btnColor = localStorage.getItem('hb_btn_color');
+    $('hbtn-default').classList.toggle('active', !btnColor);
+    if (btnColor) { const ci = $('hbtn-color-input'); if (ci) ci.value = btnColor; }
     // Highlight saved home bg button
     const hbgType = localStorage.getItem('hb_home_bg_type') || 'default';
     ['default','color','image'].forEach(t => {
@@ -2529,19 +2559,27 @@
 
     const photoUrl = $('claim-photo-url').value;
 
-    // Trigger photo download
-    const a = document.createElement('a');
-    a.href = photoUrl; a.download = 'hando-booth-photo.png';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    // Download photo as blob file
+    fetch(photoUrl).then(r => r.blob()).then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'hando-booth-' + Date.now() + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }).catch(() => { window.open(photoUrl, '_blank'); });
 
-    // Trigger GIF download if available
+    // Download GIF as blob file if available
     const gifEl = $('claim-gif-url');
     if (gifEl && gifEl.value) {
       setTimeout(() => {
-        const a2 = document.createElement('a');
-        a2.href = gifEl.value; a2.download = 'hando-booth-photo.gif';
-        document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
-      }, 500);
+        fetch(gifEl.value).then(r => r.blob()).then(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'hando-booth-' + Date.now() + '.gif';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }).catch(() => { window.open(gifEl.value, '_blank'); });
+      }, 800);
     }
 
     // Send email via EmailJS
@@ -2704,6 +2742,25 @@
     playShutter();
   }
 
+  /* Button color customization */
+  function setButtonColor(type) {
+    $('hbtn-default').classList.toggle('active', type==='default');
+    if (type==='default') {
+      localStorage.removeItem('hb_btn_color');
+      applyButtonColor(null);
+    }
+  }
+  function applyButtonColor(hex) {
+    if (hex) {
+      localStorage.setItem('hb_btn_color', hex);
+      $('hbtn-default').classList.remove('active');
+    }
+    const color = hex || '';
+    document.querySelectorAll('.btn-warm, .start-btn').forEach(btn => {
+      btn.style.background = color || '';
+    });
+  }
+
   /* Home background customization */
   function setHomeBg(type) {
     ['default','color','image'].forEach(t => {
@@ -2715,9 +2772,7 @@
     if (type==='default') {
       localStorage.removeItem('hb_home_bg_type');
       localStorage.removeItem('hb_home_bg_value');
-      $('home').style.background = '';
-    } else {
-      localStorage.setItem('hb_home_bg_type', type);
+      document.getElementById('home').style.background = 'radial-gradient(ellipse at 60% 10%, #fce8c8 0%, var(--bg) 65%)';
     }
   }
   function applyHomeBgColor(hex) {
@@ -2794,8 +2849,12 @@
         gifInput.value = decodeURIComponent(_claimGifUrl);
         $('claim-form').appendChild(gifInput);
       }
+      // Init EmailJS for claim screen email sending
+      if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
+        emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      }
       showScreen('claim-screen');
-      return; // skip rest of init (default layout etc.)
+      return;
     }
     // Restore saved countdown duration
     const savedCd = parseInt(localStorage.getItem(LS_COUNTDOWN) || '3');
@@ -2815,6 +2874,13 @@
     if (_savedCustomSound) {
       _customSoundUrl = _savedCustomSound;
       _customAudio = new Audio(_savedCustomSound);
+    }
+    // Restore button color
+    const _savedBtnColor = localStorage.getItem('hb_btn_color');
+    if (_savedBtnColor) {
+      applyButtonColor(_savedBtnColor);
+      const ci = $('hbtn-color-input');
+      if (ci) ci.value = _savedBtnColor;
     }
     // Restore home background
     const _bgType = localStorage.getItem('hb_home_bg_type');
