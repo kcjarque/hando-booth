@@ -297,9 +297,7 @@
       align-items: center;
       justify-content: center;
       gap: 14px;
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
+      background: transparent;
     }
     #countdown.show { display: flex; }
 
@@ -345,25 +343,6 @@
       box-shadow: 0 0 0 100vmax rgba(0,0,0,0.35);
       z-index: 1;
     }
-
-    /* ── FIX 13: CAMERA LOADING OVERLAY ────────────── */
-    #cam-loading {
-      position: absolute;
-      inset: 0;
-      z-index: 10;
-      background: rgba(0,0,0,0.75);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      color: var(--cream);
-      font-size: 0.95rem;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      transition: opacity 0.3s;
-    }
-    #cam-loading.hidden { display: none; }
 
     /* ── PREVIEW + GIF shared ──────────────────────── */
     .warm-screen {
@@ -980,12 +959,6 @@
   <video id="video" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
 
-  <!-- FIX 13: camera loading overlay -->
-  <div id="cam-loading">
-    <div class="spin-ring" style="width:32px;height:32px;border-width:3px"></div>
-    Starting camera…
-  </div>
-
   <div class="cam-overlay">
     <!-- FIX 1: 4:3 crop guide sits between top controls and bottom -->
     <div class="cam-crop-guide"></div>
@@ -1045,6 +1018,7 @@
       <button class="fpill"        data-f="sepia" onclick="setFilter('sepia')">Sepia</button>
       <button class="fpill"        data-f="warm"  onclick="setFilter('warm')">Warm</button>
       <button class="fpill"        data-f="cool"  onclick="setFilter('cool')">Cool</button>
+            <button class="fpill" data-f="vintage" onclick="setFilter('vintage')">Vintage</button>
     </div>
   </div>
 
@@ -1249,14 +1223,56 @@
             <button class="delay-btn cd-btn"        data-cd="10" onclick="setCountdownSecs(10)">10s</button>
           </div>
         </div>
-        <!-- FIX 14: Default Layout selector -->
+        <!-- Camera Sound -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
-          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Default Layout</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onclick="setDefaultLayout('single')" id="dl-single" class="delay-btn">Single</button>
-            <button onclick="setDefaultLayout('double')" id="dl-double" class="delay-btn">Double</button>
-            <button onclick="setDefaultLayout('strip')"  id="dl-strip"  class="delay-btn">Strip</button>
-            <button onclick="setDefaultLayout('quad')"   id="dl-quad"   class="delay-btn">Quad</button>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Camera Sound</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <button onclick="setSoundPreset('default')" id="snd-default" class="delay-btn active">Default</button>
+            <button onclick="setSoundPreset('classic')" id="snd-classic" class="delay-btn">Classic</button>
+            <button onclick="setSoundPreset('silent')" id="snd-silent" class="delay-btn">Silent</button>
+            <button onclick="setSoundPreset('custom')" id="snd-custom" class="delay-btn">Custom</button>
+          </div>
+          <div id="snd-upload" style="display:none">
+            <label class="file-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Choose Sound (MP3/WAV, max 1 MB)
+              <input type="file" id="snd-file" accept="audio/mpeg,audio/wav,audio/mp3" onchange="handleSoundUpload(this)">
+            </label>
+          </div>
+          <button onclick="previewSound()" class="delay-btn" style="margin-top:8px;width:100%">&#9654; Preview Sound</button>
+        </div>
+        <!-- Home Screen Background -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Home Background</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <button onclick="setHomeBg('default')" id="hbg-default" class="delay-btn active">Default</button>
+            <button onclick="setHomeBg('color')" id="hbg-color" class="delay-btn">Color</button>
+            <button onclick="setHomeBg('image')" id="hbg-image" class="delay-btn">Image</button>
+          </div>
+          <div id="hbg-color-picker" style="display:none;margin-bottom:8px">
+            <input type="color" id="hbg-color-input" value="#fdf6ee" onchange="applyHomeBgColor(this.value)" style="width:100%;height:40px;border:none;border-radius:8px;cursor:pointer">
+          </div>
+          <div id="hbg-image-picker" style="display:none">
+            <label class="file-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Choose Background Image
+              <input type="file" id="hbg-image-file" accept="image/*" onchange="handleHomeBgImage(this)">
+            </label>
+          </div>
+        </div>
+        <!-- Home Screen Logo -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Home Logo</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <button onclick="setHomeLogo('default')" id="hlogo-default" class="delay-btn active">Default</button>
+            <button onclick="setHomeLogo('custom')" id="hlogo-custom" class="delay-btn">Custom</button>
+          </div>
+          <div id="hlogo-picker" style="display:none">
+            <label class="file-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Choose Logo Image (PNG)
+              <input type="file" id="hlogo-file" accept="image/*" onchange="handleHomeLogoUpload(this)">
+            </label>
           </div>
         </div>
         <!-- Overlay templates -->
@@ -1360,18 +1376,17 @@
 
   const LS_KEY           = 'hb_overlays';
   const LS_STOCK_ENABLED = 'hb_stock_enabled';
-  const LS_LAST_OVERLAY  = 'hb_last_overlay';   // FIX 7
-  const LS_DEFAULT_LAYOUT = 'hb_default_layout'; // FIX 14
   const LS_COUNTDOWN      = 'hb_countdown';
   let   countdownSecs     = 3;
+  let _soundPreset = 'default';
+  let _customSoundUrl = null;
+  let _customAudio = null;
 
   /* FIX 15 — EmailJS config (fill in from emailjs.com) */
   const EMAILJS_PUBLIC_KEY  = 'XU6XBK8cXhIS5GyLs';
   const EMAILJS_SERVICE_ID  = 'service_9xl6kit';
   const EMAILJS_TEMPLATE_ID = 'template_t0agsb7';
 
-  /* FIX 8 — auto-save flag */
-  let _autoSaved = false;
 
   /* ─── Stock overlays ──────────────────────────────── */
   const STOCK_OVERLAYS = (() => {
@@ -1464,6 +1479,14 @@
         px[i]   = Math.max(0,   r*0.88 - 8);
         px[i+1] = Math.min(255, g*1.02 + 2);
         px[i+2] = Math.min(255, b*1.10 + 12);
+      } else if (name === 'vintage') {
+        const lum = r*0.299 + g*0.587 + b*0.114;
+        r = r*0.7 + lum*0.3;
+        g = g*0.7 + lum*0.3;
+        b = b*0.7 + lum*0.3;
+        px[i]   = Math.min(255, r * 1.05 + 15);
+        px[i+1] = Math.min(255, g * 1.0 + 8);
+        px[i+2] = Math.min(255, b * 0.85);
       }
     }
     cc.putImageData(d, 0, 0);
@@ -1509,19 +1532,29 @@
   }
 
   function playCountdownTick() {
-    playBeep(660, 0.07, 0.35, 'sine');
+    if (_soundPreset === 'silent') return;
+    if (_soundPreset === 'classic') { playBeep(800, 0.03, 0.7, 'square'); return; }
+    playBeep(660, 0.07, 0.9, 'sine');
   }
 
   function playCountdownFinal() {
-    // Rising two-tone for the last beat before snap
-    playBeep(880, 0.12, 0.5, 'sine');
-    setTimeout(() => playBeep(1100, 0.1, 0.4, 'sine'), 80);
+    if (_soundPreset === 'silent') return;
+    if (_soundPreset === 'classic') { playBeep(1000, 0.05, 0.9, 'square'); return; }
+    playBeep(880, 0.12, 1.0, 'sine');
+    setTimeout(() => playBeep(1100, 0.1, 0.8, 'sine'), 80);
   }
 
   function playShutter() {
+    if (_soundPreset === 'silent') return;
+    if (_soundPreset === 'custom' && _customSoundUrl) {
+      if (!_customAudio) _customAudio = new Audio(_customSoundUrl);
+      _customAudio.currentTime = 0;
+      _customAudio.play().catch(() => {});
+      return;
+    }
+    if (_soundPreset === 'classic') { playBeep(1200, 0.02, 0.9, 'square'); return; }
     try {
       const ctx = getAudioCtx();
-      // Mechanical click: short noise burst
       const bufLen = ctx.sampleRate * 0.04;
       const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
       const data = buf.getChannelData(0);
@@ -1529,12 +1562,11 @@
       const src = ctx.createBufferSource();
       src.buffer = buf;
       const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.6, ctx.currentTime);
+      gain.gain.setValueAtTime(1.0, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
       src.connect(gain); gain.connect(ctx.destination);
       src.start();
-      // Low thump underneath
-      playBeep(120, 0.06, 0.3, 'triangle');
+      playBeep(120, 0.06, 0.8, 'triangle');
     } catch {}
   }
 
@@ -1561,9 +1593,7 @@
   /* ─── Camera ──────────────────────────────────────── */
   async function startCamera() {
     stopStream();
-    // FIX 9 — request 4:3 with fallback; FIX 13 — show loading overlay
-    const camLoading = $('cam-loading');
-    if (camLoading) camLoading.classList.remove('hidden');
+    // FIX 9 — request 4:3 with fallback
     const constraints = {
       video: {
         facingMode,
@@ -1579,7 +1609,6 @@
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
       } catch (err) {
-        if (camLoading) camLoading.classList.add('hidden');
         alert('Camera unavailable: ' + err.message);
         return;
       }
@@ -1588,10 +1617,6 @@
     // FIX 9 — Firefox needs explicit play(); mirror front camera
     await video.play().catch(() => {});
     video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'none';
-    // FIX 13 — hide loading when video actually starts playing
-    video.onplaying = () => { if (camLoading) camLoading.classList.add('hidden'); };
-    // Fallback: hide after 3 s regardless
-    setTimeout(() => { if (camLoading) camLoading.classList.add('hidden'); }, 3000);
   }
 
   function stopStream() {
@@ -1809,16 +1834,6 @@
     img.src = compositeDataUrl;
     img.style.opacity = '1';
     spinner.classList.add('hidden');
-    // FIX 8 — auto-save composite on first render after a new session
-    if (!_autoSaved && compositeDataUrl) {
-      _autoSaved = true;
-      try {
-        const a = document.createElement('a');
-        a.href = compositeDataUrl;
-        a.download = `hando-booth-${Date.now()}.png`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      } catch {}
-    }
   }
 
   /* ─── Filters ─────────────────────────────────────── */
@@ -1878,11 +1893,6 @@
     const all = [...STOCK_OVERLAYS, ...overlays];
     activeOverlay = (activeOverlay && activeOverlay.id === id)
       ? null : all.find(o => o.id === id) || null;
-    // FIX 7 — persist selection
-    try {
-      if (activeOverlay) localStorage.setItem(LS_LAST_OVERLAY, activeOverlay.id);
-      else localStorage.removeItem(LS_LAST_OVERLAY);
-    } catch {}
     renderOverlayGallery();
     reRenderComposite();
   }
@@ -1942,18 +1952,10 @@
   /* ─── Preview screen ──────────────────────────────── */
   function showPreviewScreen() {
     stopStream();
-    _autoSaved = false; // FIX 8 — reset so next render triggers auto-save
     activeFilter = 'none';
     document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === 'none'));
     loadOverlays();
-    // FIX 7 — restore last selected overlay from localStorage
-    const savedOvId = localStorage.getItem(LS_LAST_OVERLAY);
-    if (savedOvId) {
-      const all = [...STOCK_OVERLAYS, ...overlays];
-      activeOverlay = all.find(o => o.id === savedOvId) || null;
-    } else {
-      activeOverlay = null;
-    }
+    activeOverlay = null;
     renderOverlayGallery();
     compositeDataUrl = null;
     $('composite-img').src = ''; $('composite-img').style.opacity = '0';
@@ -1985,11 +1987,13 @@
       wrap.onclick = () => startRetakeSingle(i);
       strip.appendChild(wrap);
     });
-    // FIX 5 — "Tap to retake" hint below strip
+    // Remove old hint if exists, then add new one
+    const oldHint = document.getElementById('retake-hint');
+    if (oldHint) oldHint.remove();
     const hint = document.createElement('p');
+    hint.id = 'retake-hint';
     hint.style.cssText = 'font-size:0.65rem;color:var(--muted);text-align:center;margin-top:4px;width:100%';
     hint.textContent = 'Tap a photo to retake it';
-    // Insert hint after the strip in the DOM
     strip.insertAdjacentElement('afterend', hint);
   }
 
@@ -2144,35 +2148,39 @@
   /* Get Photo — upload composite/GIF, show QR with claim URL for guest to scan */
   function doGetPhoto() {
     if (!compositeDataUrl) { alert('No photo yet.'); return; }
-    // Show uploading spinner on the export panel
     const spinner = $('export-spinner');
     const lbl     = $('export-spinner-label');
     spinner.classList.remove('hidden');
     lbl.textContent = 'Uploading…';
 
     const isGif = exportMode === 'gif' && gifUrl;
-    const uploadSrc = isGif ? gifUrl : compositeDataUrl;
-    const ct  = isGif ? 'image/gif' : 'image/png';
-    const ext = isGif ? 'gif'       : 'png';
+    let uploadPromise;
 
-    uploadPhotoToSupabase(uploadSrc, ct, ext)
-      .then(publicUrl => {
-        spinner.classList.add('hidden');
-        // Build the claim URL — guest scans this, fills form, gets photo
-        const claimUrl = `${location.origin}${location.pathname}?photo=${encodeURIComponent(publicUrl)}`;
-        // Show thank-you screen with claim QR
-        $('ty-name').textContent = 'Your photo is ready!';
-        $('ty-img').src = compositeDataUrl || '';
-        $('qr-container').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div></div>';
-        $('qr-hint').textContent = '';
-        showScreen('thankyou');
-        renderQR(claimUrl);
-        $('qr-hint').textContent = 'Guest scans this QR → fills in details → gets the photo';
-      })
-      .catch(err => {
-        spinner.classList.add('hidden');
-        alert('Upload failed: ' + err.message);
+    if (isGif) {
+      uploadPromise = Promise.all([
+        uploadPhotoToSupabase(compositeDataUrl, 'image/png', 'png'),
+        uploadPhotoToSupabase(gifUrl, 'image/gif', 'gif')
+      ]).then(([pngUrl, gifPublicUrl]) => {
+        return `${location.origin}${location.pathname}?photo=${encodeURIComponent(pngUrl)}&gif=${encodeURIComponent(gifPublicUrl)}`;
       });
+    } else {
+      uploadPromise = uploadPhotoToSupabase(compositeDataUrl, 'image/png', 'png')
+        .then(publicUrl => `${location.origin}${location.pathname}?photo=${encodeURIComponent(publicUrl)}`);
+    }
+
+    uploadPromise.then(claimUrl => {
+      spinner.classList.add('hidden');
+      $('ty-name').textContent = 'Your photo is ready!';
+      $('ty-img').src = compositeDataUrl || '';
+      $('qr-container').innerHTML = '';
+      $('qr-hint').textContent = '';
+      showScreen('thankyou');
+      renderQR(claimUrl);
+      $('qr-hint').textContent = 'Guest scans this QR → fills in details → gets the photo';
+    }).catch(err => {
+      spinner.classList.add('hidden');
+      alert('Upload failed: ' + err.message);
+    });
   }
 
   /* FIX 4 — Get QR: skip intake form, show thank-you immediately then upload */
@@ -2280,12 +2288,32 @@
 
   function renderAdminPanel() {
     $('admin-usage').textContent = localStorage.getItem(LS_USAGE) || '0';
-    // FIX 14 — highlight active default layout button
-    const savedLayout = localStorage.getItem(LS_DEFAULT_LAYOUT) || layout;
-    ['single','strip','quad'].forEach(n => {
-      const btn = $('dl-' + n);
-      if (btn) btn.classList.toggle('active', n === savedLayout);
+    // Highlight saved sound preset
+    const sndPreset = localStorage.getItem('hb_sound_preset') || 'default';
+    ['default','classic','silent','custom'].forEach(n => {
+      const btn = $('snd-'+n);
+      if (btn) btn.classList.toggle('active', n===sndPreset);
     });
+    if ($('snd-upload')) $('snd-upload').style.display = sndPreset==='custom' ? 'block' : 'none';
+    // Highlight saved home bg button
+    const hbgType = localStorage.getItem('hb_home_bg_type') || 'default';
+    ['default','color','image'].forEach(t => {
+      const btn = $('hbg-'+t);
+      if (btn) btn.classList.toggle('active', t===hbgType);
+    });
+    $('hbg-color-picker').style.display = hbgType==='color' ? 'block' : 'none';
+    $('hbg-image-picker').style.display = hbgType==='image' ? 'block' : 'none';
+    if (hbgType === 'color') {
+      const ci = $('hbg-color-input');
+      if (ci) ci.value = localStorage.getItem('hb_home_bg_value') || '#fdf6ee';
+    }
+    // Highlight saved logo button
+    const hlogoType = localStorage.getItem('hb_home_logo') ? 'custom' : 'default';
+    ['default','custom'].forEach(t => {
+      const btn = $('hlogo-'+t);
+      if (btn) btn.classList.toggle('active', t===hlogoType);
+    });
+    $('hlogo-picker').style.display = hlogoType==='custom' ? 'block' : 'none';
     loadOverlays();
     const list = $('admin-ov-list');
     list.innerHTML = '';
@@ -2501,10 +2529,20 @@
 
     const photoUrl = $('claim-photo-url').value;
 
-    // Trigger download
+    // Trigger photo download
     const a = document.createElement('a');
     a.href = photoUrl; a.download = 'hando-booth-photo.png';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+    // Trigger GIF download if available
+    const gifEl = $('claim-gif-url');
+    if (gifEl && gifEl.value) {
+      setTimeout(() => {
+        const a2 = document.createElement('a');
+        a2.href = gifEl.value; a2.download = 'hando-booth-photo.gif';
+        document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+      }, 500);
+    }
 
     // Send email via EmailJS
     if (EMAILJS_PUBLIC_KEY) {
@@ -2641,6 +2679,96 @@
     showScreen('home');
   }
 
+  /* Camera sound customization */
+  function setSoundPreset(name) {
+    _soundPreset = name;
+    try { localStorage.setItem('hb_sound_preset', name); } catch {}
+    ['default','classic','silent','custom'].forEach(n => {
+      const btn = $('snd-'+n);
+      if (btn) btn.classList.toggle('active', n===name);
+    });
+    $('snd-upload').style.display = name==='custom' ? 'block' : 'none';
+  }
+  function handleSoundUpload(input) {
+    const file = input.files[0];
+    if (!file || file.size > 1024*1024) { if(file) alert('Sound file too large (max 1 MB)'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      _customSoundUrl = e.target.result;
+      try { localStorage.setItem('hb_sound_custom', _customSoundUrl); } catch {}
+      _customAudio = new Audio(_customSoundUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+  function previewSound() {
+    playShutter();
+  }
+
+  /* Home background customization */
+  function setHomeBg(type) {
+    ['default','color','image'].forEach(t => {
+      const btn = $('hbg-'+t);
+      if (btn) btn.classList.toggle('active', t===type);
+    });
+    $('hbg-color-picker').style.display = type==='color' ? 'block' : 'none';
+    $('hbg-image-picker').style.display = type==='image' ? 'block' : 'none';
+    if (type==='default') {
+      localStorage.removeItem('hb_home_bg_type');
+      localStorage.removeItem('hb_home_bg_value');
+      $('home').style.background = '';
+    } else {
+      localStorage.setItem('hb_home_bg_type', type);
+    }
+  }
+  function applyHomeBgColor(hex) {
+    localStorage.setItem('hb_home_bg_type', 'color');
+    localStorage.setItem('hb_home_bg_value', hex);
+    $('home').style.background = hex;
+  }
+  function handleHomeBgImage(input) {
+    const file = input.files[0];
+    if (!file || file.size > 5*1024*1024) { if(file) alert('Image too large (max 5 MB)'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const url = e.target.result;
+      localStorage.setItem('hb_home_bg_type', 'image');
+      localStorage.setItem('hb_home_bg_value', url);
+      $('home').style.background = `url(${url}) center/cover no-repeat`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /* Home logo customization */
+  function setHomeLogo(type) {
+    ['default','custom'].forEach(t => {
+      const btn = $('hlogo-'+t);
+      if (btn) btn.classList.toggle('active', t===type);
+    });
+    $('hlogo-picker').style.display = type==='custom' ? 'block' : 'none';
+    if (type==='default') {
+      localStorage.removeItem('hb_home_logo');
+      applyHomeLogo(null);
+    }
+  }
+  function handleHomeLogoUpload(input) {
+    const file = input.files[0];
+    if (!file || file.size > 3*1024*1024) { if(file) alert('Logo too large (max 3 MB)'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      localStorage.setItem('hb_home_logo', e.target.result);
+      applyHomeLogo(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+  function applyHomeLogo(dataUrl) {
+    const wrap = document.querySelector('.logo-wrap');
+    if (dataUrl) {
+      wrap.innerHTML = '<img src="' + dataUrl + '" style="max-width:clamp(180px,50vw,300px);max-height:140px" alt="Logo">';
+    } else {
+      wrap.innerHTML = '<span class="logo-hando">Hando</span><span class="logo-booth">Booth</span><span class="logo-sub">Strike a pose</span>';
+    }
+  }
+
   /* Countdown timer setting */
   function setCountdownSecs(n) {
     countdownSecs = n;
@@ -2648,33 +2776,24 @@
     document.querySelectorAll('.cd-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd) === n));
   }
 
-  /* FIX 14 — Admin: set default layout */
-  function setDefaultLayout(name) {
-    localStorage.setItem(LS_DEFAULT_LAYOUT, name);
-    ['single','double','strip','quad'].forEach(n => {
-      const btn = $('dl-'+n);
-      if (btn) btn.classList.toggle('active', n===name);
-    });
-    // Apply to home screen immediately
-    const card = document.querySelector(`.layout-card[data-layout="${name}"]`);
-    if (card) selectLayout(card, name);
-  }
-
   /* QR now links directly to Supabase public URL — no ?get= param needed */
 
-  /* ─── Init: apply saved default layout on load ────── */
+  /* ─── Init ────── */
   (function init() {
-    const savedLayout = localStorage.getItem(LS_DEFAULT_LAYOUT);
-    if (savedLayout) {
-      const card = document.querySelector(`.layout-card[data-layout="${savedLayout}"]`);
-      if (card) selectLayout(card, savedLayout);
-    }
     // Detect claim flow: ?photo=URL means a guest scanned the QR
-    const _claimPhotoUrl = new URLSearchParams(window.location.search).get('photo');
+    const _claimParams = new URLSearchParams(window.location.search);
+    const _claimPhotoUrl = _claimParams.get('photo');
+    const _claimGifUrl = _claimParams.get('gif');
     if (_claimPhotoUrl) {
       const decodedUrl = decodeURIComponent(_claimPhotoUrl);
       $('claim-photo-url').value = decodedUrl;
       $('claim-img').src = decodedUrl;
+      if (_claimGifUrl) {
+        const gifInput = document.createElement('input');
+        gifInput.type = 'hidden'; gifInput.id = 'claim-gif-url';
+        gifInput.value = decodeURIComponent(_claimGifUrl);
+        $('claim-form').appendChild(gifInput);
+      }
       showScreen('claim-screen');
       return; // skip rest of init (default layout etc.)
     }
@@ -2684,6 +2803,27 @@
       countdownSecs = savedCd;
       document.querySelectorAll('.cd-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd) === savedCd));
     }
+    // Restore sound preset
+    const _savedSound = localStorage.getItem('hb_sound_preset');
+    if (_savedSound) {
+      _soundPreset = _savedSound;
+      document.querySelectorAll('[id^="snd-"]').forEach(b => {
+        if (b.classList.contains('delay-btn')) b.classList.toggle('active', b.id === 'snd-'+_savedSound);
+      });
+    }
+    const _savedCustomSound = localStorage.getItem('hb_sound_custom');
+    if (_savedCustomSound) {
+      _customSoundUrl = _savedCustomSound;
+      _customAudio = new Audio(_savedCustomSound);
+    }
+    // Restore home background
+    const _bgType = localStorage.getItem('hb_home_bg_type');
+    const _bgVal = localStorage.getItem('hb_home_bg_value');
+    if (_bgType === 'color' && _bgVal) $('home').style.background = _bgVal;
+    else if (_bgType === 'image' && _bgVal) $('home').style.background = 'url(' + _bgVal + ') center/cover no-repeat';
+    // Restore home logo
+    const _savedLogo = localStorage.getItem('hb_home_logo');
+    if (_savedLogo) applyHomeLogo(_savedLogo);
     // Init EmailJS v4 once on page load
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
