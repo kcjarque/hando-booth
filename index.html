@@ -1259,16 +1259,8 @@
 
 <!-- ════════════ CLAIM SCREEN (shown when ?photo= param detected) ════════════ -->
 <div id="claim-screen" class="screen warm-screen">
-  <div class="screen-top">
-    <div style="width:40px"></div>
-    <div class="screen-head">
-      <h2>Get Your Photo! 🎉</h2>
-      <p>Enter your details to receive it</p>
-    </div>
-    <div style="width:40px"></div>
-  </div>
 
-  <div id="claim-form-wrap" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:0">
+  <div id="claim-form-wrap" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:0;padding-top:clamp(20px,4vh,40px)">
     <div class="img-panel" style="margin-bottom:16px">
       <img id="claim-img" class="panel-img" alt="Your photo" style="opacity:0.85">
     </div>
@@ -1292,13 +1284,14 @@
     </form>
   </div>
 
-  <div id="claim-done" style="display:none;width:100%;max-width:380px;text-align:center;display:none">
-    <div style="font-size:4rem;margin-bottom:16px">🎉</div>
-    <h3 style="font-family:var(--font-brand);font-size:1.6rem;color:var(--text);margin-bottom:8px">You're all set!</h3>
-    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:24px">Check your email — your photo is on the way!</p>
-    <div class="img-panel">
-      <img id="claim-done-img" class="panel-img" alt="Your photo">
+  <div id="claim-done" style="display:none;width:100%;max-width:420px;text-align:center;padding-top:clamp(20px,4vh,40px)">
+    <div class="img-panel" style="margin-bottom:16px">
+      <img id="claim-done-img" class="panel-img" alt="Your photo" crossorigin="anonymous">
     </div>
+    <p style="color:var(--muted);font-size:0.8rem;margin-bottom:12px;letter-spacing:0.05em">Long press the photo to save it to your device</p>
+    <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
+    <h3 style="font-family:var(--font-brand);font-size:1.4rem;color:var(--text);margin-bottom:6px">You're all set!</h3>
+    <p style="color:var(--muted);font-size:0.8rem">Check your email — your photo is on the way!</p>
   </div>
 </div>
 
@@ -1762,6 +1755,59 @@
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     $(id).classList.add('active');
+    // Save session state on screen change (skip claim screen)
+    if (id !== 'claim-screen') _saveSession(id);
+  }
+
+  function _saveSession(screenId) {
+    try {
+      const state = {
+        screen: screenId,
+        layout,
+        photos,
+        activeFilter,
+        compositeDataUrl,
+        gifUrl
+      };
+      sessionStorage.setItem('hb_session', JSON.stringify(state));
+    } catch(e) { /* storage full — ignore */ }
+  }
+
+  function _restoreSession() {
+    try {
+      const raw = sessionStorage.getItem('hb_session');
+      if (!raw) return false;
+      const s = JSON.parse(raw);
+      if (!s.screen || s.screen === 'home' || s.screen === 'camera') return false;
+      if (!s.photos || s.photos.length === 0) return false;
+      layout = s.layout || 'single';
+      photos = s.photos;
+      activeFilter = s.activeFilter || 'none';
+      compositeDataUrl = s.compositeDataUrl || null;
+      gifUrl = s.gifUrl || null;
+      // Highlight layout card
+      document.querySelectorAll('.layout-card').forEach(c => {
+        c.classList.toggle('selected', c.dataset.layout === layout);
+      });
+      // Restore to the right screen
+      if (s.screen === 'preview') {
+        showPreviewScreen();
+      } else if (s.screen === 'gif-screen') {
+        if (compositeDataUrl) {
+          $('export-img').src = compositeDataUrl;
+          $('export-img').style.opacity = '1';
+          $('export-spinner').classList.add('hidden');
+        }
+        showGifScreen();
+      } else {
+        showPreviewScreen();
+      }
+      return true;
+    } catch(e) { return false; }
+  }
+
+  function _clearSession() {
+    try { sessionStorage.removeItem('hb_session'); } catch {}
   }
 
   /* ─── Layout picker ───────────────────────────────── */
@@ -1841,6 +1887,7 @@
     shutter.disabled = false;
     stopStream();
     photos = [];
+    _clearSession();
     showScreen('home');
   }
 
@@ -2863,8 +2910,14 @@
     done.style.display = 'flex';
     done.style.flexDirection = 'column';
     done.style.alignItems = 'center';
-    $('claim-done-img').src = vidUrl ? '' : photoUrl;
-    if (vidUrl) $('claim-done-img').style.display = 'none';
+    // Use the already-loaded claim-img src for the done screen
+    const doneImg = $('claim-done-img');
+    if (vidUrl) {
+      doneImg.style.display = 'none';
+    } else {
+      doneImg.src = $('claim-img').src || photoUrl;
+      doneImg.style.display = '';
+    }
   }
 
   function showGetPhotoModal() {
@@ -2983,6 +3036,7 @@
   function startOver() {
     photos = []; compositeDataUrl = null; gifUrl = null;
     activeFilter = 'none'; activeOverlay = null; exportMode = 'photo';
+    _clearSession();
     showScreen('home');
   }
 
@@ -3031,8 +3085,9 @@
     document.querySelectorAll('.btn-warm, .start-btn, .btn-ghost, .fpill').forEach(btn => {
       btn.style.background = color || '';
     });
-    // Update CSS variable for selected card + icon colors
+    // Update CSS variables so all themed elements follow
     document.documentElement.style.setProperty('--orange', color || '#c8831c');
+    document.documentElement.style.setProperty('--border', color || '#e8d5b4');
   }
 
   /* Home background customization */
@@ -3162,6 +3217,14 @@
     if (_editorBgImg) ctx.drawImage(_editorBgImg, 0, 0);
     for (let i = 0; i < _editorItems.length; i++) {
       const item = _editorItems[i];
+      const cx = item.x + item.w/2, cy = item.y + item.h/2;
+      const rot = item.rot || 0;
+      ctx.save();
+      if (rot) {
+        ctx.translate(cx, cy);
+        ctx.rotate(rot);
+        ctx.translate(-cx, -cy);
+      }
       if (item.type === 'sticker') {
         ctx.font = item.h + 'px serif';
         ctx.textBaseline = 'top';
@@ -3171,7 +3234,6 @@
       }
       // Draw selection border + X button for selected item
       if (i === _editorSel) {
-        ctx.save();
         ctx.strokeStyle = '#c8831c';
         ctx.lineWidth = Math.max(3, canvas.width * 0.004);
         ctx.setLineDash([8, 4]);
@@ -3187,8 +3249,8 @@
         ctx.font = 'bold ' + Math.round(xR*1.2) + 'px sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText('×', xX, xY + 1);
-        ctx.restore();
       }
+      ctx.restore();
     }
   }
 
@@ -3199,7 +3261,7 @@
       type: 'sticker', emoji,
       x: Math.round(canvas.width/2 - size/2),
       y: Math.round(canvas.height/2 - size/2),
-      w: size, h: size
+      w: size, h: size, rot: 0
     });
     _editorSel = _editorItems.length - 1;
     drawEditor();
@@ -3216,7 +3278,7 @@
         type: 'imgsticker', img,
         x: Math.round(canvas.width/2 - w/2),
         y: Math.round(canvas.height/2 - h/2),
-        w, h
+        w, h, rot: 0
       });
       _editorSel = _editorItems.length - 1;
       drawEditor();
@@ -3243,7 +3305,7 @@
           type: 'photo', img,
           x: Math.round(canvas.width/2 - w/2),
           y: Math.round(canvas.height/2 - h/2),
-          w, h
+          w, h, rot: 0
         });
         _editorSel = _editorItems.length - 1;
         drawEditor();
@@ -3322,17 +3384,19 @@
     drawEditor();
   }
 
-  // Pinch-to-resize via touch events
+  // Pinch-to-resize + rotate via touch events
   function _getTouchDist(t1, t2) {
     const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
     return Math.sqrt(dx*dx + dy*dy);
+  }
+  function _getTouchAngle(t1, t2) {
+    return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
   }
 
   function editorTouchStart(e) {
     if (e.touches.length === 2) {
       e.preventDefault();
-      _editorDrag = null; // cancel any drag
-      // Auto-select item under first touch if nothing selected
+      _editorDrag = null;
       if (_editorSel < 0) {
         const canvas = $('editor-canvas');
         const rect = canvas.getBoundingClientRect();
@@ -3344,10 +3408,13 @@
         if (hit >= 0) { _editorSel = hit; drawEditor(); }
       }
       if (_editorSel >= 0) {
+        const it = _editorItems[_editorSel];
         _editorPinch = {
           dist: _getTouchDist(e.touches[0], e.touches[1]),
-          origW: _editorItems[_editorSel].w,
-          origH: _editorItems[_editorSel].h
+          angle: _getTouchAngle(e.touches[0], e.touches[1]),
+          origW: it.w,
+          origH: it.h,
+          origRot: it.rot || 0
         };
       }
     }
@@ -3357,6 +3424,7 @@
     if (e.touches.length === 2 && _editorPinch && _editorSel >= 0) {
       e.preventDefault();
       const newDist = _getTouchDist(e.touches[0], e.touches[1]);
+      const newAngle = _getTouchAngle(e.touches[0], e.touches[1]);
       const scale = Math.max(0.2, Math.min(5, newDist / _editorPinch.dist));
       const it = _editorItems[_editorSel];
       const cx = it.x + it.w/2, cy = it.y + it.h/2;
@@ -3364,6 +3432,7 @@
       it.h = Math.max(20, Math.round(_editorPinch.origH * scale));
       it.x = cx - it.w/2;
       it.y = cy - it.h/2;
+      it.rot = _editorPinch.origRot + (newAngle - _editorPinch.angle);
       drawEditor();
     }
   }
@@ -3517,6 +3586,8 @@
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
     }
+    // Restore session if user refreshed mid-flow
+    if (_restoreSession()) return;
   })();
 </script>
 </body>
