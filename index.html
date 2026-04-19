@@ -347,41 +347,70 @@
       aspect-ratio: var(--crop-ratio, 1.333);
       max-width: 100%;
       pointer-events: none;
-      border: 4px solid #fff;
-      box-shadow: 0 0 0 100vmax rgba(0,0,0,0.65), inset 0 0 0 1px rgba(0,0,0,0.3);
+      /* Stronger contrast: outer dark + inner bright border */
+      outline: 2px solid rgba(0,0,0,0.85);
+      outline-offset: -2px;
+      border: 5px solid #fff;
+      box-shadow:
+        0 0 0 100vmax rgba(0,0,0,0.75),
+        inset 0 0 0 2px rgba(0,0,0,0.5),
+        inset 0 0 24px rgba(0,0,0,0.25);
       z-index: 1;
+    }
+    /* Label showing "PHOTO AREA" at top */
+    .cam-crop-label {
+      position: absolute;
+      top: 10px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 20px;
+      pointer-events: none;
+      z-index: 2;
+      white-space: nowrap;
     }
     .cam-crop-guide::before,
     .cam-crop-guide::after {
       content: '';
       position: absolute;
-      width: 30px;
-      height: 30px;
-      border-color: #fff;
+      width: 36px;
+      height: 36px;
+      border-color: #ffd54a;
       border-style: solid;
+      filter: drop-shadow(0 0 3px rgba(0,0,0,0.9));
     }
     .cam-crop-guide::before {
-      top: 6px; left: 6px;
-      border-width: 4px 0 0 4px;
+      top: 8px; left: 8px;
+      border-width: 5px 0 0 5px;
+      border-top-left-radius: 6px;
     }
     .cam-crop-guide::after {
-      top: 6px; right: 6px;
-      border-width: 4px 4px 0 0;
+      top: 8px; right: 8px;
+      border-width: 5px 5px 0 0;
+      border-top-right-radius: 6px;
     }
     .crop-corner {
       position: absolute;
-      width: 30px;
-      height: 30px;
-      border-color: #fff;
+      width: 36px;
+      height: 36px;
+      border-color: #ffd54a;
       border-style: solid;
+      filter: drop-shadow(0 0 3px rgba(0,0,0,0.9));
     }
     .crop-bl {
-      bottom: 6px; left: 6px;
-      border-width: 0 0 4px 4px;
+      bottom: 8px; left: 8px;
+      border-width: 0 0 5px 5px;
+      border-bottom-left-radius: 6px;
     }
     .crop-br {
-      bottom: 6px; right: 6px;
-      border-width: 0 4px 4px 0;
+      bottom: 8px; right: 8px;
+      border-width: 0 5px 5px 0;
+      border-bottom-right-radius: 6px;
     }
 
     /* ── PREVIEW + GIF shared ──────────────────────── */
@@ -540,8 +569,11 @@
       outline: none;
       transition: border-color 0.15s;
     }
-    .text-input:focus { border-color: var(--amber); }
+    .text-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(200,131,28,0.15); }
     .text-input::placeholder { color: var(--muted); }
+    /* Admin password input uses brand color for clearer theming */
+    #admin-pw-input { border-color: var(--orange); }
+    #admin-pw-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(200,131,28,0.2); }
 
     .file-btn {
       display: flex;
@@ -588,7 +620,15 @@
       object-fit: contain;
       border-radius: 10px;
       border: 2px solid var(--border);
-      background: #fff;
+      /* Checkerboard so transparent overlays are visible */
+      background-image:
+        linear-gradient(45deg, #ddd 25%, transparent 25%),
+        linear-gradient(-45deg, #ddd 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ddd 75%),
+        linear-gradient(-45deg, transparent 75%, #ddd 75%);
+      background-size: 14px 14px;
+      background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+      background-color: #fff;
       display: block;
       transition: border-color 0.15s, box-shadow 0.15s;
     }
@@ -770,7 +810,7 @@
     .delay-btn:active { transform: scale(0.96); }
 
     canvas { display: none; }
-    #ls-preview-canvas { display: block; }
+    #ls-preview-canvas, #cf-preview { display: block; }
 
     /* ── INTAKE MODAL ──────────────────────────────── */
     /* ── MODAL — always a centered popup ──────────────── */
@@ -987,6 +1027,28 @@
     /* Layout size tabs */
     .ls-tab { background: transparent; color: var(--muted); }
     .ls-tab.active { background: var(--orange); color: #fff; }
+    /* iOS-style toggle switch */
+    .toggle-switch {
+      -webkit-appearance: none; appearance: none;
+      width: 50px; height: 28px;
+      background: var(--border);
+      border-radius: 14px;
+      position: relative; cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0; margin: 0;
+    }
+    .toggle-switch:checked { background: var(--orange); }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 24px; height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .toggle-switch:checked::after { transform: translateX(22px); }
 
     .sticker-btn {
       width: 44px; height: 44px;
@@ -1016,12 +1078,42 @@
       .logo-booth  { font-size: clamp(1.4rem, 3.5vw, 2rem); }
       .warm-screen { padding-left: 36px; padding-right: 36px; gap: 22px; }
       .screen-top, .img-panel, .prev-section, .action-row,
-      .mode-toggle, .delay-row, .retake-strip { max-width: 520px; }
-      .layout-grid  { max-width: 480px; }
-      .start-btn    { max-width: 480px; font-size: 1.15rem; padding: 24px; }
-      .screen-head h2 { font-size: 2rem; }
-      .fpill        { padding: 10px 22px; font-size: 0.85rem; }
-      .btn-warm, .btn-ghost { padding: 20px; font-size: 1rem; }
+      .mode-toggle, .delay-row, .retake-strip { max-width: 620px; }
+      .layout-grid  { max-width: 560px; gap: 16px; }
+      .layout-card  { padding: 28px 14px 20px; }
+      .layout-label { font-size: 1.3rem; }
+      .layout-count { font-size: 0.85rem; }
+      .start-btn    { max-width: 560px; font-size: 1.35rem; padding: 28px; }
+      .screen-head h2 { font-size: 2.2rem; }
+      .screen-head p  { font-size: 1.1rem; }
+      .fpill        { padding: 12px 26px; font-size: 0.95rem; }
+      .btn-warm, .btn-ghost { padding: 22px; font-size: 1.1rem; }
+      .img-panel    { max-height: 65vh; }
+    }
+
+    /* ── iPad PRO / LARGE TABLET — utilize full screen ── */
+    @media (min-width: 820px) {
+      .logo-hando  { font-size: clamp(5rem, 11vw, 7rem); }
+      .logo-booth  { font-size: clamp(1.8rem, 4vw, 2.4rem); }
+      .warm-screen { padding-left: 48px; padding-right: 48px; gap: 28px; }
+      .screen-top, .img-panel, .prev-section, .action-row,
+      .mode-toggle, .delay-row, .retake-strip { max-width: 720px; }
+      .layout-grid  { max-width: 680px; gap: 20px; }
+      .layout-card  { padding: 32px 18px 22px; min-height: 130px; }
+      .layout-label { font-size: 1.5rem; }
+      .layout-count { font-size: 1rem; }
+      .start-btn    { max-width: 680px; font-size: 1.5rem; padding: 32px; border-radius: 26px; }
+      .screen-head h2 { font-size: 2.6rem; }
+      .screen-head p  { font-size: 1.2rem; }
+      .fpill        { padding: 14px 32px; font-size: 1.05rem; }
+      .btn-warm, .btn-ghost { padding: 26px; font-size: 1.2rem; border-radius: 20px; }
+      .img-panel    { max-height: 60vh; }
+      .shutter      { width: 88px; height: 88px; }
+      .icon-btn     { width: 56px; height: 56px; font-size: 1.6rem; }
+      #cam-select, #mirror-toggle { font-size: 0.9rem !important; padding: 10px 14px !important; }
+      #admin-gear-btn { width: 52px !important; height: 52px !important; }
+      #admin-gear-btn svg { width: 22px; height: 22px; }
+      #cd-num { font-size: clamp(10rem, 22vw, 16rem); }
     }
   </style>
 </head>
@@ -1033,7 +1125,6 @@
   <div class="logo-wrap" onclick="handleLogoTap()" style="-webkit-tap-highlight-color:transparent;cursor:default;user-select:none">
     <span class="logo-hando">Hando</span>
     <span class="logo-booth">Booth</span>
-    <span class="logo-sub">Strike a pose</span>
   </div>
 
   <div style="width:100%;max-width:380px">
@@ -1097,7 +1188,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.2</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.3</span>
   </div>
 </div>
 
@@ -1109,6 +1200,7 @@
   <div class="cam-overlay">
     <!-- FIX 1: 4:3 crop guide sits between top controls and bottom -->
     <div class="cam-crop-guide">
+      <span class="cam-crop-label">Photo Area</span>
       <span class="crop-corner crop-bl"></span>
       <span class="crop-corner crop-br"></span>
     </div>
@@ -1116,9 +1208,15 @@
       <!-- FIX 3: X button closes camera but keeps photos if any exist -->
       <button class="icon-btn" onclick="closeCameraKeepPhotos()" aria-label="Close">✕</button>
       <div id="thumb-strip"></div>
-      <select id="cam-select" onchange="switchCamera(this.value)" aria-label="Select camera" style="background:rgba(0,0,0,0.45);color:#fff;border:1.5px solid rgba(255,255,255,0.4);border-radius:10px;padding:6px 10px;font-size:0.7rem;max-width:120px;cursor:pointer;-webkit-appearance:none;appearance:none;text-overflow:ellipsis">
-        <option value="">Loading…</option>
-      </select>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="mirror-toggle" onclick="toggleMirror()" aria-label="Mirror" title="Mirror" style="background:rgba(0,0,0,0.45);color:#fff;border:1.5px solid rgba(255,255,255,0.4);border-radius:10px;padding:6px 10px;font-size:0.7rem;cursor:pointer;display:flex;align-items:center;gap:4px;-webkit-tap-highlight-color:transparent">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M8 7l-4 5 4 5"/><path d="M16 7l4 5-4 5"/></svg>
+          <span id="mirror-label">Mirror</span>
+        </button>
+        <select id="cam-select" onchange="switchCamera(this.value)" aria-label="Select camera" style="background:rgba(0,0,0,0.45);color:#fff;border:1.5px solid rgba(255,255,255,0.4);border-radius:10px;padding:6px 10px;font-size:0.7rem;max-width:120px;cursor:pointer;-webkit-appearance:none;appearance:none;text-overflow:ellipsis">
+          <option value="">Loading…</option>
+        </select>
+      </div>
     </div>
     <div class="cam-bottom">
       <button class="shutter" id="shutter" onclick="startCapture()" aria-label="Take photo"></button>
@@ -1261,8 +1359,12 @@
   </div>
   <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="retakeVideo()" style="flex:1;min-width:80px">↩ Retake</button>
+    <button class="btn-ghost" onclick="doGetVideo()" id="save-video-btn" style="flex:1;min-width:80px">💾 Save</button>
     <button class="btn-warm" onclick="shareVideo()" id="share-video-btn" style="flex:1;min-width:80px">↗ Share</button>
   </div>
+  <p style="font-size:0.7rem;color:var(--muted);text-align:center;margin-top:6px;max-width:380px;line-height:1.4">
+    Tip: If Messenger or Instagram doesn't accept the video, tap <b>Save</b> first, then share it from your Photos/Gallery app.
+  </p>
 </div>
 
 <!-- ════════════ CUSTOM EDITOR ════════════ -->
@@ -1458,11 +1560,35 @@
           <div id="snd-upload" style="display:none">
             <label class="file-btn">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Choose Sound (MP3/WAV, max 1 MB)
-              <input type="file" id="snd-file" accept="audio/mpeg,audio/wav,audio/mp3" onchange="handleSoundUpload(this)">
+              Choose Sound (MP3/WAV/M4A, max 2 MB)
+              <input type="file" id="snd-file" accept="audio/mpeg,audio/wav,audio/mp3,audio/mp4,audio/m4a,audio/x-m4a,audio/aac,.m4a,.mp3,.wav,.aac" onchange="handleSoundUpload(this)">
             </label>
           </div>
           <button onclick="previewSound()" class="delay-btn" style="margin-top:8px;width:100%">&#9654; Preview Sound</button>
+        </div>
+        <!-- Feature Toggles -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:12px">Features</div>
+          <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;cursor:pointer">
+            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Show Edit Button</span>
+            <input type="checkbox" id="feat-edit-btn" onchange="toggleFeature('editBtn',this.checked)" class="toggle-switch">
+          </label>
+          <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
+            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Show Custom Sticker Upload</span>
+            <input type="checkbox" id="feat-user-sticker" onchange="toggleFeature('userSticker',this.checked)" class="toggle-switch">
+          </label>
+          <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
+            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Skip Preview → Direct to Save</span>
+            <input type="checkbox" id="feat-skip-preview" onchange="toggleFeature('skipPreview',this.checked)" class="toggle-switch">
+          </label>
+          <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
+            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Mirror Photos (Auto)</span>
+            <select id="feat-mirror" onchange="setMirrorMode(this.value)" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:0.85rem">
+              <option value="auto">Auto</option>
+              <option value="always">Always</option>
+              <option value="never">Never</option>
+            </select>
+          </label>
         </div>
         <!-- Home Screen Background -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
@@ -1473,7 +1599,11 @@
             <button onclick="setHomeBg('image')" id="hbg-image" class="delay-btn">Image</button>
           </div>
           <div id="hbg-color-picker" style="display:none;margin-bottom:8px">
-            <input type="color" id="hbg-color-input" value="#fdf6ee" onchange="applyHomeBgColor(this.value)" style="width:100%;height:40px;border:none;border-radius:8px;cursor:pointer">
+            <div class="color-swatch-grid" data-target="hbg-color-input" data-apply="applyHomeBgColor" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:10px"></div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="hbg-color-input" value="#fdf6ee" onchange="applyHomeBgColor(this.value);syncHexInput('hbg-hex',this.value)" style="width:60px;height:44px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+              <input type="text" id="hbg-hex" value="#fdf6ee" maxlength="7" placeholder="#rrggbb" oninput="handleHexInput(this.value,'hbg-color-input','applyHomeBgColor')" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:ui-monospace,monospace;font-size:0.9rem;text-transform:uppercase">
+            </div>
           </div>
           <div id="hbg-image-picker" style="display:none">
             <label class="file-btn">
@@ -1486,17 +1616,48 @@
         <!-- Home Button Color -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Button Color</div>
-          <div style="display:flex;gap:8px;align-items:center">
+          <div style="margin-bottom:8px">
             <button onclick="setButtonColor('default')" id="hbtn-default" class="delay-btn active">Default</button>
-            <input type="color" id="hbtn-color-input" value="#c8831c" onchange="applyButtonColor(this.value)" style="width:50px;height:36px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px">
           </div>
+          <div class="color-swatch-grid" data-target="hbtn-color-input" data-apply="applyButtonColor" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="color" id="hbtn-color-input" value="#c8831c" onchange="applyButtonColor(this.value);syncHexInput('hbtn-hex',this.value)" style="width:60px;height:44px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+            <input type="text" id="hbtn-hex" value="#c8831c" maxlength="7" placeholder="#rrggbb" oninput="handleHexInput(this.value,'hbtn-color-input','applyButtonColor')" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:ui-monospace,monospace;font-size:0.9rem;text-transform:uppercase">
+          </div>
+        </div>
+        <!-- Custom Filters -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Custom Filters</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Create your own filter, or upload a reference photo and we'll match its look.</p>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <button onclick="newCustomFilter()" class="delay-btn" style="flex:1;min-width:120px">+ New Filter</button>
+            <label class="delay-btn" style="flex:1;min-width:120px;cursor:pointer;margin:0">
+              📷 From Photo
+              <input type="file" accept="image/*" onchange="filterFromPhoto(this)" style="display:none">
+            </label>
+          </div>
+          <div id="cf-editor" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
+            <input type="text" id="cf-name" placeholder="Filter name" class="text-input" style="margin-bottom:10px;font-size:0.85rem">
+            <canvas id="cf-preview" width="240" height="160" style="display:block !important;width:100%;max-width:240px;margin:0 auto 10px;border-radius:8px;background:#eee"></canvas>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Brightness <span id="cf-brightness-val">0</span></label><input type="range" id="cf-brightness" min="-50" max="50" value="0" oninput="updateCfParam('brightness',this.value)" style="width:100%;height:32px"></div>
+              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Contrast <span id="cf-contrast-val">0</span></label><input type="range" id="cf-contrast" min="-50" max="50" value="0" oninput="updateCfParam('contrast',this.value)" style="width:100%;height:32px"></div>
+              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Saturation <span id="cf-saturation-val">0</span></label><input type="range" id="cf-saturation" min="-100" max="100" value="0" oninput="updateCfParam('saturation',this.value)" style="width:100%;height:32px"></div>
+              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Temperature <span id="cf-temp-val">0</span></label><input type="range" id="cf-temp" min="-50" max="50" value="0" oninput="updateCfParam('temp',this.value)" style="width:100%;height:32px"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button onclick="cancelCustomFilter()" class="btn-ghost" style="flex:1;padding:10px">Cancel</button>
+              <button onclick="saveCustomFilter()" class="btn-warm" style="flex:1;padding:10px">Save</button>
+            </div>
+          </div>
+          <div id="cf-list"></div>
         </div>
         <!-- Custom Stickers -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Custom Stickers</div>
           <label class="file-btn" style="margin-bottom:10px">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Sticker (PNG, max 512 KB)
+            Upload Sticker (PNG, max 3 MB)
             <input type="file" id="admin-sticker-file" accept="image/png,image/webp,image/gif" onchange="handleAdminStickerUpload(this)">
           </label>
           <div id="admin-sticker-list"></div>
@@ -1803,10 +1964,28 @@
   /* ─── Pixel-based filter engine (cross-browser, no ctx.filter) ─── */
   // ctx.filter silently fails in older Safari & some mobile browsers.
   // Pixel manipulation is guaranteed to work everywhere.
+  // Custom filters: stored as JSON in localStorage. Each has name + params.
+  // params: { brightness: -50..50, contrast: -50..50, saturation: -100..100,
+  //           temp: -50..50 (warm/cool), tintR/G/B: -30..30 }
+  let _customFilters = [];
+  try {
+    const raw = localStorage.getItem('hb_custom_filters');
+    if (raw) _customFilters = JSON.parse(raw);
+  } catch {}
+
   function applyPixelFilter(cc, w, h, name) {
     if (!name || name === 'none') return;
     const d = cc.getImageData(0, 0, w, h);
     const px = d.data;
+    // Custom filter?
+    let cf = null;
+    if (name && name.startsWith && name.startsWith('custom-')) {
+      const id = name.slice(7);
+      cf = _customFilters.find(f => f.id === id);
+      if (!cf) return;
+    }
+    // Precompute contrast factor if needed
+    const cFactor = cf ? (259 * (cf.contrast + 255)) / (255 * (259 - cf.contrast)) : 1;
     for (let i = 0; i < px.length; i += 4) {
       let r = px[i], g = px[i+1], b = px[i+2];
       if (name === 'bw') {
@@ -1824,9 +2003,78 @@
         px[i]   = Math.max(0,   r*0.88 - 8);
         px[i+1] = Math.min(255, g*1.02 + 2);
         px[i+2] = Math.min(255, b*1.10 + 12);
+      } else if (cf) {
+        // Brightness
+        r += cf.brightness * 2.55;
+        g += cf.brightness * 2.55;
+        b += cf.brightness * 2.55;
+        // Contrast
+        r = cFactor * (r - 128) + 128;
+        g = cFactor * (g - 128) + 128;
+        b = cFactor * (b - 128) + 128;
+        // Saturation
+        const avg = (r + g + b) / 3;
+        const s = 1 + cf.saturation / 100;
+        r = avg + (r - avg) * s;
+        g = avg + (g - avg) * s;
+        b = avg + (b - avg) * s;
+        // Temp (warm positive, cool negative)
+        r += cf.temp * 0.8;
+        b -= cf.temp * 0.8;
+        // Tint
+        r += cf.tintR || 0;
+        g += cf.tintG || 0;
+        b += cf.tintB || 0;
+        px[i]   = Math.max(0, Math.min(255, r));
+        px[i+1] = Math.max(0, Math.min(255, g));
+        px[i+2] = Math.max(0, Math.min(255, b));
       }
     }
     cc.putImageData(d, 0, 0);
+  }
+
+  // Analyze an uploaded reference photo to approximate its filter
+  function analyzeFilterFromImage(dataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        const maxDim = 200;
+        const s = Math.min(maxDim / img.naturalWidth, maxDim / img.naturalHeight, 1);
+        c.width = Math.max(1, Math.round(img.naturalWidth * s));
+        c.height = Math.max(1, Math.round(img.naturalHeight * s));
+        const cx = c.getContext('2d');
+        cx.drawImage(img, 0, 0, c.width, c.height);
+        const d = cx.getImageData(0, 0, c.width, c.height);
+        let rSum = 0, gSum = 0, bSum = 0, brightSum = 0, contrastSum = 0;
+        const n = d.data.length / 4;
+        for (let i = 0; i < d.data.length; i += 4) {
+          rSum += d.data[i];
+          gSum += d.data[i+1];
+          bSum += d.data[i+2];
+          const v = (d.data[i] + d.data[i+1] + d.data[i+2]) / 3;
+          brightSum += v;
+          contrastSum += Math.abs(v - 128);
+        }
+        const rAvg = rSum / n, gAvg = gSum / n, bAvg = bSum / n;
+        const meanBright = brightSum / n;
+        const meanContrast = contrastSum / n;
+        // Compare to a neutral 128 baseline
+        const brightness = Math.round((meanBright - 128) / 2.55);
+        const contrast = Math.round((meanContrast - 50) * 0.8);
+        const temp = Math.round((rAvg - bAvg) / 4);
+        const saturation = Math.round(((Math.max(rAvg, gAvg, bAvg) - Math.min(rAvg, gAvg, bAvg)) - 40) / 2);
+        resolve({
+          brightness: Math.max(-40, Math.min(40, brightness)),
+          contrast: Math.max(-40, Math.min(40, contrast)),
+          temp: Math.max(-40, Math.min(40, temp)),
+          saturation: Math.max(-50, Math.min(50, saturation)),
+          tintR: 0, tintG: 0, tintB: 0
+        });
+      };
+      img.onerror = () => resolve({ brightness: 0, contrast: 0, saturation: 0, temp: 0, tintR: 0, tintG: 0, tintB: 0 });
+      img.src = dataUrl;
+    });
   }
 
   /* ─── Composite geometry ──────────────────────────── */
@@ -1885,14 +2133,15 @@
     if (_soundPreset === 'silent') return;
     if (_soundPreset === 'custom' && _customSoundUrl) {
       if (!_customAudio) _customAudio = new Audio(_customSoundUrl);
+      _customAudio.volume = 1.0;
       _customAudio.currentTime = 0;
       _customAudio.play().catch(() => {});
       return;
     }
-    if (_soundPreset === 'classic') { playBeep(1200, 0.02, 0.9, 'square'); return; }
+    if (_soundPreset === 'classic') { playBeep(1200, 0.04, 1.0, 'square'); return; }
     try {
       const ctx = getAudioCtx();
-      const bufLen = ctx.sampleRate * 0.04;
+      const bufLen = ctx.sampleRate * 0.06;
       const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
       const data = buf.getChannelData(0);
       for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
@@ -1900,10 +2149,10 @@
       src.buffer = buf;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(1.0, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
       src.connect(gain); gain.connect(ctx.destination);
       src.start();
-      playBeep(120, 0.06, 0.8, 'triangle');
+      playBeep(120, 0.08, 1.0, 'triangle');
     } catch {}
   }
 
@@ -2046,11 +2295,41 @@
     }
     video.srcObject = stream;
     await video.play().catch(() => {});
-    // Smart mirror: only mirror front-facing / user cameras
-    const shouldMirror = _isFrontCamera();
-    video.style.transform = shouldMirror ? 'scaleX(-1)' : 'none';
+    applyMirror();
     // Populate camera list after permission is granted
     populateCameraList();
+  }
+
+  // Mirror override: null = auto (mirror if front), true/false = forced
+  let _mirrorOverride = null;
+  try {
+    const mo = localStorage.getItem('hb_mirror_override');
+    if (mo === 'true') _mirrorOverride = true;
+    else if (mo === 'false') _mirrorOverride = false;
+  } catch {}
+
+  function _shouldMirror() {
+    if (_mirrorOverride !== null) return _mirrorOverride;
+    return _isFrontCamera();
+  }
+
+  function applyMirror() {
+    const video = $('video');
+    if (!video) return;
+    const m = _shouldMirror();
+    video.style.transform = m ? 'scaleX(-1)' : 'none';
+    // Update label
+    const lbl = $('mirror-label');
+    const btn = $('mirror-toggle');
+    if (lbl) lbl.textContent = m ? 'Mirrored' : 'Mirror';
+    if (btn) btn.style.background = m ? 'rgba(200,131,28,0.7)' : 'rgba(0,0,0,0.45)';
+  }
+
+  function toggleMirror() {
+    const current = _shouldMirror();
+    _mirrorOverride = !current;
+    try { localStorage.setItem('hb_mirror_override', String(_mirrorOverride)); } catch {}
+    applyMirror();
   }
 
   function _isFrontCamera() {
@@ -2189,10 +2468,10 @@
       ovImg.src = _videoOverlayUrl;
     }
 
-    // Draw loop: video (mirror if front cam) + overlay onto canvas
+    // Draw loop: video (mirror if enabled) + overlay onto canvas
     function drawFrame() {
       rctx.save();
-      if (_isFrontCamera()) {
+      if (_shouldMirror()) {
         rctx.translate(vw, 0);
         rctx.scale(-1, 1);
       }
@@ -2210,13 +2489,16 @@
     const audioTracks = stream.getAudioTracks();
     audioTracks.forEach(t => canvasStream.addTrack(t));
 
-    // Prefer mp4, fall back to webm
-    const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ? 'video/mp4;codecs=avc1'
+    // Prefer mp4 (iOS native), fall back to webm/H264 (best Android compatibility), then webm
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac') ? 'video/mp4;codecs=h264,aac'
+                   : MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ? 'video/mp4;codecs=avc1'
                    : MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+                   : MediaRecorder.isTypeSupported('video/webm;codecs=h264,opus') ? 'video/webm;codecs=h264,opus'
+                   : MediaRecorder.isTypeSupported('video/webm;codecs=h264') ? 'video/webm;codecs=h264'
                    : MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
                    : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm'
                    : '';
-    const opts = { videoBitsPerSecond: 2500000 };
+    const opts = { videoBitsPerSecond: 3000000 };
     if (mimeType) opts.mimeType = mimeType;
     _mediaRecorder = new MediaRecorder(canvasStream, opts);
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
@@ -2418,7 +2700,15 @@
     // Increment usage counter when a full session is captured
     try { localStorage.setItem(LS_USAGE, String((parseInt(localStorage.getItem(LS_USAGE)||'0'))+1)); } catch {}
     await sleep(350);
-    showPreviewScreen();
+    if (_features.skipPreview) {
+      // Build composite right away and jump to save-your-moment
+      showPreviewScreen();
+      setTimeout(() => {
+        if (compositeDataUrl) showGifScreen();
+      }, 800);
+    } else {
+      showPreviewScreen();
+    }
   }
 
   function runCountdown(label) {
@@ -2457,9 +2747,10 @@
       sy = Math.round((vh - sh) / 2);
     }
     canvas.width = sw; canvas.height = sh;
-    if (_isFrontCamera()) { ctx.save(); ctx.translate(sw, 0); ctx.scale(-1, 1); }
+    const _m = _shouldMirror();
+    if (_m) { ctx.save(); ctx.translate(sw, 0); ctx.scale(-1, 1); }
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-    if (_isFrontCamera()) ctx.restore();
+    if (_m) ctx.restore();
     return canvas.toDataURL('image/jpeg', 0.88);
   }
 
@@ -2770,6 +3061,10 @@
       generateGif();
     }
     showScreen('gif-screen');
+    // Scroll to top so "Save your moment" header is visible
+    const gs = $('gif-screen');
+    if (gs) gs.scrollTop = 0;
+    window.scrollTo(0, 0);
     // Auto-download photo
     if (compositeDataUrl) {
       setTimeout(() => {
@@ -3069,6 +3364,13 @@
     renderAdminStickerList();
     renderVideoOverlayPreview();
     drawLayoutPreviews();
+    renderColorSwatches();
+    renderCustomFilterList();
+    renderPreviewFilterPills();
+    _syncFeatureUI();
+    // Sync hex input values
+    const bh = $('hbg-hex'); if (bh) bh.value = ($('hbg-color-input') && $('hbg-color-input').value || '#fdf6ee').toUpperCase();
+    const th = $('hbtn-hex'); if (th) th.value = ($('hbtn-color-input') && $('hbtn-color-input').value || '#c8831c').toUpperCase();
     loadOverlays();
     const list = $('admin-ov-list');
     list.innerHTML = '';
@@ -3080,7 +3382,8 @@
 
       const img = document.createElement('img');
       img.src = ov.dataUrl; img.width = 44; img.height = 44;
-      img.style.cssText = 'border-radius:8px;object-fit:contain;border:1.5px solid var(--border);flex-shrink:0;opacity:' + (ov.enabled === false ? '0.35' : '1');
+      // Checkerboard background so transparency is visible
+      img.style.cssText = 'border-radius:8px;object-fit:contain;border:1.5px solid var(--border);flex-shrink:0;opacity:' + (ov.enabled === false ? '0.35' : '1') + ';background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;background-color:#fff';
 
       const info = document.createElement('div');
       info.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;gap:4px';
@@ -3253,14 +3556,52 @@
     const res  = await fetch(dataUrl);
     const blob = await res.blob();
     const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-    const r = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`,
-      { method: 'POST',
-        headers: { 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': contentType, 'x-upsert': 'false' },
-        body: blob }
-    );
-    if (!r.ok) throw new Error(await r.text());
-    return `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
+    const url = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
+
+    // Retry with exponential backoff + timeout per attempt
+    const maxAttempts = 3;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const ac = new AbortController();
+      const timeoutMs = 30000 + (attempt * 15000); // 30s, 45s, 60s
+      const timeout = setTimeout(() => ac.abort(), timeoutMs);
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': contentType,
+            'x-upsert': 'false',
+            'Cache-Control': 'no-cache'
+          },
+          body: blob,
+          signal: ac.signal,
+          // Hint to browser that this is opaque-friendly
+          mode: 'cors',
+          credentials: 'omit'
+        });
+        clearTimeout(timeout);
+        if (!r.ok) {
+          const txt = await r.text().catch(() => '');
+          // 4xx — don't retry (bad request, auth); 5xx — retry
+          if (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429) {
+            throw new Error(`Upload rejected (${r.status}): ${txt.slice(0,100)}`);
+          }
+          lastErr = new Error(`HTTP ${r.status}: ${txt.slice(0,100)}`);
+        } else {
+          return publicUrl;
+        }
+      } catch (err) {
+        clearTimeout(timeout);
+        lastErr = err;
+        // Abort/fetch errors are likely network — retry
+      }
+      if (attempt < maxAttempts) {
+        await new Promise(r => setTimeout(r, 800 * attempt));
+      }
+    }
+    throw new Error(`Upload failed after ${maxAttempts} attempts: ${lastErr && lastErr.message || 'unknown'}`);
   }
 
   /* ═══════════════════════════════════════════════════
@@ -3309,25 +3650,26 @@
         URL.revokeObjectURL(u);
       }).catch(() => { window.open(vidUrl, '_blank'); });
     } else if (photoUrl) {
-      const downloads = [fetch(photoUrl).then(r => r.blob())];
-      if (gifUrl) downloads.push(fetch(gifUrl).then(r => r.blob()));
-      Promise.all(downloads).then(blobs => {
-        const pUrl = URL.createObjectURL(blobs[0]);
+      // Download photo first
+      fetch(photoUrl).then(r => r.blob()).then(pBlob => {
+        const pUrl = URL.createObjectURL(pBlob);
         const a = document.createElement('a');
         a.href = pUrl; a.download = 'hando-booth-' + Date.now() + '.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(pUrl);
-        if (blobs[1]) {
-          const gUrl = URL.createObjectURL(blobs[1]);
-          const b = document.createElement('a');
-          b.href = gUrl; b.download = 'hando-booth-' + Date.now() + '.gif';
-          document.body.appendChild(b); b.click(); document.body.removeChild(b);
-          URL.revokeObjectURL(gUrl);
-        }
-      }).catch(() => {
-        window.open(photoUrl, '_blank');
-        if (gifUrl) window.open(gifUrl, '_blank');
-      });
+        setTimeout(() => URL.revokeObjectURL(pUrl), 2000);
+      }).catch(() => { window.open(photoUrl, '_blank'); });
+      // Download GIF with a delay so mobile browsers don't block it
+      if (gifUrl) {
+        setTimeout(() => {
+          fetch(gifUrl).then(r => r.blob()).then(gBlob => {
+            const gUrl = URL.createObjectURL(gBlob);
+            const b = document.createElement('a');
+            b.href = gUrl; b.download = 'hando-booth-' + Date.now() + '.gif';
+            document.body.appendChild(b); b.click(); document.body.removeChild(b);
+            setTimeout(() => URL.revokeObjectURL(gUrl), 2000);
+          }).catch(() => { window.open(gifUrl, '_blank'); });
+        }, 1200);
+      }
     }
 
     // Send email via EmailJS
@@ -3530,12 +3872,13 @@
   }
   function handleSoundUpload(input) {
     const file = input.files[0];
-    if (!file || file.size > 1024*1024) { if(file) alert('Sound file too large (max 1 MB)'); return; }
+    if (!file || file.size > 2 * 1024 * 1024) { if(file) alert('Sound file too large (max 2 MB)'); return; }
     const reader = new FileReader();
     reader.onload = e => {
       _customSoundUrl = e.target.result;
       try { localStorage.setItem('hb_sound_custom', _customSoundUrl); } catch {}
       _customAudio = new Audio(_customSoundUrl);
+      _customAudio.volume = 1.0;
     };
     reader.readAsDataURL(file);
   }
@@ -3566,6 +3909,276 @@
     // Update CSS variables so all themed elements follow
     document.documentElement.style.setProperty('--orange', color || '#c8831c');
     document.documentElement.style.setProperty('--border', color || '#e8d5b4');
+  }
+
+  /* ── Custom filters admin ──────────────────────── */
+  let _editingFilter = null;
+  let _cfSampleImg = null; // Loaded sample image for preview
+
+  async function _getCfSampleImg() {
+    if (_cfSampleImg) return _cfSampleImg;
+    // Use the first captured photo if available, else a generated gradient
+    if (photos && photos.length > 0) {
+      const img = new Image();
+      await new Promise(r => { img.onload = r; img.onerror = r; img.src = photos[0]; });
+      _cfSampleImg = img;
+      return img;
+    }
+    // Generate a colorful gradient sample
+    const c = document.createElement('canvas');
+    c.width = 240; c.height = 160;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 240, 160);
+    g.addColorStop(0, '#ff9a9e'); g.addColorStop(0.3, '#fad0c4');
+    g.addColorStop(0.6, '#a1c4fd'); g.addColorStop(1, '#c2e9fb');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 240, 160);
+    // Add some shapes for texture
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath(); ctx.arc(60, 50, 30, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.arc(180, 110, 25, 0, Math.PI*2); ctx.fill();
+    const img = new Image();
+    await new Promise(r => { img.onload = r; img.src = c.toDataURL(); });
+    _cfSampleImg = img;
+    return img;
+  }
+
+  function newCustomFilter() {
+    _editingFilter = {
+      id: 'f' + Date.now().toString(36),
+      name: 'My Filter',
+      brightness: 0, contrast: 0, saturation: 0, temp: 0,
+      tintR: 0, tintG: 0, tintB: 0
+    };
+    _showCfEditor();
+  }
+
+  async function filterFromPhoto(input) {
+    const file = input.files[0]; input.value = '';
+    if (!file) return;
+    const dataUrl = await new Promise(r => {
+      const reader = new FileReader();
+      reader.onload = e => r(e.target.result);
+      reader.readAsDataURL(file);
+    });
+    const params = await analyzeFilterFromImage(dataUrl);
+    _editingFilter = Object.assign({
+      id: 'f' + Date.now().toString(36),
+      name: 'From Photo'
+    }, params);
+    _showCfEditor();
+  }
+
+  function _showCfEditor() {
+    const e = $('cf-editor');
+    if (!e) return;
+    e.style.display = 'block';
+    $('cf-name').value = _editingFilter.name;
+    ['brightness','contrast','saturation','temp'].forEach(k => {
+      const s = $('cf-' + k); if (s) s.value = _editingFilter[k];
+      const v = $('cf-' + k + '-val'); if (v) v.textContent = _editingFilter[k];
+    });
+    _renderCfPreview();
+  }
+
+  function cancelCustomFilter() {
+    _editingFilter = null;
+    $('cf-editor').style.display = 'none';
+  }
+
+  function updateCfParam(key, val) {
+    if (!_editingFilter) return;
+    _editingFilter[key] = parseInt(val);
+    const v = $('cf-' + key + '-val'); if (v) v.textContent = val;
+    _renderCfPreview();
+  }
+
+  async function _renderCfPreview() {
+    if (!_editingFilter) return;
+    const cv = $('cf-preview');
+    if (!cv) return;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    const img = await _getCfSampleImg();
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    const s = Math.min(cv.width / img.naturalWidth, cv.height / img.naturalHeight);
+    const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+    ctx.drawImage(img, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+    // Temporarily register editing filter as custom so applyPixelFilter picks it up
+    const tempName = 'custom-preview-' + _editingFilter.id;
+    const backup = _customFilters.slice();
+    _customFilters = [Object.assign({}, _editingFilter, { id: 'preview-' + _editingFilter.id })];
+    applyPixelFilter(ctx, cv.width, cv.height, 'custom-preview-' + _editingFilter.id);
+    _customFilters = backup;
+  }
+
+  function saveCustomFilter() {
+    if (!_editingFilter) return;
+    const name = $('cf-name').value.trim() || 'Filter ' + (_customFilters.length + 1);
+    _editingFilter.name = name;
+    const idx = _customFilters.findIndex(f => f.id === _editingFilter.id);
+    if (idx >= 0) _customFilters[idx] = _editingFilter;
+    else _customFilters.push(_editingFilter);
+    try { localStorage.setItem('hb_custom_filters', JSON.stringify(_customFilters)); } catch {}
+    _editingFilter = null;
+    $('cf-editor').style.display = 'none';
+    renderCustomFilterList();
+    renderPreviewFilterPills();
+  }
+
+  function editCustomFilter(id) {
+    const f = _customFilters.find(x => x.id === id);
+    if (!f) return;
+    _editingFilter = Object.assign({}, f);
+    _showCfEditor();
+  }
+
+  function deleteCustomFilter(id) {
+    if (!confirm('Delete this filter?')) return;
+    _customFilters = _customFilters.filter(f => f.id !== id);
+    try { localStorage.setItem('hb_custom_filters', JSON.stringify(_customFilters)); } catch {}
+    renderCustomFilterList();
+    renderPreviewFilterPills();
+  }
+
+  function renderCustomFilterList() {
+    const list = $('cf-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (_customFilters.length === 0) {
+      list.innerHTML = '<p style="font-size:0.72rem;color:var(--muted);text-align:center;padding:10px">No custom filters yet.</p>';
+      return;
+    }
+    _customFilters.forEach(f => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid var(--border)';
+      const lbl = document.createElement('div');
+      lbl.style.cssText = 'flex:1;font-size:0.85rem;font-weight:600;color:var(--text)';
+      lbl.textContent = f.name;
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit';
+      editBtn.style.cssText = 'background:none;border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.72rem;font-weight:600;color:var(--text);cursor:pointer';
+      editBtn.onclick = () => editCustomFilter(f.id);
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '✕';
+      delBtn.style.cssText = 'background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:4px 8px';
+      delBtn.onclick = () => deleteCustomFilter(f.id);
+      row.append(lbl, editBtn, delBtn);
+      list.appendChild(row);
+    });
+  }
+
+  function renderPreviewFilterPills() {
+    // Re-render the filter pill gallery to include custom filters
+    const bar = document.querySelector('#preview .prev-section .fpill-bar') ||
+                document.querySelector('#preview .fpill-bar');
+    // Get the existing filter bar by looking for filters
+    const pills = document.querySelectorAll('#preview .fpill');
+    if (!pills.length) return;
+    // Remove any old custom pills
+    document.querySelectorAll('#preview .fpill[data-f^="custom-"]').forEach(p => p.remove());
+    const container = pills[0].parentElement;
+    _customFilters.forEach(f => {
+      const btn = document.createElement('button');
+      btn.className = 'fpill';
+      btn.dataset.f = 'custom-' + f.id;
+      btn.textContent = f.name;
+      btn.onclick = () => setFilter('custom-' + f.id);
+      container.appendChild(btn);
+    });
+  }
+
+  /* ── Feature toggles ───────────────────────────── */
+  const FEATURE_DEFAULTS = { editBtn: true, userSticker: true, skipPreview: false };
+  let _features = Object.assign({}, FEATURE_DEFAULTS);
+  try {
+    const raw = localStorage.getItem('hb_features');
+    if (raw) _features = Object.assign({}, FEATURE_DEFAULTS, JSON.parse(raw));
+  } catch {}
+
+  function toggleFeature(key, enabled) {
+    _features[key] = enabled;
+    try { localStorage.setItem('hb_features', JSON.stringify(_features)); } catch {}
+    applyFeatures();
+  }
+
+  function applyFeatures() {
+    // Edit button on gif-screen + preview
+    document.querySelectorAll('[onclick*="openEditor"]').forEach(btn => {
+      btn.style.display = _features.editBtn ? '' : 'none';
+    });
+    // Custom sticker upload inside editor (hide when disabled)
+    const uploadBtn = document.querySelector('#editor-screen [onclick*="addCustomSticker"], #editor-photo-input')
+      || document.getElementById('editor-photo-input');
+    // Toggles inside editor — re-render via renderEditorStickers if it exists
+    if (typeof renderEditorStickers === 'function') { try { renderEditorStickers(); } catch {} }
+  }
+
+  function setMirrorMode(mode) {
+    if (mode === 'auto') _mirrorOverride = null;
+    else if (mode === 'always') _mirrorOverride = true;
+    else if (mode === 'never') _mirrorOverride = false;
+    try {
+      if (_mirrorOverride === null) localStorage.removeItem('hb_mirror_override');
+      else localStorage.setItem('hb_mirror_override', String(_mirrorOverride));
+    } catch {}
+    applyMirror();
+  }
+
+  function _syncFeatureUI() {
+    const eb = $('feat-edit-btn'); if (eb) eb.checked = _features.editBtn;
+    const us = $('feat-user-sticker'); if (us) us.checked = _features.userSticker;
+    const sp = $('feat-skip-preview'); if (sp) sp.checked = _features.skipPreview;
+    const mm = $('feat-mirror');
+    if (mm) mm.value = _mirrorOverride === null ? 'auto' : (_mirrorOverride ? 'always' : 'never');
+  }
+
+  /* ── Color swatch grid + hex input helpers ─────── */
+  const COLOR_PALETTE = [
+    '#c8831c', '#e67e22', '#e74c3c', '#c0392b', '#d63384', '#a855f7', '#6c5ce7', '#0984e3',
+    '#00b894', '#16a085', '#27ae60', '#f1c40f', '#f39c12', '#34495e', '#2c3e50', '#000000',
+    '#ffffff', '#fdf6ee', '#fff4d6', '#ffe5b4', '#ffcc99', '#e8d5b4', '#d4a96a', '#9a7d55',
+    '#ffb3c1', '#ffafcc', '#bde0fe', '#a8dadc', '#b0d9b1', '#fef8dd', '#f5e6d3', '#7f8c8d'
+  ];
+
+  function renderColorSwatches() {
+    document.querySelectorAll('.color-swatch-grid').forEach(grid => {
+      if (grid.dataset.rendered) return;
+      grid.dataset.rendered = '1';
+      const target = grid.dataset.target;
+      const applyName = grid.dataset.apply;
+      COLOR_PALETTE.forEach(color => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label', color);
+        btn.style.cssText = 'aspect-ratio:1;border:2px solid rgba(0,0,0,0.1);border-radius:8px;cursor:pointer;padding:0;background:' + color + ';box-shadow:0 1px 3px rgba(0,0,0,0.08);transition:transform 0.1s';
+        btn.onclick = () => {
+          const ci = document.getElementById(target);
+          if (ci) ci.value = color;
+          const hexId = target.replace('-color-input','-hex');
+          const hx = document.getElementById(hexId);
+          if (hx) hx.value = color.toUpperCase();
+          if (typeof window[applyName] === 'function') window[applyName](color);
+        };
+        btn.ontouchstart = () => { btn.style.transform = 'scale(0.9)'; };
+        btn.ontouchend = () => { btn.style.transform = ''; };
+        grid.appendChild(btn);
+      });
+    });
+  }
+
+  function syncHexInput(hexId, val) {
+    const hx = document.getElementById(hexId);
+    if (hx) hx.value = String(val).toUpperCase();
+  }
+
+  function handleHexInput(val, colorInputId, applyName) {
+    val = String(val).trim();
+    if (!val.startsWith('#')) val = '#' + val;
+    // Valid 6-digit hex
+    if (!/^#[0-9a-f]{6}$/i.test(val)) return;
+    const ci = document.getElementById(colorInputId);
+    if (ci) ci.value = val.toLowerCase();
+    if (typeof window[applyName] === 'function') window[applyName](val.toLowerCase());
   }
 
   /* Home background customization */
@@ -3627,7 +4240,7 @@
     if (dataUrl) {
       wrap.innerHTML = '<img src="' + dataUrl + '" style="max-width:clamp(180px,50vw,300px);max-height:140px" alt="Logo">';
     } else {
-      wrap.innerHTML = '<span class="logo-hando">Hando</span><span class="logo-booth">Booth</span><span class="logo-sub">Strike a pose</span>';
+      wrap.innerHTML = '<span class="logo-hando">Hando</span><span class="logo-booth">Booth</span>';
     }
   }
 
@@ -3953,7 +4566,7 @@
   function handleAdminStickerUpload(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 512 * 1024) { alert('Sticker must be under 512 KB.'); input.value = ''; return; }
+    if (file.size > 3 * 1024 * 1024) { alert('Sticker must be under 3 MB.'); input.value = ''; return; }
     const reader = new FileReader();
     reader.onload = e => {
       _customStickers.push(e.target.result);
@@ -4104,8 +4717,17 @@
     });
     // Dimension label
     const dimLabel = $('ls-dim-label');
-    if (dimLabel) dimLabel.textContent = totalW + ' × ' + totalH + ' px  (' + CELL_W + '×' + CELL_H + ' cells)';
+    if (dimLabel) {
+      // Show final composite + each photo + aspect ratio of photo
+      const g = _gcd(CELL_W, CELL_H);
+      const rw = CELL_W / g, rh = CELL_H / g;
+      dimLabel.innerHTML =
+        '<div style="font-size:0.85rem;color:var(--text);font-weight:700;margin-bottom:2px">Final size: ' + totalW + ' × ' + totalH + ' px</div>' +
+        '<div style="font-size:0.7rem;color:var(--muted);font-weight:500">Each photo: ' + CELL_W + ' × ' + CELL_H + ' px (' + rw + ':' + rh + ' ratio)</div>';
+    }
   }
+
+  function _gcd(a, b) { return b === 0 ? a : _gcd(b, a % b); }
 
   function _roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
@@ -4286,6 +4908,10 @@
     _restoreLayoutSizes();
     updateTemplateDimLabels();
     drawLayoutPreviews();
+    // Add custom filter pills to preview screen
+    renderPreviewFilterPills();
+    // Apply feature toggles (hide edit button if disabled)
+    applyFeatures();
     // Init EmailJS v4 once on page load
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
