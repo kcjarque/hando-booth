@@ -2,10 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <!-- Fullscreen / installable-web-app hints: when user "Add to Home Screen" the app launches without Safari toolbar -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hando Booth">
+  <meta name="theme-color" content="#fdf6ee">
   <title>Hando Booth</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
@@ -1115,8 +1121,9 @@
       .warm-screen { padding-left: 36px; padding-right: 36px; gap: 22px; }
       .screen-top, .img-panel, .prev-section, .action-row,
       .mode-toggle, .delay-row, .retake-strip { max-width: 620px; }
-      .layout-grid  { max-width: 560px; gap: 16px; }
-      .layout-card  { padding: 28px 14px 20px; }
+      /* 3 columns so 6 layout cards fit evenly (2 rows of 3) */
+      .layout-grid  { max-width: 620px; gap: 14px; grid-template-columns: repeat(3, 1fr); }
+      .layout-card  { padding: 24px 10px 16px; }
       .layout-label { font-size: 1.3rem; }
       .layout-count { font-size: 0.85rem; }
       .start-btn    { max-width: 560px; font-size: 1.35rem; padding: 28px; }
@@ -1134,8 +1141,8 @@
       .warm-screen { padding-left: 48px; padding-right: 48px; gap: 32px; }
       .screen-top, .img-panel, .prev-section, .action-row,
       .mode-toggle, .delay-row, .retake-strip { max-width: 760px; }
-      .layout-grid  { max-width: 720px; gap: 22px; }
-      .layout-card  { padding: 40px 20px 28px; min-height: 170px; }
+      .layout-grid  { max-width: 760px; gap: 18px; grid-template-columns: repeat(3, 1fr); }
+      .layout-card  { padding: 32px 14px 22px; min-height: 170px; }
       .layout-label { font-size: 1.7rem; }
       .layout-count { font-size: 1.1rem; }
       .icon-single, .icon-double, .icon-strip, .icon-quad { gap: 5px; }
@@ -1244,7 +1251,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.7</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.8</span>
   </div>
 </div>
 
@@ -1310,11 +1317,20 @@
   <div class="prev-section">
     <p class="section-label">Filter</p>
     <div class="pill-row">
-      <button class="fpill active" data-f="none"  onclick="setFilter('none')">None</button>
-      <button class="fpill"        data-f="bw"    onclick="setFilter('bw')">B&amp;W</button>
-      <button class="fpill"        data-f="sepia" onclick="setFilter('sepia')">Sepia</button>
-      <button class="fpill"        data-f="warm"  onclick="setFilter('warm')">Warm</button>
-      <button class="fpill"        data-f="cool"  onclick="setFilter('cool')">Cool</button>
+      <button class="fpill active" data-f="none"    onclick="setFilter('none')">None</button>
+      <button class="fpill"        data-f="bw"      onclick="setFilter('bw')">B&amp;W</button>
+      <button class="fpill"        data-f="sepia"   onclick="setFilter('sepia')">Sepia</button>
+      <button class="fpill"        data-f="warm"    onclick="setFilter('warm')">Warm</button>
+      <button class="fpill"        data-f="cool"    onclick="setFilter('cool')">Cool</button>
+      <button class="fpill"        data-f="vivid"   onclick="setFilter('vivid')">Vivid</button>
+      <button class="fpill"        data-f="faded"   onclick="setFilter('faded')">Faded</button>
+      <button class="fpill"        data-f="noir"    onclick="setFilter('noir')">Noir</button>
+      <button class="fpill"        data-f="dreamy"  onclick="setFilter('dreamy')">Dreamy</button>
+      <button class="fpill"        data-f="rose"    onclick="setFilter('rose')">Rose</button>
+      <button class="fpill"        data-f="film"    onclick="setFilter('film')">Film</button>
+      <button class="fpill"        data-f="vintage" onclick="setFilter('vintage')">Vintage</button>
+      <button class="fpill"        data-f="glow"    onclick="setFilter('glow')">Glow</button>
+      <button class="fpill"        data-f="cold"    onclick="setFilter('cold')">Cold</button>
     </div>
   </div>
 
@@ -1391,10 +1407,9 @@
     </div>
   </div>
 
-  <!-- Simplified action row: Back + Custom Edit + Download -->
+  <!-- Action row: Back + Download (Edit lives on the Looking Good screen) -->
   <div class="action-row" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
-    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
-    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">✎ Edit</button>
+    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
     <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">⬇ Download</button>
   </div>
 
@@ -1435,7 +1450,7 @@
       <h2>Custom Edit</h2>
       <p>Add stickers &amp; photos</p>
     </div>
-    <button class="home-btn" onclick="editorAddPhoto()" aria-label="Add photo" title="Add photo from device">
+    <button id="editor-add-photo-btn" class="home-btn" onclick="editorAddPhoto()" aria-label="Add photo" title="Add photo from device">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
     </button>
   </div>
@@ -1530,7 +1545,7 @@
     <h3 style="font-family:var(--font-brand);font-size:1.4rem;color:var(--text);margin-bottom:6px">You're all set!</h3>
     <p style="color:var(--muted);font-size:0.8rem;margin-bottom:16px">Check your email — your photo is on the way!</p>
     <div class="img-panel" style="margin-bottom:12px">
-      <img id="claim-done-img" class="panel-img" alt="Your photo" crossorigin="anonymous">
+      <img id="claim-done-img" class="panel-img" alt="Your photo" loading="eager" decoding="async">
     </div>
     <div class="action-row" style="max-width:320px;width:100%;gap:8px;margin-bottom:10px">
       <button class="btn-ghost" onclick="shareClaimPhoto()" style="flex:1;min-width:100px">↗ Share Photo</button>
@@ -1645,7 +1660,7 @@
             <input type="checkbox" id="feat-edit-btn" onchange="toggleFeature('editBtn',this.checked)" class="toggle-switch">
           </label>
           <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
-            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Show Custom Sticker Upload</span>
+            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Allow "Add Photo" in Editor</span>
             <input type="checkbox" id="feat-user-sticker" onchange="toggleFeature('userSticker',this.checked)" class="toggle-switch">
           </label>
           <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
@@ -1697,14 +1712,14 @@
             <input type="text" id="cf-name" placeholder="Filter name" class="text-input" style="margin-bottom:12px;font-size:0.9rem">
 
             <!-- Before / After preview -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
               <div style="text-align:center">
-                <canvas id="cf-before" width="240" height="160" style="width:100%;max-height:120px;border-radius:8px;background:#eee;object-fit:contain"></canvas>
-                <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Before</div>
+                <canvas id="cf-before" width="240" height="160" style="width:100%;aspect-ratio:3/2;height:auto;border-radius:8px;background:#eee"></canvas>
+                <div style="font-size:0.68rem;color:var(--muted);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em">Before</div>
               </div>
               <div style="text-align:center">
-                <canvas id="cf-preview" width="240" height="160" style="width:100%;max-height:120px;border-radius:8px;background:#eee;object-fit:contain"></canvas>
-                <div style="font-size:0.65rem;color:var(--orange);margin-top:2px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em">After</div>
+                <canvas id="cf-preview" width="240" height="160" style="width:100%;aspect-ratio:3/2;height:auto;border-radius:8px;background:#eee"></canvas>
+                <div style="font-size:0.68rem;color:var(--orange);margin-top:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em">After</div>
               </div>
             </div>
 
@@ -1760,7 +1775,8 @@
         </div>
         <!-- Layout Sizes -->
         <div style="background:var(--surface2);border-radius:14px;padding:16px 18px;margin-bottom:20px">
-          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:12px">Layout Sizes</div>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:4px">Layout Sizes</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px;line-height:1.4">Each layout has its own settings. Tap a tab below to edit that layout.</p>
 
           <!-- Live preview — large, prominent -->
           <div id="ls-preview-area" style="background:var(--surface2);border-radius:12px;padding:16px 12px 10px;margin-bottom:16px">
@@ -2119,6 +2135,80 @@
         px[i]   = Math.max(0,   r*0.88 - 8);
         px[i+1] = Math.min(255, g*1.02 + 2);
         px[i+2] = Math.min(255, b*1.10 + 12);
+      } else if (name === 'vivid') {
+        // Boost saturation + a bit of contrast
+        const avg = (r + g + b) / 3;
+        const s = 1.5;
+        px[i]   = Math.max(0, Math.min(255, avg + (r - avg) * s));
+        px[i+1] = Math.max(0, Math.min(255, avg + (g - avg) * s));
+        px[i+2] = Math.max(0, Math.min(255, avg + (b - avg) * s));
+      } else if (name === 'faded') {
+        // Lift blacks, desaturate slightly
+        const avg = (r + g + b) / 3;
+        const s = 0.75;
+        r = avg + (r - avg) * s; g = avg + (g - avg) * s; b = avg + (b - avg) * s;
+        px[i]   = Math.min(255, r + (220 - r) * 0.18);
+        px[i+1] = Math.min(255, g + (220 - g) * 0.18);
+        px[i+2] = Math.min(255, b + (220 - b) * 0.18);
+      } else if (name === 'noir') {
+        // High contrast B&W
+        const v = Math.round(0.299*r + 0.587*g + 0.114*b);
+        const c = 1.5 * (v - 128) + 128;
+        const out = Math.max(0, Math.min(255, c));
+        px[i] = px[i+1] = px[i+2] = out;
+      } else if (name === 'dreamy') {
+        // Soft, lifted, slightly pink
+        r = r * 0.92 + 230 * 0.08 + 8;
+        g = g * 0.95 + 220 * 0.05;
+        b = b * 0.95 + 230 * 0.05 + 6;
+        px[i]   = Math.max(0, Math.min(255, r));
+        px[i+1] = Math.max(0, Math.min(255, g));
+        px[i+2] = Math.max(0, Math.min(255, b));
+      } else if (name === 'rose') {
+        // Pink/magenta tint
+        px[i]   = Math.min(255, r * 1.08 + 10);
+        px[i+1] = Math.min(255, g * 0.94 - 2);
+        px[i+2] = Math.min(255, b * 1.04 + 6);
+      } else if (name === 'film') {
+        // Warm, slight desat, green shadows
+        const avg = (r + g + b) / 3;
+        const s = 0.88;
+        r = avg + (r - avg) * s; g = avg + (g - avg) * s; b = avg + (b - avg) * s;
+        r = r * 1.05 + 6;
+        g = g * 1.02 + 3;
+        b = b * 0.92 - 2;
+        // Light fade
+        r += (210 - r) * 0.08; g += (210 - g) * 0.08; b += (210 - b) * 0.10;
+        px[i]   = Math.max(0, Math.min(255, r));
+        px[i+1] = Math.max(0, Math.min(255, g));
+        px[i+2] = Math.max(0, Math.min(255, b));
+      } else if (name === 'vintage') {
+        // Sepia-like + fade + lower saturation
+        const nr = r*0.393 + g*0.769 + b*0.189;
+        const ng = r*0.349 + g*0.686 + b*0.168;
+        const nb = r*0.272 + g*0.534 + b*0.131;
+        r = nr * 0.85 + r * 0.15;
+        g = ng * 0.85 + g * 0.15;
+        b = nb * 0.85 + b * 0.15;
+        r += (215 - r) * 0.12; g += (200 - g) * 0.12; b += (180 - b) * 0.12;
+        px[i]   = Math.max(0, Math.min(255, r));
+        px[i+1] = Math.max(0, Math.min(255, g));
+        px[i+2] = Math.max(0, Math.min(255, b));
+      } else if (name === 'glow') {
+        // Brighten highlights + warm
+        r = r + (255 - r) * 0.15; g = g + (255 - g) * 0.12; b = b + (255 - b) * 0.08;
+        r = r * 1.03 + 4; g = g * 1.01 + 2;
+        px[i]   = Math.max(0, Math.min(255, r));
+        px[i+1] = Math.max(0, Math.min(255, g));
+        px[i+2] = Math.max(0, Math.min(255, b));
+      } else if (name === 'cold') {
+        // Deep blue shadows, desaturate
+        const avg = (r + g + b) / 3;
+        r = avg + (r - avg) * 0.75; g = avg + (g - avg) * 0.85; b = avg + (b - avg) * 0.95;
+        r = r * 0.82; g = g * 0.95 + 4; b = Math.min(255, b * 1.18 + 10);
+        px[i]   = Math.max(0, Math.min(255, r));
+        px[i+1] = Math.max(0, Math.min(255, g));
+        px[i+2] = Math.max(0, Math.min(255, b));
       } else if (cf) {
         // Brightness
         r += cf.brightness * 2.55;
@@ -2215,13 +2305,41 @@
   }
 
   /* ─── Composite geometry ──────────────────────────── */
+  /* ─── Per-layout size settings ─────────────────────
+     Each layout (single/double/strip/strip4/quad) stores its own
+     cellW/cellH/gap/pad (plus optional per-side padT/R/B/L).
+     `layout` (global) tells which set is currently active. */
+  const LAYOUT_SIZE_DEFAULTS = { cellW: 800, cellH: 600, gap: 16, pad: 32, padT: null, padR: null, padB: null, padL: null };
+  const LAYOUT_SIZES = {
+    single: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
+    double: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
+    strip:  Object.assign({}, LAYOUT_SIZE_DEFAULTS),
+    strip4: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
+    quad:   Object.assign({}, LAYOUT_SIZE_DEFAULTS)
+  };
+  function _ls(layoutName) { return LAYOUT_SIZES[layoutName] || LAYOUT_SIZES.single; }
+  // Expose the active layout's values through the same variable names the rest
+  // of the app uses. We update these getters/setters whenever `layout` changes.
   let CELL_W = 800, CELL_H = 600, GAP = 16, PAD = 32;
-  // Per-side padding override. When null, uses PAD for all sides.
   let PAD_T = null, PAD_R = null, PAD_B = null, PAD_L = null;
   function _padT() { return PAD_T == null ? PAD : PAD_T; }
   function _padR() { return PAD_R == null ? PAD : PAD_R; }
   function _padB() { return PAD_B == null ? PAD : PAD_B; }
   function _padL() { return PAD_L == null ? PAD : PAD_L; }
+
+  // Sync the flat CELL_W/... from the current layout's stored settings
+  function _applyActiveLayoutSizes(name) {
+    const s = _ls(name || layout);
+    CELL_W = s.cellW; CELL_H = s.cellH; GAP = s.gap; PAD = s.pad;
+    PAD_T = s.padT; PAD_R = s.padR; PAD_B = s.padB; PAD_L = s.padL;
+    if (typeof _updateCropRatio === 'function') _updateCropRatio();
+  }
+  // Write current CELL_W/... back to a layout's stored settings
+  function _storeLayoutSizes(name) {
+    const s = _ls(name);
+    s.cellW = CELL_W; s.cellH = CELL_H; s.gap = GAP; s.pad = PAD;
+    s.padT = PAD_T; s.padR = PAD_R; s.padB = PAD_B; s.padL = PAD_L;
+  }
 
   /* ─── DOM refs ────────────────────────────────────── */
   const $         = id => document.getElementById(id);
@@ -2239,8 +2357,36 @@
      SOUND ENGINE  (Web Audio API — no external files)
   ═══════════════════════════════════════════════════ */
   let _audioCtx = null;
+  let _audioUnlocked = false;
+  // iOS Safari: AudioContext & HTMLAudioElement need a user gesture to start making sound
+  function unlockAudioOnGesture() {
+    if (_audioUnlocked) return;
+    _audioUnlocked = true;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      _audioCtx = ctx;
+      if (ctx.state === 'suspended') ctx.resume();
+      // Play a tiny silent buffer to satisfy iOS
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf; src.connect(ctx.destination); src.start(0);
+    } catch {}
+    // Prime the custom audio element if it exists
+    try {
+      if (_customAudio) {
+        const v = _customAudio.volume; _customAudio.volume = 0;
+        _customAudio.play().then(() => { _customAudio.pause(); _customAudio.currentTime = 0; _customAudio.volume = v; }).catch(() => { _customAudio.volume = v; });
+      }
+    } catch {}
+  }
+  window.addEventListener('touchstart', unlockAudioOnGesture, { once: true, passive: true });
+  window.addEventListener('mousedown', unlockAudioOnGesture, { once: true });
+  window.addEventListener('keydown', unlockAudioOnGesture, { once: true });
+
   function getAudioCtx() {
     if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // iOS Safari: context starts suspended until a user gesture resumes it
+    if (_audioCtx.state === 'suspended') { try { _audioCtx.resume(); } catch {} }
     return _audioCtx;
   }
 
@@ -2395,6 +2541,8 @@
     document.querySelectorAll('.layout-card').forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     layout = name;
+    // Switch to this layout's stored size settings
+    _applyActiveLayoutSizes(name);
   }
 
   /* ─── Camera ──────────────────────────────────────── */
@@ -2571,7 +2719,20 @@
   }
 
   /* ─── Session flow ────────────────────────────────── */
+  // Fullscreen helper — request on first user gesture to hide browser toolbar
+  function requestFullscreenIfPossible() {
+    try {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    } catch {}
+    // iOS Safari workaround: scroll to hide address bar
+    window.scrollTo(0, 1);
+    setTimeout(() => window.scrollTo(0, 0), 50);
+  }
+
   async function startBooth() {
+    requestFullscreenIfPossible();
     photos = [];
     activeFilter = 'none';
     activeOverlay = null;
@@ -3262,10 +3423,26 @@
         const r = await fetch(src);
         blob = await r.blob();
       }
-      // Normalize MIME if hint provided
       if (mimeHint && blob.type !== mimeHint) {
         blob = new Blob([blob], { type: mimeHint });
       }
+
+      // On iOS Safari, <a download> often does nothing for blobs. Use Web Share API
+      // with a File, which opens the native share sheet (→ Save to Photos / Files).
+      // This is the most reliable way to actually get the file onto the device on iOS.
+      if (_IS_IOS && navigator.share && navigator.canShare) {
+        try {
+          const file = new File([blob], filename, { type: blob.type || mimeHint || 'application/octet-stream' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+            return;
+          }
+        } catch (e) {
+          if (e && e.name === 'AbortError') return; // user cancelled
+          // fall through to <a download> fallback
+        }
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -3370,51 +3547,88 @@
 
     const GIF_W = 480, GIF_H = 360;
 
-    try {
-      const workerScript = await ensureWorkerBlob();
-
-      const gif = new GIF({
-        workers: 2,
-        quality: 8,
-        width:  GIF_W,
-        height: GIF_H,
-        workerScript
-      });
-
-      for (const src of photos) {
-        const im = await loadImg(src);
-        const fc = document.createElement('canvas');
-        fc.width = GIF_W; fc.height = GIF_H;
-        const fctx = fc.getContext('2d', { willReadFrequently: true });
-        const s = Math.max(GIF_W/im.naturalWidth, GIF_H/im.naturalHeight);
-        fctx.drawImage(im,
-          (GIF_W - im.naturalWidth*s)/2, (GIF_H - im.naturalHeight*s)/2,
-          im.naturalWidth*s, im.naturalHeight*s
-        );
-        applyPixelFilter(fctx, GIF_W, GIF_H, activeFilter);
-        gif.addFrame(fc, { delay: frameDelay, copy: true });
-      }
-
-      gif.on('progress', p => { lbl.textContent = `Generating GIF… ${Math.round(p*100)}%`; });
-
-      gif.on('finished', blob => {
-        gifWorking = false;
-        if (gifUrl) URL.revokeObjectURL(gifUrl);
-        gifUrl = URL.createObjectURL(blob);
-        img.src = gifUrl; img.style.opacity = '1';
-        spinner.classList.add('hidden');
-        // Auto-download the GIF once generated (user #2 request)
-        if (_autoDownloadGif) {
-          _autoDownloadGif = false;
-          saveToDevice(blob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
-        }
-      });
-
-      gif.render();
-    } catch (err) {
+    if (typeof GIF === 'undefined') {
       gifWorking = false;
       spinner.classList.add('hidden');
-      alert('GIF generation failed: ' + err.message);
+      lbl.textContent = 'GIF library unavailable (check internet connection)';
+      return;
+    }
+
+    // iOS Safari sometimes blocks cross-origin Workers entirely.
+    // Try with workers first; if that fails quickly, retry with 0 workers (main thread).
+    let timeoutId = null;
+    const runWithWorkers = (useWorkers, workerScript) => new Promise((resolve, reject) => {
+      try {
+        const gif = new GIF({
+          workers: useWorkers,
+          quality: 10,
+          width:  GIF_W,
+          height: GIF_H,
+          workerScript
+        });
+
+        (async () => {
+          for (const src of photos) {
+            const im = await loadImg(src);
+            const fc = document.createElement('canvas');
+            fc.width = GIF_W; fc.height = GIF_H;
+            const fctx = fc.getContext('2d', { willReadFrequently: true });
+            const s = Math.max(GIF_W/im.naturalWidth, GIF_H/im.naturalHeight);
+            fctx.drawImage(im,
+              (GIF_W - im.naturalWidth*s)/2, (GIF_H - im.naturalHeight*s)/2,
+              im.naturalWidth*s, im.naturalHeight*s
+            );
+            applyPixelFilter(fctx, GIF_W, GIF_H, activeFilter);
+            gif.addFrame(fc, { delay: frameDelay, copy: true });
+          }
+
+          gif.on('progress', p => { lbl.textContent = `Generating GIF… ${Math.round(p*100)}%`; });
+          gif.on('abort', () => reject(new Error('aborted')));
+          gif.on('finished', blob => {
+            if (timeoutId) clearTimeout(timeoutId);
+            resolve(blob);
+          });
+          // Timeout guard: if nothing finishes in 45s, reject so we can retry main-thread
+          timeoutId = setTimeout(() => {
+            try { gif.abort(); } catch {}
+            reject(new Error('timeout'));
+          }, 45000);
+          gif.render();
+        })().catch(reject);
+      } catch (e) { reject(e); }
+    });
+
+    let blob = null;
+    let lastErr = null;
+    // Attempt 1: 2 workers + blob-URL worker script (best for Chrome/Android)
+    try {
+      const workerScript = await ensureWorkerBlob();
+      blob = await runWithWorkers(2, workerScript);
+    } catch (e) { lastErr = e; console.warn('[gif] workers attempt failed:', e); }
+
+    // Attempt 2: 0 workers (main thread) — works even when Safari blocks workers
+    if (!blob) {
+      try {
+        blob = await runWithWorkers(0, undefined);
+      } catch (e) { lastErr = e; console.warn('[gif] main-thread attempt failed:', e); }
+    }
+
+    gifWorking = false;
+    spinner.classList.add('hidden');
+
+    if (!blob) {
+      lbl.textContent = 'GIF generation failed';
+      // Show the photo as fallback — user still has a photo to keep
+      if (compositeDataUrl) { img.src = compositeDataUrl; img.style.opacity = '0.6'; }
+      return;
+    }
+
+    if (gifUrl) URL.revokeObjectURL(gifUrl);
+    gifUrl = URL.createObjectURL(blob);
+    img.src = gifUrl; img.style.opacity = '1';
+    if (_autoDownloadGif) {
+      _autoDownloadGif = false;
+      saveToDevice(blob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
     }
   }
 
@@ -3542,6 +3756,8 @@
 
   function closeAdmin() {
     $('admin-modal').style.display = 'none';
+    // Restore live CELL_W/... to the session's active layout's settings
+    _applyActiveLayoutSizes(layout);
   }
 
   function submitAdminPw(e) {
@@ -3938,22 +4154,32 @@
     if (vidUrl) {
       doneImg.style.display = 'none';
     } else {
-      // Prefer the URL directly (more reliable than img.src which can be empty if still loading)
       const srcUrl = photoUrl || $('claim-img').src;
       doneImg.style.display = '';
-      doneImg.onerror = () => {
-        // Retry once via a cache-busted fetch-and-set
-        fetch(srcUrl).then(r => r.blob()).then(b => {
-          doneImg.onerror = null;
-          doneImg.src = URL.createObjectURL(b);
-        }).catch(() => {
-          // Final fallback: plain text
-          doneImg.alt = 'Photo unavailable — scan the QR to view it';
-        });
+      doneImg.style.minHeight = '200px';
+      doneImg.style.background = 'var(--surface2)';
+      // Retry loading with backoff: many CDN hiccups are transient
+      let attempts = 0;
+      const tryLoad = () => {
+        attempts++;
+        doneImg.onerror = () => {
+          if (attempts < 4) {
+            setTimeout(tryLoad, attempts * 800);
+          } else {
+            // Last resort: fetch as blob and set blob URL
+            fetch(srcUrl, { cache: 'no-cache' }).then(r => r.blob()).then(b => {
+              doneImg.onerror = null;
+              doneImg.src = URL.createObjectURL(b);
+            }).catch(() => {
+              doneImg.alt = 'Photo unavailable — scan the QR to view it';
+            });
+          }
+        };
+        doneImg.onload = () => { doneImg.style.background = ''; };
+        // Cache-bust attempts to avoid stuck cache
+        doneImg.src = srcUrl + (srcUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
       };
-      doneImg.src = srcUrl;
-      // Defensive: ensure the img isn't hidden by broken-image icon — force size
-      doneImg.style.minHeight = '100px';
+      tryLoad();
     }
     // Show GIF download button if GIF is available
     const gifBtn = $('claim-dl-gif-btn');
@@ -4009,25 +4235,32 @@
     const gifEl = $('claim-gif-url');
     const url = gifEl && gifEl.value ? gifEl.value : null;
     if (!url) return;
+
+    // iOS flattens shared GIF files to a single-frame still image.
+    // On iOS, share the URL directly — the receiving app embeds a playing preview.
+    if (_IS_IOS && navigator.share) {
+      try {
+        await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
+        return;
+      } catch (e) { if (e.name === 'AbortError') return; }
+    }
+
     try {
       const resp = await fetch(url);
       const blob = await resp.blob();
       const file = new File([blob], 'hando-booth-' + Date.now() + '.gif', { type: 'image/gif' });
-      // Try file share (works on Android + some iOS 17+)
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file], title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!' });
           return;
         } catch (e) { if (e.name === 'AbortError') return; }
       }
-      // iOS can't share GIF files directly — share the URL instead
       if (navigator.share) {
         try {
           await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
           return;
         } catch (e) { if (e.name === 'AbortError') return; }
       }
-      // Final fallback: save locally
       saveToDevice(blob, file.name, 'image/gif');
     } catch {
       window.open(url, '_blank');
@@ -4492,14 +4725,14 @@
   }
 
   function applyFeatures() {
-    // Edit button on gif-screen + preview
+    // Edit button on preview screen
     document.querySelectorAll('[onclick*="openEditor"]').forEach(btn => {
       btn.style.display = _features.editBtn ? '' : 'none';
     });
-    // Custom sticker upload inside editor (hide when disabled)
-    const uploadBtn = document.querySelector('#editor-screen [onclick*="addCustomSticker"], #editor-photo-input')
-      || document.getElementById('editor-photo-input');
-    // Toggles inside editor — re-render via renderEditorStickers if it exists
+    // "Add Photo" button inside editor (toggled by userSticker flag)
+    const addPhotoBtn = document.getElementById('editor-add-photo-btn');
+    if (addPhotoBtn) addPhotoBtn.style.display = _features.userSticker ? '' : 'none';
+    // Re-render editor sticker bar if it exists
     if (typeof renderEditorStickers === 'function') { try { renderEditorStickers(); } catch {} }
   }
 
@@ -5268,6 +5501,11 @@
   function switchLayoutTab(name) {
     _activeLayoutTab = name;
     document.querySelectorAll('.ls-tab').forEach(t => t.classList.toggle('active', t.dataset.lsTab === name));
+    // Load that layout's stored sizes into the flat CELL_W/... so sliders + preview match
+    const s = _ls(name);
+    CELL_W = s.cellW; CELL_H = s.cellH; GAP = s.gap; PAD = s.pad;
+    PAD_T = s.padT; PAD_R = s.padR; PAD_B = s.padB; PAD_L = s.padL;
+    _syncLayoutSizeUI();
     drawLayoutPreview();
   }
 
@@ -5289,6 +5527,12 @@
     else if (prop === 'padR') PAD_R = val;
     else if (prop === 'padB') PAD_B = val;
     else if (prop === 'padL') PAD_L = val;
+    // Persist into the CURRENT tab's layout record (not the global session layout,
+    // because the admin UI is editing whichever tab is active)
+    const targetLayout = _activeLayoutTab || layout;
+    _storeLayoutSizes(targetLayout);
+    // If the user is editing their active session layout, also update the live vars
+    if (targetLayout === layout) _applyActiveLayoutSizes(layout);
     // Sync slider + number input
     const keyMap = { cellW:'cellw', cellH:'cellh', gap:'gap', pad:'pad', padT:'padt', padR:'padr', padB:'padb', padL:'padl' };
     const key = keyMap[prop] || prop;
@@ -5339,19 +5583,13 @@
   }
 
   function resetLayoutSizes() {
+    // Reset ONLY the currently-viewed layout to defaults
+    const target = _activeLayoutTab || layout;
+    LAYOUT_SIZES[target] = Object.assign({}, LAYOUT_SIZE_DEFAULTS);
     CELL_W = 800; CELL_H = 600; GAP = 16; PAD = 32;
     PAD_T = PAD_R = PAD_B = PAD_L = null;
-    ['cellw','cellh','gap','pad'].forEach((key, i) => {
-      const vals = [800, 600, 16, 32];
-      const s = $('ls-' + key); if (s) s.value = vals[i];
-      const n = $('ls-' + key + '-num'); if (n) n.value = vals[i];
-    });
-    ['padt','padr','padb','padl'].forEach(k => {
-      const el = $('ls-' + k); if (el) el.value = 32;
-    });
-    const ps = $('ls-pad-per-side'); if (ps) ps.checked = false;
-    togglePadPerSide(false);
-    localStorage.removeItem('hb_layout_sizes');
+    _syncLayoutSizeUI();
+    _saveLayoutSizes();
     _updateCropRatio();
     updateTemplateDimLabels();
     drawLayoutPreview();
@@ -5435,44 +5673,57 @@
 
   function _saveLayoutSizes() {
     try {
-      localStorage.setItem('hb_layout_sizes', JSON.stringify({
-        cellW: CELL_W, cellH: CELL_H, gap: GAP, pad: PAD,
-        padT: PAD_T, padR: PAD_R, padB: PAD_B, padL: PAD_L
-      }));
+      // Store the CURRENT slider values back into the layout being edited
+      _storeLayoutSizes(_activeLayoutTab || layout);
+      localStorage.setItem('hb_layout_sizes_v2', JSON.stringify(LAYOUT_SIZES));
     } catch {}
   }
 
   function _restoreLayoutSizes() {
     try {
-      const raw = localStorage.getItem('hb_layout_sizes');
-      if (!raw) return;
-      const s = JSON.parse(raw);
-      if (s.cellW) CELL_W = s.cellW;
-      if (s.cellH) CELL_H = s.cellH;
-      if (s.gap !== undefined) GAP = s.gap;
-      if (s.pad !== undefined) PAD = s.pad;
-      PAD_T = s.padT != null ? s.padT : null;
-      PAD_R = s.padR != null ? s.padR : null;
-      PAD_B = s.padB != null ? s.padB : null;
-      PAD_L = s.padL != null ? s.padL : null;
-      // Sync sliders + number inputs
-      const vals = { cellw: CELL_W, cellh: CELL_H, gap: GAP, pad: PAD };
-      Object.keys(vals).forEach(key => {
-        const slider = $('ls-' + key); if (slider) slider.value = vals[key];
-        const num = $('ls-' + key + '-num'); if (num) num.value = vals[key];
-      });
-      const perSide = PAD_T != null || PAD_R != null || PAD_B != null || PAD_L != null;
-      if (perSide) {
-        const ps = $('ls-pad-per-side'); if (ps) ps.checked = true;
-        togglePadPerSide(true);
-        ['padt','padr','padb','padl'].forEach((k, i) => {
-          const vals = [_padT(), _padR(), _padB(), _padL()];
-          const el = $('ls-' + k); if (el) el.value = vals[i];
+      // New per-layout format
+      const rawV2 = localStorage.getItem('hb_layout_sizes_v2');
+      if (rawV2) {
+        const parsed = JSON.parse(rawV2);
+        Object.keys(LAYOUT_SIZES).forEach(k => {
+          if (parsed[k]) LAYOUT_SIZES[k] = Object.assign({}, LAYOUT_SIZE_DEFAULTS, parsed[k]);
         });
+      } else {
+        // Legacy: single global settings → apply to all layouts
+        const raw = localStorage.getItem('hb_layout_sizes');
+        if (raw) {
+          const s = JSON.parse(raw);
+          Object.keys(LAYOUT_SIZES).forEach(k => {
+            LAYOUT_SIZES[k] = Object.assign({}, LAYOUT_SIZE_DEFAULTS, s);
+          });
+        }
       }
-      _updateCropRatio();
-      drawLayoutPreview();
+      // Apply current layout's settings
+      _applyActiveLayoutSizes(layout);
+      _syncLayoutSizeUI();
+      if (typeof drawLayoutPreview === 'function') drawLayoutPreview();
     } catch {}
+  }
+
+  // Push current layout's sizes into the admin UI
+  function _syncLayoutSizeUI() {
+    const name = _activeLayoutTab || layout;
+    const s = _ls(name);
+    const vals = { cellw: s.cellW, cellh: s.cellH, gap: s.gap, pad: s.pad };
+    Object.keys(vals).forEach(key => {
+      const slider = $('ls-' + key); if (slider) slider.value = vals[key];
+      const num = $('ls-' + key + '-num'); if (num) num.value = vals[key];
+    });
+    const perSide = s.padT != null || s.padR != null || s.padB != null || s.padL != null;
+    const ps = $('ls-pad-per-side');
+    if (ps) ps.checked = perSide;
+    togglePadPerSide(perSide);
+    if (perSide) {
+      ['padt','padr','padb','padl'].forEach((k, i) => {
+        const pvs = [s.padT, s.padR, s.padB, s.padL].map((v, j) => v == null ? s.pad : v);
+        const el = $('ls-' + k); if (el) el.value = pvs[i];
+      });
+    }
   }
 
   function _updateCropRatio() {
