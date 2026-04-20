@@ -786,7 +786,7 @@
     .delay-btn:active { transform: scale(0.96); }
 
     canvas { display: none; }
-    #ls-preview-canvas, #cf-preview { display: block; }
+    #ls-preview-canvas, #cf-preview, #cf-before { display: block; }
 
     /* ── INTAKE MODAL ──────────────────────────────── */
     /* ── MODAL — always a centered popup ──────────────── */
@@ -1038,6 +1038,30 @@
     .layout-toggle-row .toggle-switch::after { width: 18px; height: 18px; }
     .layout-toggle-row .toggle-switch:checked::after { transform: translateX(16px); }
     .layout-toggle-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    /* Color picker widget (Grid/Spectrum/Sliders) */
+    .cpicker { background:#fff; border:1.5px solid var(--border); border-radius:12px; padding:10px; }
+    .cpicker-header { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+    .cpicker-swatch { width:44px; height:44px; border-radius:10px; border:2px solid #fff; box-shadow:0 0 0 1.5px var(--border), 0 2px 6px rgba(0,0,0,0.1); flex-shrink:0; }
+    .cpicker-hex { flex:1; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-family:ui-monospace,monospace; font-size:0.95rem; font-weight:600; text-transform:uppercase; background:var(--surface2); color:var(--text); outline:none; min-width:0; }
+    .cpicker-hex:focus { border-color: var(--orange); }
+    .cpicker-tabs { display:flex; gap:0; background:var(--surface2); border-radius:10px; padding:3px; margin-bottom:10px; }
+    .cpicker-tab { flex:1; padding:8px 4px; border:none; background:transparent; color:var(--muted); font-weight:700; font-size:0.78rem; cursor:pointer; border-radius:7px; transition:all 0.15s; }
+    .cpicker-tab.active { background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+    .cpicker-panel { display:none; }
+    .cpicker-panel.active { display:block; }
+    .cpicker-grid-inner { display:grid; grid-template-columns:repeat(10,1fr); gap:4px; }
+    .cpicker-grid-inner button { aspect-ratio:1; border:1.5px solid rgba(0,0,0,0.08); border-radius:6px; padding:0; cursor:pointer; transition:transform 0.1s; }
+    .cpicker-grid-inner button:active { transform:scale(0.9); }
+    .cpicker-grid-inner button.selected { border-width:3px; border-color: var(--orange); box-shadow: 0 0 0 2px rgba(200,131,28,0.25); }
+    .cpicker-spectrum-wrap { position:relative; height:180px; border-radius:10px; overflow:hidden; margin-bottom:8px; cursor:crosshair; touch-action:none; }
+    .cpicker-spectrum-cursor { position:absolute; width:20px; height:20px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 1.5px rgba(0,0,0,0.5); pointer-events:none; transform:translate(-50%,-50%); }
+    .cpicker-hue-wrap { position:relative; height:28px; border-radius:14px; margin-bottom:6px; cursor:pointer; touch-action:none;
+      background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%); }
+    .cpicker-hue-cursor { position:absolute; top:-2px; width:12px; height:32px; border-radius:6px; border:2.5px solid #fff; box-shadow:0 0 0 1.5px rgba(0,0,0,0.4); pointer-events:none; transform:translateX(-50%); }
+    .cpicker-sliders label { display:block; font-size:0.72rem; color:var(--muted); font-weight:600; margin-bottom:8px; }
+    .cpicker-sliders label:last-child { margin-bottom:0; }
+    .cpicker-sliders input[type=range] { width:100%; height:30px; touch-action:none; }
+    .cpicker-sliders .val { font-family:ui-monospace,monospace; color:var(--text); float:right; font-weight:700; }
 
     .sticker-btn {
       width: 44px; height: 44px;
@@ -1195,7 +1219,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.4</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.5</span>
   </div>
 </div>
 
@@ -1613,11 +1637,8 @@
             <button onclick="setHomeBg('image')" id="hbg-image" class="delay-btn">Image</button>
           </div>
           <div id="hbg-color-picker" style="display:none;margin-bottom:8px">
-            <div class="color-swatch-grid" data-target="hbg-color-input" data-apply="applyHomeBgColor" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:10px"></div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <input type="color" id="hbg-color-input" value="#fdf6ee" onchange="applyHomeBgColor(this.value);syncHexInput('hbg-hex',this.value)" style="width:60px;height:44px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
-              <input type="text" id="hbg-hex" value="#fdf6ee" maxlength="7" placeholder="#rrggbb" oninput="handleHexInput(this.value,'hbg-color-input','applyHomeBgColor')" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:ui-monospace,monospace;font-size:0.9rem;text-transform:uppercase">
-            </div>
+            <div class="cpicker" data-apply="applyHomeBgColor" data-key="hbg" data-initial="#fdf6ee"></div>
+            <input type="hidden" id="hbg-color-input" value="#fdf6ee">
           </div>
           <div id="hbg-image-picker" style="display:none">
             <label class="file-btn">
@@ -1633,10 +1654,8 @@
           <div style="margin-bottom:8px">
             <button onclick="setButtonColor('default')" id="hbtn-default" class="delay-btn active">Default</button>
           </div>
-          <div class="color-swatch-grid" data-target="hbtn-color-input" data-apply="applyButtonColor" style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:10px"></div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input type="color" id="hbtn-color-input" value="#c8831c" onchange="applyButtonColor(this.value);syncHexInput('hbtn-hex',this.value)" style="width:60px;height:44px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
-            <input type="text" id="hbtn-hex" value="#c8831c" maxlength="7" placeholder="#rrggbb" oninput="handleHexInput(this.value,'hbtn-color-input','applyButtonColor')" style="flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:ui-monospace,monospace;font-size:0.9rem;text-transform:uppercase">
+          <div class="cpicker" data-apply="applyButtonColor" data-key="hbtn" data-initial="#c8831c"></div>
+          <input type="hidden" id="hbtn-color-input" value="#c8831c">
           </div>
         </div>
         <!-- Custom Filters -->
@@ -1650,18 +1669,41 @@
               <input type="file" accept="image/*" onchange="filterFromPhoto(this)" style="display:none">
             </label>
           </div>
-          <div id="cf-editor" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
-            <input type="text" id="cf-name" placeholder="Filter name" class="text-input" style="margin-bottom:10px;font-size:0.85rem">
-            <canvas id="cf-preview" width="240" height="160" style="display:block !important;width:100%;max-width:240px;margin:0 auto 10px;border-radius:8px;background:#eee"></canvas>
-            <div style="display:flex;flex-direction:column;gap:8px">
-              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Brightness <span id="cf-brightness-val">0</span></label><input type="range" id="cf-brightness" min="-50" max="50" value="0" oninput="updateCfParam('brightness',this.value)" style="width:100%;height:32px"></div>
-              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Contrast <span id="cf-contrast-val">0</span></label><input type="range" id="cf-contrast" min="-50" max="50" value="0" oninput="updateCfParam('contrast',this.value)" style="width:100%;height:32px"></div>
-              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Saturation <span id="cf-saturation-val">0</span></label><input type="range" id="cf-saturation" min="-100" max="100" value="0" oninput="updateCfParam('saturation',this.value)" style="width:100%;height:32px"></div>
-              <div><label style="font-size:0.72rem;color:var(--muted);font-weight:600">Temperature <span id="cf-temp-val">0</span></label><input type="range" id="cf-temp" min="-50" max="50" value="0" oninput="updateCfParam('temp',this.value)" style="width:100%;height:32px"></div>
+          <div id="cf-editor" style="display:none;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
+            <input type="text" id="cf-name" placeholder="Filter name" class="text-input" style="margin-bottom:12px;font-size:0.9rem">
+
+            <!-- Before / After preview -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+              <div style="text-align:center">
+                <canvas id="cf-before" width="240" height="160" style="width:100%;max-height:120px;border-radius:8px;background:#eee;object-fit:contain"></canvas>
+                <div style="font-size:0.65rem;color:var(--muted);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em">Before</div>
+              </div>
+              <div style="text-align:center">
+                <canvas id="cf-preview" width="240" height="160" style="width:100%;max-height:120px;border-radius:8px;background:#eee;object-fit:contain"></canvas>
+                <div style="font-size:0.65rem;color:var(--orange);margin-top:2px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em">After</div>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <button onclick="cancelCustomFilter()" class="btn-ghost" style="flex:1;padding:10px">Cancel</button>
-              <button onclick="saveCustomFilter()" class="btn-warm" style="flex:1;padding:10px">Save</button>
+
+            <!-- Quick presets -->
+            <div style="margin-bottom:12px">
+              <div style="font-size:0.7rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px">Start from preset</div>
+              <div id="cf-presets" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+            </div>
+
+            <!-- Sliders -->
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div><label style="font-size:0.75rem;color:var(--text);font-weight:700;display:flex;justify-content:space-between"><span>Brightness</span><span id="cf-brightness-val" style="color:var(--muted);font-family:ui-monospace,monospace">0</span></label><input type="range" id="cf-brightness" min="-60" max="60" value="0" oninput="updateCfParam('brightness',this.value)" style="width:100%;height:34px"></div>
+              <div><label style="font-size:0.75rem;color:var(--text);font-weight:700;display:flex;justify-content:space-between"><span>Contrast</span><span id="cf-contrast-val" style="color:var(--muted);font-family:ui-monospace,monospace">0</span></label><input type="range" id="cf-contrast" min="-60" max="60" value="0" oninput="updateCfParam('contrast',this.value)" style="width:100%;height:34px"></div>
+              <div><label style="font-size:0.75rem;color:var(--text);font-weight:700;display:flex;justify-content:space-between"><span>Saturation</span><span id="cf-saturation-val" style="color:var(--muted);font-family:ui-monospace,monospace">0</span></label><input type="range" id="cf-saturation" min="-100" max="100" value="0" oninput="updateCfParam('saturation',this.value)" style="width:100%;height:34px"></div>
+              <div><label style="font-size:0.75rem;color:var(--text);font-weight:700;display:flex;justify-content:space-between"><span>Temperature</span><span id="cf-temp-val" style="color:var(--muted);font-family:ui-monospace,monospace">0</span><span style="font-size:0.65rem;color:var(--muted);margin-left:auto">← cool · warm →</span></label><input type="range" id="cf-temp" min="-60" max="60" value="0" oninput="updateCfParam('temp',this.value)" style="width:100%;height:34px"></div>
+              <div><label style="font-size:0.75rem;color:var(--text);font-weight:700;display:flex;justify-content:space-between"><span>Vignette</span><span id="cf-vignette-val" style="color:var(--muted);font-family:ui-monospace,monospace">0</span></label><input type="range" id="cf-vignette" min="0" max="80" value="0" oninput="updateCfParam('vignette',this.value)" style="width:100%;height:34px"></div>
+              <div><label style="font-size:0.75rem;color:var(--text);font-weight:700;display:flex;justify-content:space-between"><span>Fade</span><span id="cf-fade-val" style="color:var(--muted);font-family:ui-monospace,monospace">0</span></label><input type="range" id="cf-fade" min="0" max="60" value="0" oninput="updateCfParam('fade',this.value)" style="width:100%;height:34px"></div>
+              <div><label style="font-size:0.75rem;color:var(--text);font-weight:700;display:flex;justify-content:space-between"><span>Grain</span><span id="cf-grain-val" style="color:var(--muted);font-family:ui-monospace,monospace">0</span></label><input type="range" id="cf-grain" min="0" max="50" value="0" oninput="updateCfParam('grain',this.value)" style="width:100%;height:34px"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <button onclick="cancelCustomFilter()" class="btn-ghost" style="flex:1;padding:12px">Cancel</button>
+              <button onclick="resetCustomFilter()" class="btn-ghost" style="flex:1;padding:12px">Reset</button>
+              <button onclick="saveCustomFilter()" class="btn-warm" style="flex:1;padding:12px">Save</button>
             </div>
           </div>
           <div id="cf-list"></div>
@@ -2030,6 +2072,12 @@
     }
     // Precompute contrast factor if needed
     const cFactor = cf ? (259 * (cf.contrast + 255)) / (255 * (259 - cf.contrast)) : 1;
+    // Vignette center
+    const cx = w / 2, cy = h / 2;
+    const maxDist = Math.sqrt(cx*cx + cy*cy);
+    const vig = cf && cf.vignette ? cf.vignette / 100 : 0;
+    const fade = cf && cf.fade ? cf.fade / 100 : 0;
+    const grain = cf && cf.grain ? cf.grain : 0;
     for (let i = 0; i < px.length; i += 4) {
       let r = px[i], g = px[i+1], b = px[i+2];
       if (name === 'bw') {
@@ -2069,6 +2117,27 @@
         r += cf.tintR || 0;
         g += cf.tintG || 0;
         b += cf.tintB || 0;
+        // Fade (lift blacks toward a soft haze)
+        if (fade > 0) {
+          r = r + (210 - r) * fade * 0.35;
+          g = g + (210 - g) * fade * 0.35;
+          b = b + (210 - b) * fade * 0.40;
+        }
+        // Vignette — darken corners
+        if (vig > 0) {
+          const pxIdx = i / 4;
+          const xpos = pxIdx % w;
+          const ypos = (pxIdx - xpos) / w;
+          const dx = xpos - cx, dy = ypos - cy;
+          const dist = Math.sqrt(dx*dx + dy*dy) / maxDist;
+          const mul = Math.max(0, 1 - vig * Math.pow(dist, 2.2));
+          r *= mul; g *= mul; b *= mul;
+        }
+        // Grain — monochrome noise
+        if (grain > 0) {
+          const n = (Math.random() - 0.5) * grain;
+          r += n; g += n; b += n;
+        }
         px[i]   = Math.max(0, Math.min(255, r));
         px[i+1] = Math.max(0, Math.min(255, g));
         px[i+2] = Math.max(0, Math.min(255, b));
@@ -2651,11 +2720,7 @@
     if (!_recordedBlobUrl) { alert('No video yet.'); return; }
     fetch(_recordedBlobUrl).then(r => r.blob()).then(blob => {
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'hando-booth-' + Date.now() + '.' + ext;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      saveToDevice(blob, 'hando-booth-' + Date.now() + '.' + ext);
     });
   }
 
@@ -3141,12 +3206,53 @@
 
   function continueFlow() { showGifScreen(); }
 
+  /* ── iOS-safe download helper ──────────────────────
+     Safari (iOS) ignores <a download> for data: URLs and opens them in a
+     new tab. It honors <a download> for same-origin blob: URLs though.
+     This helper converts data URLs → blob URLs first, and, on iOS, uses
+     navigator.share as a last-resort to avoid the new-tab behavior. */
+  const _IS_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  async function saveToDevice(src, filename, mimeHint) {
+    if (!src) return;
+    try {
+      let blob;
+      if (src instanceof Blob) {
+        blob = src;
+      } else {
+        const r = await fetch(src);
+        blob = await r.blob();
+      }
+      // Normalize MIME if hint provided
+      if (mimeHint && blob.type !== mimeHint) {
+        blob = new Blob([blob], { type: mimeHint });
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener';
+      a.target = '_self';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        try { document.body.removeChild(a); } catch {}
+        URL.revokeObjectURL(url);
+      }, 1500);
+    } catch (e) {
+      console.warn('saveToDevice failed:', e);
+    }
+  }
+
   /* ═══════════════════════════════════════════════════
      GIF / EXPORT SCREEN
   ═══════════════════════════════════════════════════ */
 
+  let _autoDownloadGif = false;
   function showGifScreen() {
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
+    _autoDownloadGif = layout !== 'single'; // auto-download GIF for multi-photo layouts
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
     $('export-img').src = compositeDataUrl || ''; $('export-img').style.opacity = '1';
@@ -3171,13 +3277,9 @@
     const gs = $('gif-screen');
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
-    // Auto-download photo
+    // Auto-download photo (immediately — no setTimeout which would break iOS user-gesture)
     if (compositeDataUrl) {
-      setTimeout(() => {
-        const a = document.createElement('a');
-        a.href = compositeDataUrl; a.download = 'hando-booth-' + Date.now() + '.png';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      }, 500);
+      saveToDevice(compositeDataUrl, 'hando-booth-' + Date.now() + '.png', 'image/png');
     }
   }
 
@@ -3263,6 +3365,11 @@
         gifUrl = URL.createObjectURL(blob);
         img.src = gifUrl; img.style.opacity = '1';
         spinner.classList.add('hidden');
+        // Auto-download the GIF once generated (user #2 request)
+        if (_autoDownloadGif) {
+          _autoDownloadGif = false;
+          saveToDevice(blob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
+        }
       });
 
       gif.render();
@@ -3277,9 +3384,8 @@
     const url = exportMode === 'gif' ? gifUrl : compositeDataUrl;
     if (!url) return;
     const ext = exportMode === 'gif' ? 'gif' : 'png';
-    const a = document.createElement('a');
-    a.href = url; a.download = `hando-booth-${Date.now()}.${ext}`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    const mime = exportMode === 'gif' ? 'image/gif' : 'image/png';
+    saveToDevice(url, `hando-booth-${Date.now()}.${ext}`, mime);
   }
 
   /* FIX 12 — download current export (photo or GIF) */
@@ -3287,9 +3393,8 @@
     const url = exportMode === 'gif' ? gifUrl : compositeDataUrl;
     if (!url) { alert('Nothing ready to download yet.'); return; }
     const ext = exportMode === 'gif' ? 'gif' : 'png';
-    const a = document.createElement('a');
-    a.href = url; a.download = `hando-booth-${Date.now()}.${ext}`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    const mime = exportMode === 'gif' ? 'image/gif' : 'image/png';
+    saveToDevice(url, `hando-booth-${Date.now()}.${ext}`, mime);
   }
 
   /* Get Photo — upload composite/GIF, show QR with claim URL for guest to scan */
@@ -3757,36 +3862,23 @@
     const vidEl = $('claim-video-url');
     const vidUrl = vidEl && vidEl.value ? vidEl.value : null;
 
-    // Download video OR photo+GIF
+    // Auto-download video OR photo+GIF using iOS-safe helper
     if (vidUrl) {
       fetch(vidUrl).then(r => r.blob()).then(blob => {
         const ext = vidUrl.includes('.mp4') ? 'mp4' : 'webm';
-        const u = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = u; a.download = 'hando-booth-' + Date.now() + '.' + ext;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(u);
+        saveToDevice(blob, 'hando-booth-' + Date.now() + '.' + ext);
       }).catch(() => { window.open(vidUrl, '_blank'); });
     } else if (photoUrl) {
-      // Download photo first
       fetch(photoUrl).then(r => r.blob()).then(pBlob => {
-        const pUrl = URL.createObjectURL(pBlob);
-        const a = document.createElement('a');
-        a.href = pUrl; a.download = 'hando-booth-' + Date.now() + '.png';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(pUrl), 2000);
+        saveToDevice(pBlob, 'hando-booth-' + Date.now() + '.png', 'image/png');
       }).catch(() => { window.open(photoUrl, '_blank'); });
-      // Download GIF with a delay so mobile browsers don't block it
+      // Stagger GIF download so mobile browsers don't block it
       if (gifUrl) {
         setTimeout(() => {
           fetch(gifUrl).then(r => r.blob()).then(gBlob => {
-            const gUrl = URL.createObjectURL(gBlob);
-            const b = document.createElement('a');
-            b.href = gUrl; b.download = 'hando-booth-' + Date.now() + '.gif';
-            document.body.appendChild(b); b.click(); document.body.removeChild(b);
-            setTimeout(() => URL.revokeObjectURL(gUrl), 2000);
+            saveToDevice(gBlob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
           }).catch(() => { window.open(gifUrl, '_blank'); });
-        }, 1200);
+        }, 1500);
       }
     }
 
@@ -3831,24 +3923,48 @@
   }
 
   async function shareClaimPhoto() {
-    const imgSrc = $('claim-done-img').src;
+    const doneImg = $('claim-done-img');
+    // Get src from either the img element or the hidden input — more reliable
+    const imgSrc = doneImg.src || $('claim-photo-url').value;
     if (!imgSrc) { alert('No photo to share.'); return; }
     try {
-      // Fetch the image directly (avoids CORS canvas taint issues with remote URLs)
       const resp = await fetch(imgSrc);
       const blob = await resp.blob();
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.png', { type: blob.type || 'image/png' });
-      await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', () => {
-        // Download fallback
-        const u = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = u; a.download = file.name;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(u);
-      });
+      // Convert to JPEG for broader compatibility
+      const jpegBlob = blob.type === 'image/jpeg' ? blob : await _toJpegBlob(blob);
+      const file = new File([jpegBlob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'Hando Booth Photo', text: 'Check out my Hando Booth photo!' });
+          return;
+        } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      // Fallback: download
+      saveToDevice(jpegBlob, file.name, 'image/jpeg');
     } catch (err) {
-      if (err.name !== 'AbortError') alert('Could not share. Try saving the photo instead.');
+      if (err.name !== 'AbortError') {
+        // Last resort: open in new tab
+        window.open(imgSrc, '_blank');
+      }
     }
+  }
+
+  // Convert any image blob to a white-background JPEG
+  async function _toJpegBlob(blob) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const cx = c.getContext('2d');
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, c.width, c.height);
+        cx.drawImage(img, 0, 0);
+        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b || blob); }, 'image/jpeg', 0.92);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
+      img.src = url;
+    });
   }
 
   async function shareClaimGif() {
@@ -3859,14 +3975,22 @@
       const resp = await fetch(url);
       const blob = await resp.blob();
       const file = new File([blob], 'hando-booth-' + Date.now() + '.gif', { type: 'image/gif' });
-      await _shareFile(file, 'Hando Booth GIF', 'Check out my Hando Booth GIF!', () => {
-        // Download fallback
-        const u = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = u; a.download = file.name;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        URL.revokeObjectURL(u);
-      });
+      // Try file share (works on Android + some iOS 17+)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!' });
+          return;
+        } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      // iOS can't share GIF files directly — share the URL instead
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
+          return;
+        } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      // Final fallback: save locally
+      saveToDevice(blob, file.name, 'image/gif');
     } catch {
       window.open(url, '_blank');
     }
@@ -4084,14 +4208,56 @@
     return img;
   }
 
-  function newCustomFilter() {
-    _editingFilter = {
+  const CF_PRESETS = [
+    { name: 'Clean',    brightness:  5, contrast: 10, saturation:  10, temp:   0, vignette:  0, fade:  0, grain:  0 },
+    { name: 'Warm Sun', brightness:  8, contrast:  8, saturation:  15, temp:  22, vignette: 10, fade:  5, grain:  0 },
+    { name: 'Soft',     brightness: 10, contrast: -5, saturation:  -5, temp:   6, vignette: 20, fade: 25, grain:  0 },
+    { name: 'Vintage',  brightness:  0, contrast: 10, saturation: -25, temp:  12, vignette: 30, fade: 30, grain: 15 },
+    { name: 'Film',     brightness: -3, contrast: 20, saturation: -10, temp:   4, vignette: 25, fade: 10, grain: 25 },
+    { name: 'Bright',   brightness: 20, contrast: 12, saturation:  20, temp:   0, vignette:  0, fade:  0, grain:  0 },
+    { name: 'Moody',    brightness:-12, contrast: 22, saturation:   0, temp: -10, vignette: 40, fade:  5, grain:  5 },
+    { name: 'Cool',     brightness:  0, contrast:  8, saturation:  10, temp: -18, vignette:  0, fade:  0, grain:  0 },
+  ];
+
+  function _defaultFilterParams() {
+    return {
       id: 'f' + Date.now().toString(36),
       name: 'My Filter',
       brightness: 0, contrast: 0, saturation: 0, temp: 0,
+      vignette: 0, fade: 0, grain: 0,
       tintR: 0, tintG: 0, tintB: 0
     };
+  }
+
+  function newCustomFilter() {
+    _editingFilter = _defaultFilterParams();
     _showCfEditor();
+  }
+
+  function resetCustomFilter() {
+    if (!_editingFilter) return;
+    const id = _editingFilter.id, name = _editingFilter.name;
+    _editingFilter = Object.assign(_defaultFilterParams(), { id, name });
+    _showCfEditor();
+  }
+
+  function _renderCfPresets() {
+    const wrap = $('cf-presets');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    CF_PRESETS.forEach(p => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = p.name;
+      btn.style.cssText = 'padding:6px 12px;border:1.5px solid var(--border);border-radius:16px;background:#fff;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer';
+      btn.onclick = () => {
+        if (!_editingFilter) return;
+        const { id, name } = _editingFilter;
+        _editingFilter = Object.assign({ id, name, tintR: 0, tintG: 0, tintB: 0 }, p);
+        _showCfEditor();
+      };
+      wrap.appendChild(btn);
+    });
   }
 
   async function filterFromPhoto(input) {
@@ -4115,10 +4281,11 @@
     if (!e) return;
     e.style.display = 'block';
     $('cf-name').value = _editingFilter.name;
-    ['brightness','contrast','saturation','temp'].forEach(k => {
-      const s = $('cf-' + k); if (s) s.value = _editingFilter[k];
-      const v = $('cf-' + k + '-val'); if (v) v.textContent = _editingFilter[k];
+    ['brightness','contrast','saturation','temp','vignette','fade','grain'].forEach(k => {
+      const s = $('cf-' + k); if (s) s.value = _editingFilter[k] || 0;
+      const v = $('cf-' + k + '-val'); if (v) v.textContent = _editingFilter[k] || 0;
     });
+    _renderCfPresets();
     _renderCfPreview();
   }
 
@@ -4136,19 +4303,23 @@
 
   async function _renderCfPreview() {
     if (!_editingFilter) return;
-    const cv = $('cf-preview');
-    if (!cv) return;
-    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    const after = $('cf-preview');
+    const before = $('cf-before');
+    if (!after) return;
     const img = await _getCfSampleImg();
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    const s = Math.min(cv.width / img.naturalWidth, cv.height / img.naturalHeight);
-    const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
-    ctx.drawImage(img, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
-    // Temporarily register editing filter as custom so applyPixelFilter picks it up
-    const tempName = 'custom-preview-' + _editingFilter.id;
+    const drawImgInto = (cv) => {
+      const ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      const s = Math.min(cv.width / img.naturalWidth, cv.height / img.naturalHeight);
+      const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+      ctx.drawImage(img, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+      return ctx;
+    };
+    if (before) drawImgInto(before);
+    const ctx = drawImgInto(after);
     const backup = _customFilters.slice();
     _customFilters = [Object.assign({}, _editingFilter, { id: 'preview-' + _editingFilter.id })];
-    applyPixelFilter(ctx, cv.width, cv.height, 'custom-preview-' + _editingFilter.id);
+    applyPixelFilter(ctx, after.width, after.height, 'custom-preview-' + _editingFilter.id);
     _customFilters = backup;
   }
 
@@ -4313,49 +4484,304 @@
     _syncEnabledLayoutsUI();
   }
 
-  /* ── Color swatch grid + hex input helpers ─────── */
+  /* ── Color picker widget (Grid / Spectrum / Sliders) ── */
   const COLOR_PALETTE = [
-    '#c8831c', '#e67e22', '#e74c3c', '#c0392b', '#d63384', '#a855f7', '#6c5ce7', '#0984e3',
-    '#00b894', '#16a085', '#27ae60', '#f1c40f', '#f39c12', '#34495e', '#2c3e50', '#000000',
-    '#ffffff', '#fdf6ee', '#fff4d6', '#ffe5b4', '#ffcc99', '#e8d5b4', '#d4a96a', '#9a7d55',
-    '#ffb3c1', '#ffafcc', '#bde0fe', '#a8dadc', '#b0d9b1', '#fef8dd', '#f5e6d3', '#7f8c8d'
+    // Row 1: warm brights
+    '#ff1744','#ff5722','#ff6b35','#ff9800','#ffc107','#ffeb3b','#cddc39','#8bc34a','#4caf50','#009688',
+    // Row 2: cool brights
+    '#00bcd4','#03a9f4','#2196f3','#3f51b5','#673ab7','#9c27b0','#e91e63','#c2185b','#ad1457','#880e4f',
+    // Row 3: earth / hando tones
+    '#c8831c','#e67e22','#d4a96a','#b8860b','#9a7d55','#795548','#5d4037','#3e2723','#1b0000','#000000',
+    // Row 4: neutrals & lights
+    '#ffffff','#fdf6ee','#f5e6d3','#e8d5b4','#d7ccc8','#bdbdbd','#9e9e9e','#616161','#424242','#212121',
+    // Row 5: pastels
+    '#ffb3c1','#ffafcc','#fde2e4','#fff1ba','#d0f4de','#bde0fe','#cdb4db','#b5ead7','#ffdac1','#c7ceea'
   ];
 
   function renderColorSwatches() {
-    document.querySelectorAll('.color-swatch-grid').forEach(grid => {
-      if (grid.dataset.rendered) return;
-      grid.dataset.rendered = '1';
-      const target = grid.dataset.target;
-      const applyName = grid.dataset.apply;
-      COLOR_PALETTE.forEach(color => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.setAttribute('aria-label', color);
-        btn.style.cssText = 'aspect-ratio:1;border:2px solid rgba(0,0,0,0.1);border-radius:8px;cursor:pointer;padding:0;background:' + color + ';box-shadow:0 1px 3px rgba(0,0,0,0.08);transition:transform 0.1s';
-        btn.onclick = () => {
-          const ci = document.getElementById(target);
-          if (ci) ci.value = color;
-          const hexId = target.replace('-color-input','-hex');
-          const hx = document.getElementById(hexId);
-          if (hx) hx.value = color.toUpperCase();
-          if (typeof window[applyName] === 'function') window[applyName](color);
-        };
-        btn.ontouchstart = () => { btn.style.transform = 'scale(0.9)'; };
-        btn.ontouchend = () => { btn.style.transform = ''; };
-        grid.appendChild(btn);
-      });
+    document.querySelectorAll('.cpicker').forEach(root => {
+      if (root.dataset.rendered) { _cpickerSync(root); return; }
+      root.dataset.rendered = '1';
+      _cpickerBuild(root);
     });
   }
 
-  function syncHexInput(hexId, val) {
-    const hx = document.getElementById(hexId);
-    if (hx) hx.value = String(val).toUpperCase();
+  function _cpickerBuild(root) {
+    const applyName = root.dataset.apply;
+    const key = root.dataset.key || 'cp';
+    const initial = root.dataset.initial || '#ff6b35';
+    root.dataset.color = initial;
+    root.innerHTML =
+      '<div class="cpicker-header">' +
+        '<div class="cpicker-swatch"></div>' +
+        '<input class="cpicker-hex" type="text" maxlength="7" placeholder="#RRGGBB" value="">' +
+      '</div>' +
+      '<div class="cpicker-tabs">' +
+        '<button type="button" class="cpicker-tab active" data-tab="grid">Grid</button>' +
+        '<button type="button" class="cpicker-tab" data-tab="spectrum">Spectrum</button>' +
+        '<button type="button" class="cpicker-tab" data-tab="sliders">Sliders</button>' +
+      '</div>' +
+      '<div class="cpicker-panel active" data-panel="grid"><div class="cpicker-grid-inner"></div></div>' +
+      '<div class="cpicker-panel" data-panel="spectrum">' +
+        '<div class="cpicker-spectrum-wrap"><div class="cpicker-spectrum-cursor"></div></div>' +
+        '<div class="cpicker-hue-wrap"><div class="cpicker-hue-cursor"></div></div>' +
+      '</div>' +
+      '<div class="cpicker-panel cpicker-sliders" data-panel="sliders">' +
+        '<label>R <span class="val" data-v="r">0</span><input type="range" min="0" max="255" data-ch="r"></label>' +
+        '<label>G <span class="val" data-v="g">0</span><input type="range" min="0" max="255" data-ch="g"></label>' +
+        '<label>B <span class="val" data-v="b">0</span><input type="range" min="0" max="255" data-ch="b"></label>' +
+        '<label>Hue <span class="val" data-v="h">0</span><input type="range" min="0" max="360" data-ch="h"></label>' +
+        '<label>Saturation <span class="val" data-v="s">0</span><input type="range" min="0" max="100" data-ch="s"></label>' +
+        '<label>Lightness <span class="val" data-v="l">0</span><input type="range" min="0" max="100" data-ch="l"></label>' +
+      '</div>';
+
+    // Tab switching
+    root.querySelectorAll('.cpicker-tab').forEach(tab => {
+      tab.onclick = () => {
+        root.querySelectorAll('.cpicker-tab').forEach(t => t.classList.toggle('active', t === tab));
+        root.querySelectorAll('.cpicker-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === tab.dataset.tab));
+      };
+    });
+
+    // Build grid
+    const gridInner = root.querySelector('.cpicker-grid-inner');
+    COLOR_PALETTE.forEach(c => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.style.background = c; b.dataset.color = c;
+      b.setAttribute('aria-label', c);
+      b.onclick = () => _cpickerSet(root, c, true);
+      gridInner.appendChild(b);
+    });
+
+    // Hex input
+    const hexEl = root.querySelector('.cpicker-hex');
+    hexEl.addEventListener('input', () => {
+      let v = hexEl.value.trim();
+      if (!v.startsWith('#')) v = '#' + v;
+      if (/^#[0-9a-f]{6}$/i.test(v)) _cpickerSet(root, v.toLowerCase(), true);
+    });
+
+    // Spectrum (saturation x value)
+    const spec = root.querySelector('.cpicker-spectrum-wrap');
+    const specCursor = root.querySelector('.cpicker-spectrum-cursor');
+    const hue = root.querySelector('.cpicker-hue-wrap');
+    const hueCursor = root.querySelector('.cpicker-hue-cursor');
+    const onSpecMove = (e) => {
+      const rect = spec.getBoundingClientRect();
+      const pt = (e.touches ? e.touches[0] : e);
+      const x = Math.max(0, Math.min(1, (pt.clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (pt.clientY - rect.top) / rect.height));
+      const hsv = _cpickerGetHsv(root);
+      const rgb = _hsvToRgb(hsv.h, x * 100, (1 - y) * 100);
+      _cpickerSet(root, _rgbToHex(rgb.r, rgb.g, rgb.b), true);
+    };
+    const startSpecDrag = (e) => {
+      e.preventDefault();
+      onSpecMove(e);
+      const move = (ev) => onSpecMove(ev);
+      const up = () => {
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('touchmove', move);
+        window.removeEventListener('mouseup', up);
+        window.removeEventListener('touchend', up);
+      };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('touchmove', move, { passive: false });
+      window.addEventListener('mouseup', up);
+      window.addEventListener('touchend', up);
+    };
+    spec.addEventListener('mousedown', startSpecDrag);
+    spec.addEventListener('touchstart', startSpecDrag, { passive: false });
+
+    const onHueMove = (e) => {
+      const rect = hue.getBoundingClientRect();
+      const pt = (e.touches ? e.touches[0] : e);
+      const x = Math.max(0, Math.min(1, (pt.clientX - rect.left) / rect.width));
+      const h = x * 360;
+      const hsv = _cpickerGetHsv(root);
+      const rgb = _hsvToRgb(h, hsv.s, hsv.v);
+      _cpickerSet(root, _rgbToHex(rgb.r, rgb.g, rgb.b), true);
+    };
+    const startHueDrag = (e) => {
+      e.preventDefault();
+      onHueMove(e);
+      const move = (ev) => onHueMove(ev);
+      const up = () => {
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('touchmove', move);
+        window.removeEventListener('mouseup', up);
+        window.removeEventListener('touchend', up);
+      };
+      window.addEventListener('mousemove', move);
+      window.addEventListener('touchmove', move, { passive: false });
+      window.addEventListener('mouseup', up);
+      window.addEventListener('touchend', up);
+    };
+    hue.addEventListener('mousedown', startHueDrag);
+    hue.addEventListener('touchstart', startHueDrag, { passive: false });
+
+    // Sliders
+    root.querySelectorAll('.cpicker-sliders input[type=range]').forEach(sl => {
+      sl.addEventListener('input', () => {
+        const ch = sl.dataset.ch;
+        const v = parseInt(sl.value);
+        const cur = _cpickerGetRgb(root);
+        const hsv = _cpickerGetHsv(root);
+        let newHex;
+        if (ch === 'r') newHex = _rgbToHex(v, cur.g, cur.b);
+        else if (ch === 'g') newHex = _rgbToHex(cur.r, v, cur.b);
+        else if (ch === 'b') newHex = _rgbToHex(cur.r, cur.g, v);
+        else if (ch === 'h') { const rgb = _hslToRgb(v, hsv.sl_s, hsv.sl_l); newHex = _rgbToHex(rgb.r, rgb.g, rgb.b); }
+        else if (ch === 's') { const rgb = _hslToRgb(hsv.sl_h, v, hsv.sl_l); newHex = _rgbToHex(rgb.r, rgb.g, rgb.b); }
+        else if (ch === 'l') { const rgb = _hslToRgb(hsv.sl_h, hsv.sl_s, v); newHex = _rgbToHex(rgb.r, rgb.g, rgb.b); }
+        _cpickerSet(root, newHex, true);
+      });
+    });
+
+    _cpickerSet(root, initial, false);
   }
 
+  function _cpickerSet(root, hex, fire) {
+    hex = (hex || '').toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(hex)) return;
+    root.dataset.color = hex;
+    // Swatch
+    const sw = root.querySelector('.cpicker-swatch'); if (sw) sw.style.background = hex;
+    // Hex input
+    const hx = root.querySelector('.cpicker-hex');
+    if (hx && document.activeElement !== hx) hx.value = hex.toUpperCase();
+    // Spectrum background & cursor
+    const rgb = _hexToRgb(hex);
+    const hsv = _rgbToHsv(rgb.r, rgb.g, rgb.b);
+    const spec = root.querySelector('.cpicker-spectrum-wrap');
+    if (spec) {
+      const hueRgb = _hsvToRgb(hsv.h, 100, 100);
+      const hueHex = _rgbToHex(hueRgb.r, hueRgb.g, hueRgb.b);
+      spec.style.background =
+        'linear-gradient(to top, #000, rgba(0,0,0,0)), ' +
+        'linear-gradient(to right, #fff, ' + hueHex + ')';
+    }
+    const specCur = root.querySelector('.cpicker-spectrum-cursor');
+    if (specCur) {
+      specCur.style.left = hsv.s + '%';
+      specCur.style.top = (100 - hsv.v) + '%';
+      specCur.style.background = hex;
+    }
+    const hueCur = root.querySelector('.cpicker-hue-cursor');
+    if (hueCur) {
+      hueCur.style.left = (hsv.h / 360 * 100) + '%';
+    }
+    // Sliders
+    const hsl = _rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const slVals = { r: rgb.r, g: rgb.g, b: rgb.b, h: Math.round(hsl.h), s: Math.round(hsl.s), l: Math.round(hsl.l) };
+    root.querySelectorAll('.cpicker-sliders input[type=range]').forEach(sl => {
+      const ch = sl.dataset.ch;
+      sl.value = slVals[ch];
+      const valEl = root.querySelector('[data-v="' + ch + '"]');
+      if (valEl) valEl.textContent = slVals[ch];
+    });
+    // Highlight selected grid swatch
+    root.querySelectorAll('.cpicker-grid-inner button').forEach(b => b.classList.toggle('selected', b.dataset.color === hex));
+    // Sync the hidden input
+    const key = root.dataset.key;
+    if (key) {
+      const ci = document.getElementById(key + '-color-input');
+      if (ci) ci.value = hex;
+    }
+    if (fire) {
+      const applyName = root.dataset.apply;
+      if (typeof window[applyName] === 'function') window[applyName](hex);
+    }
+  }
+
+  function _cpickerSync(root) {
+    const ci = document.getElementById((root.dataset.key || '') + '-color-input');
+    if (ci && ci.value) _cpickerSet(root, ci.value.toLowerCase(), false);
+  }
+
+  function _cpickerGetRgb(root) { return _hexToRgb(root.dataset.color || '#000000'); }
+  function _cpickerGetHsv(root) {
+    const rgb = _cpickerGetRgb(root);
+    const hsv = _rgbToHsv(rgb.r, rgb.g, rgb.b);
+    const hsl = _rgbToHsl(rgb.r, rgb.g, rgb.b);
+    hsv.sl_h = hsl.h; hsv.sl_s = hsl.s; hsv.sl_l = hsl.l;
+    return hsv;
+  }
+
+  // Color math helpers
+  function _hexToRgb(hex) {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : { r:0,g:0,b:0 };
+  }
+  function _rgbToHex(r,g,b) {
+    const h = v => { const s = Math.round(Math.max(0, Math.min(255, v))).toString(16); return s.length === 1 ? '0'+s : s; };
+    return '#' + h(r) + h(g) + h(b);
+  }
+  function _rgbToHsv(r,g,b) {
+    r/=255; g/=255; b/=255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    const v = max, d = max - min;
+    const s = max === 0 ? 0 : d/max;
+    let h = 0;
+    if (d !== 0) {
+      switch (max) {
+        case r: h = ((g-b)/d + (g<b ? 6 : 0)); break;
+        case g: h = ((b-r)/d + 2); break;
+        case b: h = ((r-g)/d + 4); break;
+      }
+      h *= 60;
+    }
+    return { h, s: s*100, v: v*100 };
+  }
+  function _hsvToRgb(h, s, v) {
+    s /= 100; v /= 100;
+    const c = v*s, x = c * (1 - Math.abs((h/60)%2 - 1)), m = v - c;
+    let rp=0, gp=0, bp=0;
+    if (h < 60) { rp=c; gp=x; }
+    else if (h < 120) { rp=x; gp=c; }
+    else if (h < 180) { gp=c; bp=x; }
+    else if (h < 240) { gp=x; bp=c; }
+    else if (h < 300) { rp=x; bp=c; }
+    else { rp=c; bp=x; }
+    return { r: Math.round((rp+m)*255), g: Math.round((gp+m)*255), b: Math.round((bp+m)*255) };
+  }
+  function _rgbToHsl(r,g,b) {
+    r/=255; g/=255; b/=255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h=0, s=0; const l = (max+min)/2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch (max) {
+        case r: h = ((g-b)/d + (g<b?6:0)); break;
+        case g: h = ((b-r)/d + 2); break;
+        case b: h = ((r-g)/d + 4); break;
+      }
+      h *= 60;
+    }
+    return { h, s: s*100, l: l*100 };
+  }
+  function _hslToRgb(h, s, l) {
+    h = (h % 360 + 360) % 360;
+    s /= 100; l /= 100;
+    const c = (1 - Math.abs(2*l - 1)) * s;
+    const x = c * (1 - Math.abs((h/60)%2 - 1));
+    const m = l - c/2;
+    let rp=0, gp=0, bp=0;
+    if (h < 60) { rp=c; gp=x; }
+    else if (h < 120) { rp=x; gp=c; }
+    else if (h < 180) { gp=c; bp=x; }
+    else if (h < 240) { gp=x; bp=c; }
+    else if (h < 300) { rp=x; bp=c; }
+    else { rp=c; bp=x; }
+    return { r: Math.round((rp+m)*255), g: Math.round((gp+m)*255), b: Math.round((bp+m)*255) };
+  }
+
+  // Legacy compatibility stubs (existing code references these)
+  function syncHexInput(hexId, val) { /* no-op — cpicker handles its own hex */ }
   function handleHexInput(val, colorInputId, applyName) {
     val = String(val).trim();
     if (!val.startsWith('#')) val = '#' + val;
-    // Valid 6-digit hex
     if (!/^#[0-9a-f]{6}$/i.test(val)) return;
     const ci = document.getElementById(colorInputId);
     if (ci) ci.value = val.toLowerCase();
