@@ -809,9 +809,12 @@
       max-width: 420px;
       display: flex;
       flex-direction: column;
+      max-height: 90vh;
       max-height: 90svh;
+      height: 90svh;
       overflow: hidden;
       min-width: 0;
+      min-height: 0;
       box-shadow: 0 8px 48px rgba(46,30,8,0.22);
     }
     .modal-header {
@@ -822,11 +825,13 @@
       flex-shrink: 0;
     }
     .modal-body {
-      flex: 1;
+      flex: 1 1 auto;
+      min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      padding: 16px 22px 0;
+      overscroll-behavior: contain;
+      padding: 16px 22px 16px;
     }
     .modal-footer {
       flex-shrink: 0;
@@ -1121,7 +1126,7 @@
       .screen-head h2 { font-size: 2.8rem; }
       .screen-head p  { font-size: 1.3rem; }
       .fpill        { padding: 16px 36px; font-size: 1.15rem; }
-      .btn-warm, .btn-ghost { padding: 28px; font-size: 1.25rem; border-radius: 20px; }
+      .btn-warm, .btn-ghost { padding: 20px 18px; font-size: 1.15rem; border-radius: 18px; }
       .img-panel    { max-height: 55vh; max-width: 760px; }
       .img-panel .panel-img { max-height: 55vh; }
       .shutter      { width: 96px; height: 96px; }
@@ -1203,10 +1208,12 @@
         <div class="layout-count">4 photos</div>
       </div>
 
-      <div class="layout-card" data-layout="video" onclick="selectLayout(this,'video')" style="grid-column:1/-1;flex-direction:row;padding:12px 18px;gap:12px;justify-content:center">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--border);flex-shrink:0"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-        <div class="layout-label" style="margin:0">Video</div>
-        <div class="layout-count" style="margin:0">Recording</div>
+      <div class="layout-card" data-layout="video" onclick="selectLayout(this,'video')">
+        <div class="icon-strip" style="align-items:center">
+          <svg width="50" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--border)"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+        </div>
+        <div class="layout-label">Video</div>
+        <div class="layout-count">Recording</div>
       </div>
 
     </div>
@@ -1219,7 +1226,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.5</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v3.6</span>
   </div>
 </div>
 
@@ -1367,10 +1374,10 @@
   </div>
 
   <!-- Simplified action row: Back + Custom Edit + Download -->
-  <div class="action-row" style="max-width:380px;width:100%;flex-wrap:wrap;gap:8px">
-    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:80px">← Back</button>
-    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:80px">✎ Edit</button>
-    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:80px">⬇ Download</button>
+  <div class="action-row" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
+    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
+    <button class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">✎ Edit</button>
+    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">⬇ Download</button>
   </div>
 
 </div>
@@ -1620,7 +1627,7 @@
             <input type="checkbox" id="feat-edit-btn" onchange="toggleFeature('editBtn',this.checked)" class="toggle-switch">
           </label>
           <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
-            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Show Custom Photo Upload</span>
+            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Show Custom Sticker Upload</span>
             <input type="checkbox" id="feat-user-sticker" onchange="toggleFeature('userSticker',this.checked)" class="toggle-switch">
           </label>
           <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
@@ -1708,13 +1715,13 @@
           </div>
           <div id="cf-list"></div>
         </div>
-        <!-- Custom Photos -->
+        <!-- Custom Stickers -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
-          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Custom Photo Upload</div>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;line-height:1.4">Upload images guests can add to their photos in the editor.</p>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Custom Sticker Upload</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;line-height:1.4">Upload stickers guests can add to their photos in the editor.</p>
           <label class="file-btn" style="margin-bottom:10px">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Photo (PNG/JPG, max 3 MB)
+            Upload Sticker (PNG/JPG, max 3 MB)
             <input type="file" id="admin-sticker-file" accept="image/png,image/webp,image/gif,image/jpeg" onchange="handleAdminStickerUpload(this)">
           </label>
           <div id="admin-sticker-list"></div>
@@ -2637,19 +2644,25 @@
     // Capture canvas stream + audio from original stream
     const canvasStream = rc.captureStream(30);
     const audioTracks = stream.getAudioTracks();
-    audioTracks.forEach(t => canvasStream.addTrack(t));
+    audioTracks.forEach(t => {
+      t.enabled = true;
+      canvasStream.addTrack(t);
+    });
+    console.log('[rec] audio tracks on recording stream:', canvasStream.getAudioTracks().length);
 
-    // Prefer mp4 (iOS native), fall back to webm/H264 (best Android compatibility), then webm
+    // Prefer codecs that EXPLICITLY include an audio codec so audio is recorded.
+    // Bare "video/mp4" or "video/webm;codecs=vp9" without audio codec may drop audio.
     const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac') ? 'video/mp4;codecs=h264,aac'
-                   : MediaRecorder.isTypeSupported('video/mp4;codecs=avc1') ? 'video/mp4;codecs=avc1'
-                   : MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+                   : MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2') ? 'video/mp4;codecs=avc1.42E01E,mp4a.40.2'
+                   : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus'
+                   : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus'
                    : MediaRecorder.isTypeSupported('video/webm;codecs=h264,opus') ? 'video/webm;codecs=h264,opus'
-                   : MediaRecorder.isTypeSupported('video/webm;codecs=h264') ? 'video/webm;codecs=h264'
-                   : MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
                    : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm'
+                   : MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
                    : '';
-    const opts = { videoBitsPerSecond: 3000000 };
+    const opts = { videoBitsPerSecond: 3000000, audioBitsPerSecond: 128000 };
     if (mimeType) opts.mimeType = mimeType;
+    console.log('[rec] mime:', mimeType);
     _mediaRecorder = new MediaRecorder(canvasStream, opts);
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
     _mediaRecorder.onstop = () => {
@@ -2871,11 +2884,10 @@
 
   function snap() {
     const vw = video.videoWidth || 1280, vh = video.videoHeight || 720;
-    const rect = video.getBoundingClientRect();
-    const containerW = rect.width, containerH = rect.height;
+    const vrect = video.getBoundingClientRect();
+    const containerW = vrect.width, containerH = vrect.height;
     const containerRatio = containerW / containerH;
     const videoRatio = vw / vh;
-    const cropRatio = CELL_W / CELL_H;
 
     // Visible region of the raw video, accounting for object-fit: cover
     let visX = 0, visY = 0, visW = vw, visH = vh;
@@ -2889,15 +2901,24 @@
       visY = (vh - visH) / 2;
     }
 
-    // Crop guide sits within container: height:100%, aspect-ratio cropRatio, max-width:100%
-    let guideW = containerH * cropRatio;
-    let guideH = containerH;
-    if (guideW > containerW) {
-      guideW = containerW;
-      guideH = containerW / cropRatio;
+    // Use the crop guide's ACTUAL bounding rect (accounts for .cam-overlay padding)
+    const guide = document.querySelector('.cam-crop-guide');
+    let guideXc, guideYc, guideW, guideH;
+    if (guide) {
+      const grect = guide.getBoundingClientRect();
+      guideXc = grect.left - vrect.left;
+      guideYc = grect.top - vrect.top;
+      guideW = grect.width;
+      guideH = grect.height;
+    } else {
+      // Fallback: compute theoretical guide size from CSS rules
+      const cropRatio = CELL_W / CELL_H;
+      guideW = containerH * cropRatio;
+      guideH = containerH;
+      if (guideW > containerW) { guideW = containerW; guideH = containerW / cropRatio; }
+      guideXc = (containerW - guideW) / 2;
+      guideYc = (containerH - guideH) / 2;
     }
-    const guideXc = (containerW - guideW) / 2;
-    const guideYc = (containerH - guideH) / 2;
 
     // Map container coords → raw video coords
     const scaleX = visW / containerW;
@@ -5162,11 +5183,10 @@
     drawEditor();
     const canvas = $('editor-canvas');
     compositeDataUrl = canvas.toDataURL('image/png');
-    const expImg = $('export-img');
-    if (expImg) expImg.src = compositeDataUrl;
     const compImg = $('composite-img');
     if (compImg) compImg.src = compositeDataUrl;
-    showScreen('gif-screen');
+    // Route through showGifScreen so the GIF regenerates + auto-downloads
+    showGifScreen();
   }
 
   /* Admin — custom sticker management */
