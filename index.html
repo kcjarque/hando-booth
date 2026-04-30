@@ -110,14 +110,19 @@
 
     /* ── HOME ──────────────────────────────────────── */
     #home {
+      display: flex;
+      flex-direction: column;
       justify-content: flex-start;
       align-items: center;
+      text-align: center;
       gap: clamp(14px, 2.5vh, 24px);
       padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
       padding-top: clamp(20px, 4vh, 40px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
+    /* All direct children of #home are centered as flex items */
+    #home > * { margin-left: auto; margin-right: auto; }
     #home-bg {
       position: fixed;
       inset: 0;
@@ -162,6 +167,10 @@
       gap: 10px;
       width: 100%;
       max-width: 380px;
+      margin-left: auto;
+      margin-right: auto;
+      justify-content: center;
+      justify-items: stretch;
     }
 
     .layout-card {
@@ -371,10 +380,11 @@
       aspect-ratio: var(--crop-ratio, 1.333);
       max-height: 100%;
       pointer-events: none;
-      border: 4px solid #fff;
+      /* Solid white surround so area outside the crop is clearly "off-frame" */
+      border: 4px solid var(--orange);
       box-shadow:
-        0 0 0 100vmax rgba(0,0,0,0.7),
-        0 0 0 1px rgba(0,0,0,0.4);
+        0 0 0 100vmax #ffffff,
+        0 0 0 1px rgba(0,0,0,0.15);
       z-index: 1;
     }
     .cam-crop-guide::before,
@@ -383,9 +393,9 @@
       position: absolute;
       width: 28px;
       height: 28px;
-      border-color: #fff;
+      border-color: var(--orange);
       border-style: solid;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
     }
     .cam-crop-guide::before {
       top: -3px; left: -3px;
@@ -399,9 +409,9 @@
       position: absolute;
       width: 28px;
       height: 28px;
-      border-color: #fff;
+      border-color: var(--orange);
       border-style: solid;
-      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
     }
     .crop-bl {
       bottom: -3px; left: -3px;
@@ -1305,7 +1315,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.1</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.2</span>
   </div>
 </div>
 
@@ -2637,8 +2647,27 @@
     } catch {}
   }
 
+  // When custom sound is selected, play the same file for ticks + shutter so
+  // the entire session uses the admin's chosen audio.
+  function _playCustomShort() {
+    if (!_customSoundUrl) return false;
+    try {
+      const a = new Audio(_customSoundUrl);
+      a.volume = 1.0;
+      // Play just the first second so countdown stays snappy
+      a.addEventListener('loadedmetadata', () => {
+        if (a.duration > 1.2) {
+          setTimeout(() => { try { a.pause(); a.currentTime = 0; } catch {} }, 1000);
+        }
+      });
+      a.play().catch(() => {});
+      return true;
+    } catch { return false; }
+  }
+
   function playCountdownTick() {
     if (_soundPreset === 'silent') return;
+    if (_soundPreset === 'custom' && _playCustomShort()) return;
     if (_soundPreset === 'classic') { playBeep(800, 0.06, 1.0, 'square'); return; }
     // Two short beeps for an audible "tick" even on small phone speakers
     playBeep(660, 0.10, 1.0, 'sine');
@@ -2646,6 +2675,7 @@
 
   function playCountdownFinal() {
     if (_soundPreset === 'silent') return;
+    if (_soundPreset === 'custom' && _playCustomShort()) return;
     if (_soundPreset === 'classic') { playBeep(1000, 0.08, 1.0, 'square'); return; }
     playBeep(880, 0.15, 1.0, 'sine');
     setTimeout(() => playBeep(1200, 0.15, 1.0, 'sine'), 100);
@@ -3175,22 +3205,15 @@
 
   function showVideoPreview() {
     const vid = $('vid-playback');
-    vid.src = _recordedBlobUrl;
-    vid.muted = false;
-    showScreen('video-preview');
-    // Auto-download video
-    if (_recordedBlobUrl) {
-      setTimeout(() => {
-        fetch(_recordedBlobUrl).then(r => r.blob()).then(blob => {
-          const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = 'hando-booth-' + Date.now() + '.' + ext;
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        });
-      }, 600);
+    if (vid && _recordedBlobUrl) {
+      vid.src = _recordedBlobUrl;
+      vid.muted = false;
+      vid.load();
+      // Try to auto-play the preview so user sees the recorded video immediately
+      vid.play().catch(() => {});
     }
+    showScreen('video-preview');
+    // No second auto-download — the recording onstop already saved the file.
   }
 
   function retakeVideo() {
@@ -3777,7 +3800,8 @@
   let _autoDownloadGif = false;
   function showGifScreen() {
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
-    _autoDownloadGif = false; // never auto-download — guest provides email first
+    // Multi-photo layouts auto-download the GIF as soon as it finishes
+    _autoDownloadGif = layout !== 'single';
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
     $('export-img').src = compositeDataUrl || ''; $('export-img').style.opacity = '1';
@@ -3802,7 +3826,19 @@
     const gs = $('gif-screen');
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
-    // No auto-share/download here — guest enters email first, file is delivered after that
+    // Auto-download the photo right away (GIF auto-downloads on generation finish).
+    // Use plain <a download> so we don't fire iOS share sheet.
+    if (compositeDataUrl) {
+      try {
+        fetch(compositeDataUrl).then(r => r.blob()).then(blob => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'hando-booth-' + Date.now() + '.png';
+          document.body.appendChild(a); a.click();
+          setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+        });
+      } catch {}
+    }
   }
 
   function backToPreview() { showScreen('preview'); }
@@ -4004,9 +4040,16 @@
     if (gifUrl) URL.revokeObjectURL(gifUrl);
     gifUrl = URL.createObjectURL(blob);
     img.src = gifUrl; img.style.opacity = '1';
+    spinner.classList.add('hidden');
     if (_autoDownloadGif) {
       _autoDownloadGif = false;
-      saveToDevice(blob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
+      // Plain <a download> path — silently saves without an iOS share sheet
+      try {
+        const a = document.createElement('a');
+        a.href = gifUrl; a.download = 'hando-booth-' + Date.now() + '.gif';
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { try { document.body.removeChild(a); } catch {} }, 1500);
+      } catch (e) { console.warn('[gif] download failed', e); }
     }
   }
 
