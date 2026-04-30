@@ -1327,7 +1327,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.3</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.4</span>
   </div>
 </div>
 
@@ -2838,12 +2838,15 @@
   let _cameraDevices = [];
 
   async function startCamera(withAudio) {
-    // Reuse existing stream if it still has live tracks and audio matches —
-    // avoids the browser re-prompting for camera on every Start Session
+    // Reuse existing stream ONLY if the live track is still on the requested
+    // device (otherwise switchCamera() would silently keep the old camera)
     if (stream && stream.active) {
-      const liveVid = stream.getVideoTracks().some(t => t.readyState === 'live');
+      const tracks = stream.getVideoTracks();
+      const liveVid = tracks.some(t => t.readyState === 'live');
       const hasAudio = stream.getAudioTracks().length > 0;
-      if (liveVid && hasAudio === !!withAudio) {
+      const currentDeviceId = tracks[0] && tracks[0].getSettings ? tracks[0].getSettings().deviceId : null;
+      const deviceMatches = !_selectedDeviceId || currentDeviceId === _selectedDeviceId;
+      if (liveVid && hasAudio === !!withAudio && deviceMatches) {
         try {
           video.srcObject = stream;
           await video.play().catch(() => {});
@@ -2858,11 +2861,14 @@
     // Build video constraints
     let vidConstraint;
     if (_selectedDeviceId) {
+      // When a specific device is requested, omit facingMode + aspectRatio.
+      // iOS Safari sometimes silently substitutes a different camera if the
+      // requested device can't satisfy aspectRatio at the desired resolution
+      // — even with deviceId: exact. Cropping happens in snap() anyway.
       vidConstraint = {
         deviceId: { exact: _selectedDeviceId },
         width: { ideal: withAudio ? 640 : 1280 },
-        height: { ideal: withAudio ? 480 : 960 },
-        aspectRatio: { ideal: cropRatio }
+        height: { ideal: withAudio ? 480 : 960 }
       };
     } else {
       vidConstraint = {
@@ -3015,9 +3021,22 @@
 
   async function switchCamera(deviceId) {
     if (!deviceId) return;
+    console.log('[cam] switching to device:', deviceId);
     _selectedDeviceId = deviceId;
+    // Force a fresh getUserMedia call — kill the old stream first so the
+    // reuse-check in startCamera doesn't keep us on the old camera
+    stopStream();
     const isVideo = (layout === 'video');
     await startCamera(isVideo);
+    // Confirm which device we actually got
+    const t = stream && stream.getVideoTracks && stream.getVideoTracks()[0];
+    if (t && t.getSettings) {
+      const s = t.getSettings();
+      console.log('[cam] now using device:', s.deviceId, 'label:', t.label, 'res:', s.width + 'x' + s.height);
+      if (s.deviceId !== deviceId) {
+        console.warn('[cam] BROWSER IGNORED deviceId — got', s.deviceId, 'instead of', deviceId);
+      }
+    }
   }
 
   function buildThumbs() {
