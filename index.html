@@ -201,6 +201,11 @@
     .layout-label { font-size: 0.82rem; font-weight: 700; color: var(--text); font-family: var(--font-brand); font-size: 1rem; }
     .layout-count { font-size: 0.68rem; color: var(--muted); }
 
+    .home-grid-wrap {
+      width: 100%;
+      max-width: 380px;
+      margin: 0 auto;
+    }
     .start-btn {
       width: 100%;
       max-width: 380px;
@@ -245,6 +250,12 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      position: relative;
+      z-index: 5;  /* above the crop-guide's darkening box-shadow */
+    }
+    .cam-bottom {
+      position: relative;
+      z-index: 5;  /* keep shutter/record button bright while capturing */
     }
 
     .icon-btn {
@@ -303,7 +314,7 @@
       background: #fff;
     }
     .shutter:active { transform: scale(0.91); }
-    .shutter:disabled { opacity: 0.4; cursor: not-allowed; }
+    .shutter:disabled { opacity: 1; cursor: default; }
 
     /* ── COUNTDOWN ─────────────────────────────────── */
     #countdown {
@@ -1132,7 +1143,8 @@
       .layout-card  { padding: 24px 10px 16px; }
       .layout-label { font-size: 1.3rem; }
       .layout-count { font-size: 0.85rem; }
-      .start-btn    { max-width: 560px; font-size: 1.35rem; padding: 28px; }
+      .start-btn    { max-width: 620px; font-size: 1.35rem; padding: 28px; }
+      .home-grid-wrap { max-width: 620px; }
       .screen-head h2 { font-size: 2.2rem; }
       .screen-head p  { font-size: 1.1rem; }
       .fpill        { padding: 12px 26px; font-size: 0.95rem; }
@@ -1157,6 +1169,7 @@
       .icon-single, .icon-double, .icon-strip, .icon-quad { gap: 5px; }
       .icon-cell { min-width: 56px !important; min-height: 26px !important; }
       .start-btn    { max-width: 820px; font-size: 1.8rem; padding: 36px; border-radius: 32px; }
+      .home-grid-wrap { max-width: 820px; }
       .screen-head h2 { font-size: 3rem; }
       .screen-head p  { font-size: 1.4rem; }
       .fpill        { padding: 18px 40px; font-size: 1.25rem; }
@@ -1195,6 +1208,7 @@
       .layout-label { font-size: 1.7rem; }
       .layout-count { font-size: 1.05rem; }
       .start-btn    { max-width: 920px; font-size: 2rem; padding: 44px; }
+      .home-grid-wrap { max-width: 920px; }
       .screen-head h2 { font-size: 3.5rem; }
       .img-panel    { max-width: 920px; }
       .btn-warm, .btn-ghost { padding: 28px 24px; font-size: 1.4rem; }
@@ -1217,7 +1231,7 @@
     <span class="logo-booth">Booth</span>
   </div>
 
-  <div style="width:100%;max-width:380px">
+  <div class="home-grid-wrap" style="width:100%;max-width:380px">
     <div class="layout-grid">
 
       <div class="layout-card selected" data-layout="single" onclick="selectLayout(this,'single')">
@@ -1291,7 +1305,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.0</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.1</span>
   </div>
 </div>
 
@@ -1448,10 +1462,9 @@
     </div>
   </div>
 
-  <!-- Action row: Back + Print + Get Photo (delivers via QR + email) -->
-  <div class="action-row" style="max-width:620px;width:100%;flex-wrap:wrap;gap:8px">
-    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
-    <button class="btn-ghost" onclick="printPhoto()" style="flex:1;min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🖨 Print</button>
+  <!-- Action row: Back + Get Photo (Print is in the top-right of this screen) -->
+  <div class="action-row" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
+    <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
     <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1.4;min-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📤 Get Photo</button>
   </div>
 
@@ -1643,7 +1656,7 @@
         </div>
         <!-- Countdown Timer -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
-          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Countdown Timer</div>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Countdown — between photos</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="delay-btn cd-btn active" data-cd="3"  onclick="setCountdownSecs(3)">3s</button>
             <button class="delay-btn cd-btn"        data-cd="4"  onclick="setCountdownSecs(4)">4s</button>
@@ -1654,6 +1667,15 @@
             <button class="delay-btn cd-btn"        data-cd="9"  onclick="setCountdownSecs(9)">9s</button>
             <button class="delay-btn cd-btn"        data-cd="10" onclick="setCountdownSecs(10)">10s</button>
           </div>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin:14px 0 8px">First countdown — extra time to get ready</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="delay-btn cd1-btn active" data-cd1="0"  onclick="setFirstCountdownExtra(0)">Same</button>
+            <button class="delay-btn cd1-btn"        data-cd1="2"  onclick="setFirstCountdownExtra(2)">+2s</button>
+            <button class="delay-btn cd1-btn"        data-cd1="3"  onclick="setFirstCountdownExtra(3)">+3s</button>
+            <button class="delay-btn cd1-btn"        data-cd1="5"  onclick="setFirstCountdownExtra(5)">+5s</button>
+            <button class="delay-btn cd1-btn"        data-cd1="7"  onclick="setFirstCountdownExtra(7)">+7s</button>
+            <button class="delay-btn cd1-btn"        data-cd1="10" onclick="setFirstCountdownExtra(10)">+10s</button>
+          </div>
         </div>
         <!-- Video Duration -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
@@ -1661,6 +1683,21 @@
           <div style="display:flex;align-items:center;gap:12px">
             <input type="range" id="vid-dur-slider" min="5" max="30" value="10" step="1" oninput="setVideoDuration(this.value)" style="flex:1;accent-color:var(--orange)">
             <span id="vid-dur-label" style="font-size:0.85rem;font-weight:700;min-width:32px;text-align:center">10s</span>
+          </div>
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin:14px 0 8px">Video Output Size</div>
+          <div id="vid-size-presets" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <button class="delay-btn vsize-btn" onclick="setVideoSize(1280,720)">720p (16:9)</button>
+            <button class="delay-btn vsize-btn" onclick="setVideoSize(1920,1080)">1080p (16:9)</button>
+            <button class="delay-btn vsize-btn" onclick="setVideoSize(1080,1080)">Square (1:1)</button>
+            <button class="delay-btn vsize-btn" onclick="setVideoSize(1080,1350)">IG Portrait (4:5)</button>
+            <button class="delay-btn vsize-btn" onclick="setVideoSize(1080,1920)">Reels / TikTok (9:16)</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="font-size:0.75rem;color:var(--muted);font-weight:600">Custom</label>
+            <input type="number" id="vid-w-num" value="1280" min="320" max="3840" step="20" onchange="setVideoSize(parseInt(this.value)||1280, vidHeight)" style="width:80px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700">
+            <span style="color:var(--muted)">×</span>
+            <input type="number" id="vid-h-num" value="720" min="320" max="3840" step="20" onchange="setVideoSize(vidWidth, parseInt(this.value)||720)" style="width:80px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700">
+            <span style="font-size:0.7rem;color:var(--muted)">px</span>
           </div>
         </div>
         <!-- Camera Sound -->
@@ -2053,12 +2090,16 @@
   const LS_STOCK_ENABLED = 'hb_stock_enabled';
   const LS_COUNTDOWN      = 'hb_countdown';
   let   countdownSecs     = 3;
+  let   firstCountdownExtra = 0; // extra seconds added to the FIRST countdown only
   let _soundPreset = 'default';
   let _customSoundUrl = null;
   let _customAudio = null;
 
   /* ─── Video recording state ────────────────────── */
   let videoDuration = parseInt(localStorage.getItem('hb_vid_dur') || '10');
+  // Video output dimensions (admin-configurable)
+  let vidWidth  = parseInt(localStorage.getItem('hb_vid_w') || '1280');
+  let vidHeight = parseInt(localStorage.getItem('hb_vid_h') || '720');
   let _mediaRecorder = null;
   let _recordedChunks = [];
   let _recordedBlobUrl = null;
@@ -3010,11 +3051,14 @@
     if (!stream) return;
     _recordedChunks = [];
 
-    // Create a canvas that composites video + overlay
+    // Create a canvas that composites video + overlay.
+    // Output size is configurable via admin (vidWidth × vidHeight) so admins
+    // can pick 720p / 1080p / square / vertical for IG, etc.
     const vid = $('video');
-    const vw = vid.videoWidth || 640, vh = vid.videoHeight || 480;
+    const vw = vid.videoWidth || 1280, vh = vid.videoHeight || 720;
     const rc = document.createElement('canvas');
-    rc.width = vw; rc.height = vh;
+    rc.width = vidWidth || vw;
+    rc.height = vidHeight || vh;
     _recCanvas = rc;
     const rctx = rc.getContext('2d');
 
@@ -3026,16 +3070,28 @@
     }
 
     // Draw loop: video (mirror if enabled) + overlay onto canvas
+    // Compute aspect-fit (cover) crop rect from raw video to output canvas
+    const outW = rc.width, outH = rc.height;
+    const inAR = vw / vh, outAR = outW / outH;
+    let sx = 0, sy = 0, sw = vw, sh = vh;
+    if (inAR > outAR) {
+      // raw is wider than output → crop sides
+      sw = vh * outAR;
+      sx = (vw - sw) / 2;
+    } else if (inAR < outAR) {
+      sh = vw / outAR;
+      sy = (vh - sh) / 2;
+    }
     function drawFrame() {
       rctx.save();
       if (_shouldMirror()) {
-        rctx.translate(vw, 0);
+        rctx.translate(outW, 0);
         rctx.scale(-1, 1);
       }
-      rctx.drawImage(vid, 0, 0, vw, vh);
+      rctx.drawImage(vid, sx, sy, sw, sh, 0, 0, outW, outH);
       rctx.restore();
       if (ovImg && ovImg.complete && ovImg.naturalWidth) {
-        rctx.drawImage(ovImg, 0, 0, vw, vh);
+        rctx.drawImage(ovImg, 0, 0, outW, outH);
       }
       _recAnimId = requestAnimationFrame(drawFrame);
     }
@@ -3072,12 +3128,20 @@
       if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
       _recordedBlobUrl = URL.createObjectURL(blob);
       stopStream();
-      // Auto-download immediately, skip the preview screen entirely
+      // Auto-download immediately, THEN show the share screen so user can also share
       const ext = (blob.type || '').includes('mp4') ? 'mp4' : 'webm';
-      saveToDevice(blob, 'hando-booth-' + Date.now() + '.' + ext, blob.type);
-      // Then upload + go to thank-you page (consistent with photo flow)
-      goHome();
+      // Use <a download> path on non-iOS so we don't trigger the Web Share sheet
+      // (iOS will use Web Share which is unavoidable but at least the share screen
+      // is there afterwards for additional sharing)
+      try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'hando-booth-' + Date.now() + '.' + ext;
+        document.body.appendChild(a); a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+      } catch {}
       try { localStorage.setItem(LS_USAGE, String((parseInt(localStorage.getItem(LS_USAGE)||'0'))+1)); } catch {}
+      showVideoPreview();
     };
     _mediaRecorder.start(100);
     $('rec-btn').classList.add('recording');
@@ -3231,6 +3295,22 @@
     $('vid-dur-label').textContent = val + 's';
   }
 
+  function setVideoSize(w, h) {
+    w = Math.max(320, Math.min(3840, parseInt(w) || 1280));
+    h = Math.max(320, Math.min(3840, parseInt(h) || 720));
+    vidWidth = w; vidHeight = h;
+    try {
+      localStorage.setItem('hb_vid_w', String(w));
+      localStorage.setItem('hb_vid_h', String(h));
+    } catch {}
+    const wEl = $('vid-w-num'); if (wEl) wEl.value = w;
+    const hEl = $('vid-h-num'); if (hEl) hEl.value = h;
+    document.querySelectorAll('.vsize-btn').forEach(b => {
+      const m = b.getAttribute('onclick').match(/setVideoSize\((\d+),(\d+)\)/);
+      if (m) b.classList.toggle('active', parseInt(m[1]) === w && parseInt(m[2]) === h);
+    });
+  }
+
   /* ─── Capture sequence ────────────────────────────── */
   async function startCapture() {
     if (busy) return;
@@ -3254,7 +3334,10 @@
     // Normal multi-shot capture
     const total = COUNTS[layout]; photos = [];
     for (let i = 0; i < total; i++) {
-      await runCountdown(i === 0 ? 'Get ready!' : 'Keep going!');
+      await runCountdown(
+        i === 0 ? 'Get ready!' : 'Keep going!',
+        i === 0 && firstCountdownExtra > 0 ? countdownSecs + firstCountdownExtra : undefined
+      );
       const dataUrl = snap(); photos.push(dataUrl);
       markThumb(i, dataUrl); doFlash();
       if (i < total - 1) await sleep(500);
@@ -3267,11 +3350,11 @@
     showPreviewScreen();
   }
 
-  function runCountdown(label) {
+  function runCountdown(label, secsOverride) {
     return new Promise(resolve => {
       cdLabel.textContent = label;
       cdOverlay.classList.add('show');
-      let n = countdownSecs;
+      let n = (typeof secsOverride === 'number' && secsOverride > 0) ? secsOverride : countdownSecs;
       function tick() {
         if (n === 0) { resolve(); return; }
         cdNum.textContent = n;
@@ -3758,6 +3841,33 @@
     return _workerBlob;
   }
 
+  // Stacked-PNG fallback — used when gif.js can't run at all
+  async function _gifStaticFallback(W, H) {
+    if (!photos || !photos.length) return;
+    try {
+      const stackC = document.createElement('canvas');
+      stackC.width = W; stackC.height = H * photos.length;
+      const sctx = stackC.getContext('2d');
+      let y = 0;
+      for (const src of photos) {
+        const im = await loadImg(src);
+        const s = Math.max(W/im.naturalWidth, H/im.naturalHeight);
+        sctx.drawImage(im,
+          (W - im.naturalWidth*s)/2, y + (H - im.naturalHeight*s)/2,
+          im.naturalWidth*s, im.naturalHeight*s
+        );
+        y += H;
+      }
+      const blob = await new Promise(r => stackC.toBlob(r, 'image/png'));
+      if (blob) {
+        if (gifUrl) URL.revokeObjectURL(gifUrl);
+        gifUrl = URL.createObjectURL(blob);
+        const img = $('gif-img');
+        if (img) { img.src = gifUrl; img.style.opacity = '1'; }
+      }
+    } catch (e) { console.warn('[gif] static fallback failed', e); }
+  }
+
   async function generateGif() {
     if (gifWorking) return;
     gifWorking = true;
@@ -3772,10 +3882,22 @@
     // Smaller dimensions on iOS to reduce per-frame work on the main thread fallback
     const GIF_W = _IS_IOS ? 360 : 480, GIF_H = _IS_IOS ? 270 : 360;
 
+    console.log('[gif] starting generation', { iOS: _IS_IOS, GIF_W, GIF_H, frames: photos.length, gifLibLoaded: typeof GIF !== 'undefined' });
+
     if (typeof GIF === 'undefined') {
       gifWorking = false;
       spinner.classList.add('hidden');
-      lbl.textContent = 'GIF library unavailable (check internet connection)';
+      lbl.textContent = 'GIF library failed to load — check internet';
+      console.error('[gif] gif.js script failed to load from CDN');
+      // Build fallback static stack so user gets SOMETHING
+      _gifStaticFallback(GIF_W, GIF_H);
+      return;
+    }
+    if (!photos || photos.length < 1) {
+      gifWorking = false;
+      spinner.classList.add('hidden');
+      lbl.textContent = 'No photos to make a GIF from';
+      console.warn('[gif] no photos in array');
       return;
     }
 
@@ -4416,8 +4538,8 @@
         gif_url: gifUrl || '',
         media_kind: mediaKind,
         subject: `Here's your ${mediaKind}, ${firstName}`,
-        message: `Hi ${firstName},\n\nThanks for stopping by Hando Booth! Your ${mediaKind} is ready:\n${mediaUrl}\n\n— Hando Booth`,
-        from_name: 'Hando Booth',
+        message: `Hi ${firstName},\n\nThanks for stopping by PNG Booth! Your ${mediaKind} is ready:\n${mediaUrl}\n\n— PNG Booth`,
+        from_name: 'PNG Booth',
         reply_to: 'hello@handobooth.com'
       };
       console.log('[email] sending', { service: EMAILJS_SERVICE_ID, template: EMAILJS_TEMPLATE_ID, to: email });
@@ -4702,14 +4824,30 @@
   }
   function handleSoundUpload(input) {
     const file = input.files[0];
-    if (!file || file.size > 2 * 1024 * 1024) { if(file) alert('Sound file too large (max 2 MB)'); return; }
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('Sound file too large (max 2 MB)'); return; }
     const reader = new FileReader();
     reader.onload = e => {
       _customSoundUrl = e.target.result;
-      try { localStorage.setItem('hb_sound_custom', _customSoundUrl); } catch {}
+      try {
+        localStorage.setItem('hb_sound_custom', _customSoundUrl);
+        // Auto-switch preset to "custom" so the upload immediately takes effect
+        localStorage.setItem('hb_sound_preset', 'custom');
+        _soundPreset = 'custom';
+        document.querySelectorAll('[id^="snd-"]').forEach(b => {
+          if (b.classList.contains('delay-btn')) b.classList.toggle('active', b.id === 'snd-custom');
+        });
+      } catch (err) {
+        console.warn('[sound] localStorage save failed (storage full?)', err);
+        alert('Saved for this session, but storage is full so it may not persist on reload. Try a smaller audio file.');
+      }
       _customAudio = new Audio(_customSoundUrl);
       _customAudio.volume = 1.0;
+      _customAudio.preload = 'auto';
+      // Pre-warm so iOS doesn't have to download/decode on first play
+      _customAudio.load();
     };
+    reader.onerror = err => { console.warn('[sound] file read failed', err); alert('Could not read audio file'); };
     reader.readAsDataURL(file);
   }
   function previewSound() {
@@ -4854,7 +4992,7 @@
     { key: 'contrast',   label: 'Contrast',   min: -60, max: 60, step: 1 },
     { key: 'saturation', label: 'Saturation', min: -100, max: 100, step: 1 },
     { key: 'temp',       label: 'Temperature', hint: '← cool · warm →', min: -60, max: 60, step: 1 },
-    { key: 'hue',        label: 'Hue Shift',   hint: '±180°', min: -180, max: 180, step: 1 },
+    { key: 'hue',        label: 'Tint',        hint: '±180° hue shift', min: -180, max: 180, step: 1 },
     { key: 'highlights', label: 'Highlights', min: -50, max: 50, step: 1 },
     { key: 'shadows',    label: 'Shadows',    min: -50, max: 50, step: 1 },
     { key: 'whites',     label: 'Whites',     min: -50, max: 50, step: 1 },
@@ -5736,6 +5874,12 @@
     document.querySelectorAll('.cd-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd) === n));
   }
 
+  function setFirstCountdownExtra(n) {
+    firstCountdownExtra = n;
+    try { localStorage.setItem('hb_first_countdown_extra', String(n)); } catch {}
+    document.querySelectorAll('.cd1-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd1) === n));
+  }
+
   /* QR now links directly to Supabase public URL — no ?get= param needed */
 
   /* ════════════════════════��══════════════════════════
@@ -6432,6 +6576,14 @@
       countdownSecs = savedCd;
       document.querySelectorAll('.cd-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd) === savedCd));
     }
+    // Restore saved first-countdown extra
+    const savedCd1 = parseInt(localStorage.getItem('hb_first_countdown_extra') || '0');
+    if (savedCd1 >= 0 && savedCd1 <= 30) {
+      firstCountdownExtra = savedCd1;
+      document.querySelectorAll('.cd1-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.cd1) === savedCd1));
+    }
+    // Sync video-size UI
+    setVideoSize(vidWidth, vidHeight);
     // Restore sound preset
     const _savedSound = localStorage.getItem('hb_sound_preset');
     if (_savedSound) {
