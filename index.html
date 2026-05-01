@@ -1326,7 +1326,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.5</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.6</span>
   </div>
 </div>
 
@@ -2001,6 +2001,17 @@
             </label>
           </div>
         </div>
+        <!-- Logo Size -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:10px">Logo Size</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="range" id="logo-size-slider" min="50" max="200" step="5" value="100"
+              oninput="setLogoScale(this.value)"
+              style="flex:1;accent-color:var(--orange)">
+            <span id="logo-size-label" style="font-size:0.78rem;font-weight:700;color:var(--text);min-width:38px;text-align:right">100%</span>
+          </div>
+          <button onclick="setLogoScale(100);$('logo-size-slider').value=100" style="margin-top:10px;background:var(--orange);border:none;border-radius:10px;padding:10px 14px;font-size:0.75rem;font-weight:700;color:#fff;cursor:pointer;width:100%">Reset to Default</button>
+        </div>
         <!-- Overlay templates -->
         <p class="section-label" style="text-align:left;margin-bottom:10px">Overlay Templates</p>
         <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;margin-bottom:20px">
@@ -2664,18 +2675,30 @@
 
   // When custom sound is selected, play the same file for ticks + shutter so
   // the entire session uses the admin's chosen audio.
+  // FIX: Reuse a SINGLE Audio instance so overlapping calls don't stack.
+  let _customShortAudio = null;
+  let _customShortTimer = null;
   function _playCustomShort() {
     if (!_customSoundUrl) return false;
     try {
-      const a = new Audio(_customSoundUrl);
-      a.volume = 1.0;
+      // Stop any previous playback first
+      if (_customShortAudio) {
+        try { _customShortAudio.pause(); _customShortAudio.currentTime = 0; } catch {}
+      }
+      if (_customShortTimer) { clearTimeout(_customShortTimer); _customShortTimer = null; }
+      // Reuse audio element if URL hasn't changed, otherwise create fresh
+      if (!_customShortAudio || _customShortAudio._srcUrl !== _customSoundUrl) {
+        _customShortAudio = new Audio(_customSoundUrl);
+        _customShortAudio._srcUrl = _customSoundUrl;
+        _customShortAudio.preload = 'auto';
+      }
+      _customShortAudio.volume = 1.0;
+      _customShortAudio.currentTime = 0;
       // Play just the first second so countdown stays snappy
-      a.addEventListener('loadedmetadata', () => {
-        if (a.duration > 1.2) {
-          setTimeout(() => { try { a.pause(); a.currentTime = 0; } catch {} }, 1000);
-        }
-      });
-      a.play().catch(() => {});
+      _customShortTimer = setTimeout(() => {
+        try { _customShortAudio.pause(); _customShortAudio.currentTime = 0; } catch {}
+      }, 1000);
+      _customShortAudio.play().catch(() => {});
       return true;
     } catch { return false; }
   }
@@ -3846,14 +3869,13 @@
      GIF / EXPORT SCREEN
   ═══════════════════════════════════════════════════ */
 
-  let _autoDownloadGif = false;
+  // Auto-download removed in v4.6 — user taps download/share button explicitly
   let _gifIsMp4 = false;
   let _gifExt = 'gif';
   function showGifScreen() {
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
     _gifIsMp4 = false; _gifExt = 'gif';
-    // Multi-photo layouts auto-download the GIF as soon as it finishes
-    _autoDownloadGif = layout !== 'single';
+    // Auto-download removed in v4.6
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
     $('export-img').src = compositeDataUrl || ''; $('export-img').style.opacity = '1';
@@ -3878,19 +3900,7 @@
     const gs = $('gif-screen');
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
-    // Auto-download the photo right away (GIF auto-downloads on generation finish).
-    // Use plain <a download> so we don't fire iOS share sheet.
-    if (compositeDataUrl) {
-      try {
-        fetch(compositeDataUrl).then(r => r.blob()).then(blob => {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = 'hando-booth-' + Date.now() + '.png';
-          document.body.appendChild(a); a.click();
-          setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
-        });
-      } catch {}
-    }
+    // No auto-download — user taps the download button explicitly.
   }
 
   function backToPreview() { showScreen('preview'); }
@@ -4115,12 +4125,12 @@
             if (timeoutId) clearTimeout(timeoutId);
             resolve(blob);
           });
-          // Timeout guard: 20s on iOS (workers:0 is slow but should beat that),
+          // Timeout guard: 45s on iOS (main-thread is slow but should beat that),
           // 45s elsewhere
           timeoutId = setTimeout(() => {
             try { gif.abort(); } catch {}
             reject(new Error('timeout'));
-          }, _IS_IOS ? 20000 : 45000);
+          }, 45000);
           gif.render();
         })().catch(reject);
       } catch (e) { reject(e); }
@@ -4130,18 +4140,47 @@
     let lastErr = null;
     let isMp4 = false; // track whether the result is actually an mp4 (iOS path)
     if (_IS_IOS) {
-      // iOS path: skip gif.js entirely. Generate an animated MP4 via
-      // MediaRecorder — native, hardware-accelerated, never throttled,
-      // and shares better in iMessage/IG/Messenger anyway.
-      try {
-        console.log('[gif] iOS → using MediaRecorder MP4 path');
-        blob = await generateAnimatedMp4(GIF_W, GIF_H, 3);
-        isMp4 = true;
-      } catch (e) {
-        lastErr = e;
-        console.warn('[gif] iOS MP4 path failed, falling back to gif.js main thread:', e);
-        try { blob = await runWithWorkers(0, undefined); }
-        catch (e2) { lastErr = e2; console.warn('[gif] iOS main-thread attempt failed:', e2); }
+      // iOS path: try multiple strategies in order of reliability.
+      // 1. MediaRecorder MP4 (iOS 17.4+) — best quality, native HW accel
+      // 2. gif.js main thread (workers:0) — works on most iOS but slow
+      // 3. Tiny 200x150 gif.js — last resort animated
+      // 4. Stacked PNG fallback — not animated but always works
+
+      // Strategy 1: MediaRecorder (only works on newer iOS)
+      const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
+      const hasCaptureStream = typeof HTMLCanvasElement !== 'undefined' &&
+        typeof HTMLCanvasElement.prototype.captureStream === 'function';
+      console.log('[gif] iOS capabilities:', { hasMediaRecorder, hasCaptureStream });
+
+      if (hasMediaRecorder && hasCaptureStream) {
+        try {
+          console.log('[gif] iOS → trying MediaRecorder MP4 path');
+          blob = await generateAnimatedMp4(GIF_W, GIF_H, 3);
+          if (blob && blob.size > 0) {
+            isMp4 = true;
+            console.log('[gif] iOS MP4 success, size:', blob.size);
+          } else {
+            blob = null;
+            throw new Error('empty MP4 blob');
+          }
+        } catch (e) {
+          blob = null;
+          lastErr = e;
+          console.warn('[gif] iOS MP4 path failed:', e.message);
+        }
+      }
+
+      // Strategy 2: gif.js main thread with extended timeout
+      if (!blob) {
+        try {
+          console.log('[gif] iOS → trying gif.js main thread (workers:0)');
+          lbl.textContent = 'Generating GIF (this may take a moment)…';
+          blob = await runWithWorkers(0, undefined);
+          console.log('[gif] iOS gif.js main-thread success');
+        } catch (e2) {
+          lastErr = e2;
+          console.warn('[gif] iOS main-thread attempt failed:', e2.message);
+        }
       }
     } else {
       // Non-iOS: try workers first (much faster), fall back to main thread
@@ -4256,17 +4295,7 @@
       _gifIsMp4 = false;
       _gifExt = 'gif';
     }
-    if (_autoDownloadGif) {
-      _autoDownloadGif = false;
-      const ext = _gifIsMp4 ? _gifExt : 'gif';
-      // Plain <a download> path — silently saves without an iOS share sheet
-      try {
-        const a = document.createElement('a');
-        a.href = gifUrl; a.download = 'hando-booth-' + Date.now() + '.' + ext;
-        document.body.appendChild(a); a.click();
-        setTimeout(() => { try { document.body.removeChild(a); } catch {} }, 1500);
-      } catch (e) { console.warn('[gif] download failed', e); }
-    }
+    // No auto-download — user taps the download/share button explicitly.
   }
 
   function saveExport() {
@@ -6147,6 +6176,7 @@
     };
     reader.readAsDataURL(file);
   }
+  let _logoScale = 100;
   function applyHomeLogo(dataUrl) {
     const wrap = document.querySelector('.logo-wrap');
     if (dataUrl) {
@@ -6154,6 +6184,21 @@
     } else {
       wrap.innerHTML = '<span class="logo-hando">Hando</span><span class="logo-booth">Booth</span>';
     }
+    _applyLogoScale(); // re-apply scale after rebuilding logo
+  }
+  function setLogoScale(pct) {
+    _logoScale = Number(pct) || 100;
+    const lbl = $('logo-size-label');
+    if (lbl) lbl.textContent = _logoScale + '%';
+    try { localStorage.setItem('hb_logo_scale', String(_logoScale)); } catch {}
+    _applyLogoScale();
+  }
+  function _applyLogoScale() {
+    const wrap = document.querySelector('.logo-wrap');
+    if (!wrap) return;
+    const s = _logoScale / 100;
+    wrap.style.transform = 'scale(' + s + ')';
+    wrap.style.transformOrigin = 'center center';
   }
 
   /* Countdown timer setting */
@@ -6901,6 +6946,14 @@
     // Restore home logo
     const _savedLogo = localStorage.getItem('hb_home_logo');
     if (_savedLogo) applyHomeLogo(_savedLogo);
+    // Restore logo scale
+    const _savedLogoScale = localStorage.getItem('hb_logo_scale');
+    if (_savedLogoScale) {
+      _logoScale = parseInt(_savedLogoScale) || 100;
+      const sl = $('logo-size-slider'); if (sl) sl.value = _logoScale;
+      const lb = $('logo-size-label'); if (lb) lb.textContent = _logoScale + '%';
+      _applyLogoScale();
+    }
     // Restore video duration
     const _savedVidDur = localStorage.getItem('hb_vid_dur');
     if (_savedVidDur) {
