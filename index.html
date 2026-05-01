@@ -112,17 +112,17 @@
     #home {
       display: flex;
       flex-direction: column;
-      justify-content: flex-start;
+      /* Use the full viewport height — center content vertically on tall screens */
+      justify-content: center;
       align-items: center;
       text-align: center;
-      gap: clamp(14px, 2.5vh, 24px);
+      gap: clamp(14px, 3vh, 36px);
       padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
-      padding-top: clamp(20px, 4vh, 40px);
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
     /* All direct children of #home are centered as flex items */
-    #home > * { margin-left: auto; margin-right: auto; }
+    #home > * { margin-left: auto; margin-right: auto; flex-shrink: 0; }
     #home-bg {
       position: fixed;
       inset: 0;
@@ -220,8 +220,7 @@
     .layout-count { font-size: 0.68rem; color: var(--muted); }
 
     .home-grid-wrap {
-      width: 100%;
-      max-width: 380px;
+      width: min(100%, 380px);
       margin: 0 auto;
     }
     .start-btn {
@@ -1162,9 +1161,9 @@
       .layout-card  { padding: 24px 10px 16px; }
       .layout-label { font-size: 1.3rem; }
       .layout-count { font-size: 0.85rem; }
-      .start-btn    { max-width: 620px; font-size: 1.35rem; padding: 28px; }
-      .home-grid-wrap { max-width: 620px; }
-      .logo-wrap     { max-width: 620px; }
+      .start-btn      { max-width: 620px; font-size: 1.35rem; padding: 28px; }
+      .home-grid-wrap { width: min(100%, 620px); }
+      .logo-wrap      { max-width: 620px; }
       .screen-head h2 { font-size: 2.2rem; }
       .screen-head p  { font-size: 1.1rem; }
       .fpill        { padding: 12px 26px; font-size: 0.95rem; }
@@ -1188,9 +1187,9 @@
       .layout-count { font-size: 0.95rem; }
       .icon-single, .icon-double, .icon-strip, .icon-quad { gap: 5px; }
       .icon-cell { min-width: 56px !important; min-height: 26px !important; }
-      .start-btn    { max-width: 820px; font-size: 1.8rem; padding: 36px; border-radius: 32px; }
-      .home-grid-wrap { max-width: 820px; }
-      .logo-wrap     { max-width: 820px; }
+      .start-btn      { max-width: 820px; font-size: 1.8rem; padding: 36px; border-radius: 32px; }
+      .home-grid-wrap { width: min(100%, 820px); }
+      .logo-wrap      { max-width: 820px; }
       .screen-head h2 { font-size: 3rem; }
       .screen-head p  { font-size: 1.4rem; }
       .fpill        { padding: 18px 40px; font-size: 1.25rem; }
@@ -1228,9 +1227,9 @@
       .layout-card  { padding: 22px 16px; }
       .layout-label { font-size: 1.7rem; }
       .layout-count { font-size: 1.05rem; }
-      .start-btn    { max-width: 920px; font-size: 2rem; padding: 44px; }
-      .home-grid-wrap { max-width: 920px; }
-      .logo-wrap     { max-width: 920px; }
+      .start-btn      { max-width: 920px; font-size: 2rem; padding: 44px; }
+      .home-grid-wrap { width: min(100%, 920px); }
+      .logo-wrap      { max-width: 920px; }
       .screen-head h2 { font-size: 3.5rem; }
       .img-panel    { max-width: 920px; }
       .btn-warm, .btn-ghost { padding: 28px 24px; font-size: 1.4rem; }
@@ -1253,7 +1252,7 @@
     <span class="logo-booth">Booth</span>
   </div>
 
-  <div class="home-grid-wrap" style="width:100%;max-width:380px">
+  <div class="home-grid-wrap">
     <div class="layout-grid">
 
       <div class="layout-card selected" data-layout="single" onclick="selectLayout(this,'single')">
@@ -1327,7 +1326,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.4</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.5</span>
   </div>
 </div>
 
@@ -3848,8 +3847,11 @@
   ═══════════════════════════════════════════════════ */
 
   let _autoDownloadGif = false;
+  let _gifIsMp4 = false;
+  let _gifExt = 'gif';
   function showGifScreen() {
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
+    _gifIsMp4 = false; _gifExt = 'gif';
     // Multi-photo layouts auto-download the GIF as soon as it finishes
     _autoDownloadGif = layout !== 'single';
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
@@ -3925,6 +3927,98 @@
       _workerBlob = 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js';
     }
     return _workerBlob;
+  }
+
+  /* ── Animated-MP4 fallback for iOS ───────────────────
+     gif.js is unreliable in mobile Safari (worker is blocked, main-thread is
+     throttled by setTimeout under low-power conditions). MediaRecorder is
+     native and hardware-accelerated. We still call it a "GIF" in the UI,
+     but the bytes are a short looping MP4 — every social app accepts it. */
+  async function generateAnimatedMp4(W, H, loops = 3) {
+    if (!photos || !photos.length) throw new Error('no photos');
+    if (typeof MediaRecorder === 'undefined') throw new Error('MediaRecorder unavailable');
+
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+
+    // Pre-decode every frame so the draw loop is just blits
+    const frames = [];
+    for (const src of photos) {
+      const im = await loadImg(src);
+      const fc = document.createElement('canvas');
+      fc.width = W; fc.height = H;
+      const fctx = fc.getContext('2d', { willReadFrequently: true });
+      const s = Math.max(W / im.naturalWidth, H / im.naturalHeight);
+      fctx.drawImage(im,
+        (W - im.naturalWidth*s)/2, (H - im.naturalHeight*s)/2,
+        im.naturalWidth*s, im.naturalHeight*s
+      );
+      applyPixelFilter(fctx, W, H, activeFilter);
+      frames.push(fc);
+    }
+
+    // Draw the first frame so capture has content at t=0
+    ctx.drawImage(frames[0], 0, 0);
+
+    // Pick the most compatible codec MediaRecorder offers on this device
+    const codecs = [
+      'video/mp4;codecs=h264,aac',
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    let mimeType = '';
+    for (const c of codecs) {
+      if (MediaRecorder.isTypeSupported(c)) { mimeType = c; break; }
+    }
+    console.log('[gif/mp4] using codec:', mimeType);
+
+    const fps = 30; // capture rate; actual frame changes happen at frameDelay intervals
+    const stream = cv.captureStream(fps);
+    const opts = { videoBitsPerSecond: 2000000 };
+    if (mimeType) opts.mimeType = mimeType;
+    const rec = new MediaRecorder(stream, opts);
+    const chunks = [];
+    rec.ondataavailable = e => e.data && e.data.size && chunks.push(e.data);
+
+    return await new Promise((resolve, reject) => {
+      let stopped = false;
+      const finish = () => {
+        if (stopped) return;
+        stopped = true;
+        try { rec.stop(); } catch {}
+      };
+      rec.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
+        if (blob.size === 0) return reject(new Error('empty MediaRecorder output'));
+        resolve(blob);
+      };
+      rec.onerror = e => reject(e.error || new Error('MediaRecorder error'));
+
+      rec.start(100);
+      // Draw each frame into the canvas every `frameDelay` ms; loop `loops` times
+      let cycle = 0, i = 0;
+      const tick = () => {
+        if (stopped) return;
+        ctx.clearRect(0, 0, W, H);
+        ctx.drawImage(frames[i % frames.length], 0, 0);
+        i++;
+        if (i % frames.length === 0) cycle++;
+        if (cycle >= loops) {
+          // Hold the last frame briefly so the video ends on something visible
+          setTimeout(finish, 200);
+          return;
+        }
+        setTimeout(tick, frameDelay);
+      };
+      // Kick off after a short delay so MediaRecorder has buffered the initial frame
+      setTimeout(tick, 50);
+      // Hard timeout safety (unlikely to hit)
+      setTimeout(finish, photos.length * frameDelay * loops + 4000);
+    });
   }
 
   // Stacked-PNG fallback — used when gif.js can't run at all
@@ -4034,11 +4128,21 @@
 
     let blob = null;
     let lastErr = null;
-    // On iOS, go straight to main-thread mode (workers regularly fail and
-    // hang for 45s before timing out — wastes time)
+    let isMp4 = false; // track whether the result is actually an mp4 (iOS path)
     if (_IS_IOS) {
-      try { blob = await runWithWorkers(0, undefined); }
-      catch (e) { lastErr = e; console.warn('[gif] iOS main-thread attempt failed:', e); }
+      // iOS path: skip gif.js entirely. Generate an animated MP4 via
+      // MediaRecorder — native, hardware-accelerated, never throttled,
+      // and shares better in iMessage/IG/Messenger anyway.
+      try {
+        console.log('[gif] iOS → using MediaRecorder MP4 path');
+        blob = await generateAnimatedMp4(GIF_W, GIF_H, 3);
+        isMp4 = true;
+      } catch (e) {
+        lastErr = e;
+        console.warn('[gif] iOS MP4 path failed, falling back to gif.js main thread:', e);
+        try { blob = await runWithWorkers(0, undefined); }
+        catch (e2) { lastErr = e2; console.warn('[gif] iOS main-thread attempt failed:', e2); }
+      }
     } else {
       // Non-iOS: try workers first (much faster), fall back to main thread
       try {
@@ -4118,14 +4222,47 @@
 
     if (gifUrl) URL.revokeObjectURL(gifUrl);
     gifUrl = URL.createObjectURL(blob);
-    img.src = gifUrl; img.style.opacity = '1';
     spinner.classList.add('hidden');
+    // If the iOS path produced an MP4, swap the <img> for a <video> so it plays
+    if (isMp4) {
+      const isMp4Type = (blob.type || '').includes('mp4');
+      const ext = isMp4Type ? 'mp4' : 'webm';
+      const parent = img.parentElement;
+      // Replace the img with a video element (or reuse existing if we already swapped)
+      let vid = parent.querySelector('video.gif-as-video');
+      if (!vid) {
+        vid = document.createElement('video');
+        vid.className = 'gif-as-video panel-img';
+        vid.setAttribute('playsinline', '');
+        vid.setAttribute('autoplay', '');
+        vid.setAttribute('loop', '');
+        vid.setAttribute('muted', '');
+        vid.muted = true;
+        vid.style.cssText = 'width:100%;height:auto;max-height:60vh;background:#000;display:block';
+        parent.appendChild(vid);
+      }
+      img.style.display = 'none';
+      vid.src = gifUrl;
+      vid.style.display = 'block';
+      vid.play().catch(() => {});
+      _gifIsMp4 = true; // remember for sharing/download
+      _gifExt = ext;
+    } else {
+      // Real GIF — show as image
+      const vid = img.parentElement.querySelector('video.gif-as-video');
+      if (vid) { vid.style.display = 'none'; vid.removeAttribute('src'); vid.load(); }
+      img.style.display = '';
+      img.src = gifUrl; img.style.opacity = '1';
+      _gifIsMp4 = false;
+      _gifExt = 'gif';
+    }
     if (_autoDownloadGif) {
       _autoDownloadGif = false;
+      const ext = _gifIsMp4 ? _gifExt : 'gif';
       // Plain <a download> path — silently saves without an iOS share sheet
       try {
         const a = document.createElement('a');
-        a.href = gifUrl; a.download = 'hando-booth-' + Date.now() + '.gif';
+        a.href = gifUrl; a.download = 'hando-booth-' + Date.now() + '.' + ext;
         document.body.appendChild(a); a.click();
         setTimeout(() => { try { document.body.removeChild(a); } catch {} }, 1500);
       } catch (e) { console.warn('[gif] download failed', e); }
