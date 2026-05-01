@@ -1326,7 +1326,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.9</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.0</span>
   </div>
 </div>
 
@@ -2721,21 +2721,11 @@
 
   function playShutter() {
     if (_soundPreset === 'silent') return;
-    if (_soundPreset === 'custom' && _customSoundUrl) {
-      // Always create a fresh element — re-using one Audio object can stall on iOS
-      try {
-        const a = new Audio(_customSoundUrl);
-        a.volume = 1.0;
-        a.preload = 'auto';
-        a.play().catch(err => {
-          console.warn('[sound] custom audio failed:', err);
-          // Fallback to default shutter so user always hears SOMETHING
-          playBeep(1200, 0.06, 1.0, 'square');
-        });
-      } catch (e) {
-        console.warn('[sound] custom audio setup failed:', e);
-        playBeep(1200, 0.06, 1.0, 'square');
-      }
+    // When custom sound is active, the custom audio already played on the
+    // final countdown tick (playCountdownFinal). Don't play it again here
+    // or it will sound like a double-play. Just use a subtle default beep.
+    if (_soundPreset === 'custom') {
+      playBeep(1200, 0.04, 0.5, 'square');
       return;
     }
     if (_soundPreset === 'classic') { playBeep(1200, 0.04, 1.0, 'square'); return; }
