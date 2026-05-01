@@ -33,6 +33,10 @@ If a filter is changed before a previous render completes, both renders run conc
 **Root cause:** `_playCustomShort()` created a new `Audio()` element on every call without stopping previous playback. Rapid countdown ticks stacked overlapping audio instances.
 **Fix applied (v4.6):** Single `_customShortAudio` instance is reused. Previous playback is stopped (`pause()` + `currentTime = 0`) before each new play. A timer ID is tracked and cleared.
 
+### 8. GIF not working on iOS (FIXED in v4.8)
+**Root cause:** `gif.js` depends on Web Workers which are blocked by iOS Safari's cross-origin policy. The MediaRecorder MP4 fallback requires `canvas.captureStream()` which is only available on iOS 17.4+. Main-thread gif.js encoding was too slow and timed out.
+**Fix applied (v4.8):** Replaced `gif.js` entirely with `gifenc` — a pure-JS GIF encoder that runs synchronously (no workers, no CORS). Loaded via dynamic `import()` from `https://unpkg.com/gifenc@1.0.3/dist/gifenc.esm.js`. Works on ALL browsers. Do NOT revert to `gif.js`.
+
 ### 7. Auto-download on save screen
 **Root cause:** `showGifScreen()` auto-downloaded the photo via `fetch(compositeDataUrl).then(…a.click())`, and `_autoDownloadGif` auto-downloaded the GIF when generation finished. User explicitly requested removal.
 **Fix applied (v4.6):** Both auto-download blocks removed. User taps download/share button explicitly.
@@ -45,7 +49,7 @@ If a filter is changed before a previous render completes, both renders run conc
 - **5 screens:** `#home`, `#camera`, `#preview`, `#gif-screen`, `#video-preview`, `#thankyou`
 - **Filters:** Pixel manipulation in `applyPixelFilter()`. 14 built-in + custom filters with 13 adjustable params.
 - **Composite:** `buildComposite()` draws each photo into a cell canvas, applies pixel filter, clips to rounded rect, stamps onto main canvas.
-- **GIF:** `gif.js` CDN + worker blob URL workaround. iOS: tries MediaRecorder MP4 first, falls back to gif.js main-thread, then tiny retry, then stacked PNG.
+- **GIF:** `gifenc` (v1.0.3) via dynamic `import()` from unpkg CDN. Pure-JS encoder — no Web Workers, no CORS issues, works on ALL browsers including iOS Safari. Replaced `gif.js` in v4.8.
 - **Video:** MediaRecorder from canvas stream + audio tracks. Supports overlay compositing.
 - **Supabase:** Photo/GIF uploads to `photos` bucket for QR claim flow.
 - **Dev server:** Node.js static server at `.claude/serve.js`, port 3003.

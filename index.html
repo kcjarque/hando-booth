@@ -15,7 +15,7 @@
   <title>Hando Booth</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+  <!-- gifenc loaded via dynamic import() in generateGif — no script tag needed -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- FIX 15: EmailJS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -1326,7 +1326,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.7</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.8</span>
   </div>
 </div>
 
@@ -2117,7 +2117,7 @@
   let frameDelay  = 500;
   let gifUrl      = null;
   let gifWorking  = false;
-  let _workerBlob = null;
+  // _workerBlob removed in v4.8 — gif.js replaced with gifenc (no workers needed)
 
   const LS_KEY           = 'hb_overlays';
   const LS_STOCK_ENABLED = 'hb_stock_enabled';
@@ -3994,136 +3994,21 @@
     gifUrl = null; generateGif();
   }
 
-  /* Fetch gif.worker.js as a blob to avoid cross-origin Worker restriction */
-  async function ensureWorkerBlob() {
-    if (_workerBlob) return _workerBlob;
+  /* ── gifenc — pure-JS GIF encoder (no Web Workers needed) ────────
+     Replaces gif.js which depended on Web Workers (blocked on iOS Safari).
+     gifenc runs synchronously on the main thread via quantize + palette.
+     Works on ALL browsers including iOS Safari. */
+  let _gifencModule = null;
+  async function _loadGifenc() {
+    if (_gifencModule) return _gifencModule;
     try {
-      const r = await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js');
-      const blob = await r.blob();
-      _workerBlob = URL.createObjectURL(blob);
-    } catch {
-      _workerBlob = 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js';
+      _gifencModule = await import('https://unpkg.com/gifenc@1.0.3/dist/gifenc.esm.js');
+      console.log('[gif] gifenc loaded successfully');
+    } catch (e) {
+      console.error('[gif] gifenc import failed:', e);
+      throw new Error('GIF library failed to load — check internet');
     }
-    return _workerBlob;
-  }
-
-  /* ── Animated-MP4 fallback for iOS ───────────────────
-     gif.js is unreliable in mobile Safari (worker is blocked, main-thread is
-     throttled by setTimeout under low-power conditions). MediaRecorder is
-     native and hardware-accelerated. We still call it a "GIF" in the UI,
-     but the bytes are a short looping MP4 — every social app accepts it. */
-  async function generateAnimatedMp4(W, H, loops = 3) {
-    if (!photos || !photos.length) throw new Error('no photos');
-    if (typeof MediaRecorder === 'undefined') throw new Error('MediaRecorder unavailable');
-
-    const cv = document.createElement('canvas');
-    cv.width = W; cv.height = H;
-    const ctx = cv.getContext('2d', { willReadFrequently: true });
-
-    // Pre-decode every frame so the draw loop is just blits
-    const frames = [];
-    for (const src of photos) {
-      const im = await loadImg(src);
-      const fc = document.createElement('canvas');
-      fc.width = W; fc.height = H;
-      const fctx = fc.getContext('2d', { willReadFrequently: true });
-      const s = Math.max(W / im.naturalWidth, H / im.naturalHeight);
-      fctx.drawImage(im,
-        (W - im.naturalWidth*s)/2, (H - im.naturalHeight*s)/2,
-        im.naturalWidth*s, im.naturalHeight*s
-      );
-      applyPixelFilter(fctx, W, H, activeFilter);
-      frames.push(fc);
-    }
-
-    // Draw the first frame so capture has content at t=0
-    ctx.drawImage(frames[0], 0, 0);
-
-    // Pick the most compatible codec MediaRecorder offers on this device
-    const codecs = [
-      'video/mp4;codecs=h264,aac',
-      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-      'video/mp4',
-      'video/webm;codecs=vp9,opus',
-      'video/webm;codecs=vp8,opus',
-      'video/webm'
-    ];
-    let mimeType = '';
-    for (const c of codecs) {
-      if (MediaRecorder.isTypeSupported(c)) { mimeType = c; break; }
-    }
-    console.log('[gif/mp4] using codec:', mimeType);
-
-    const fps = 30; // capture rate; actual frame changes happen at frameDelay intervals
-    const stream = cv.captureStream(fps);
-    const opts = { videoBitsPerSecond: 2000000 };
-    if (mimeType) opts.mimeType = mimeType;
-    const rec = new MediaRecorder(stream, opts);
-    const chunks = [];
-    rec.ondataavailable = e => e.data && e.data.size && chunks.push(e.data);
-
-    return await new Promise((resolve, reject) => {
-      let stopped = false;
-      const finish = () => {
-        if (stopped) return;
-        stopped = true;
-        try { rec.stop(); } catch {}
-      };
-      rec.onstop = () => {
-        const blob = new Blob(chunks, { type: mimeType || 'video/mp4' });
-        if (blob.size === 0) return reject(new Error('empty MediaRecorder output'));
-        resolve(blob);
-      };
-      rec.onerror = e => reject(e.error || new Error('MediaRecorder error'));
-
-      rec.start(100);
-      // Draw each frame into the canvas every `frameDelay` ms; loop `loops` times
-      let cycle = 0, i = 0;
-      const tick = () => {
-        if (stopped) return;
-        ctx.clearRect(0, 0, W, H);
-        ctx.drawImage(frames[i % frames.length], 0, 0);
-        i++;
-        if (i % frames.length === 0) cycle++;
-        if (cycle >= loops) {
-          // Hold the last frame briefly so the video ends on something visible
-          setTimeout(finish, 200);
-          return;
-        }
-        setTimeout(tick, frameDelay);
-      };
-      // Kick off after a short delay so MediaRecorder has buffered the initial frame
-      setTimeout(tick, 50);
-      // Hard timeout safety (unlikely to hit)
-      setTimeout(finish, photos.length * frameDelay * loops + 4000);
-    });
-  }
-
-  // Stacked-PNG fallback — used when gif.js can't run at all
-  async function _gifStaticFallback(W, H) {
-    if (!photos || !photos.length) return;
-    try {
-      const stackC = document.createElement('canvas');
-      stackC.width = W; stackC.height = H * photos.length;
-      const sctx = stackC.getContext('2d');
-      let y = 0;
-      for (const src of photos) {
-        const im = await loadImg(src);
-        const s = Math.max(W/im.naturalWidth, H/im.naturalHeight);
-        sctx.drawImage(im,
-          (W - im.naturalWidth*s)/2, y + (H - im.naturalHeight*s)/2,
-          im.naturalWidth*s, im.naturalHeight*s
-        );
-        y += H;
-      }
-      const blob = await new Promise(r => stackC.toBlob(r, 'image/png'));
-      if (blob) {
-        if (gifUrl) URL.revokeObjectURL(gifUrl);
-        gifUrl = URL.createObjectURL(blob);
-        const img = $('gif-img');
-        if (img) { img.src = gifUrl; img.style.opacity = '1'; }
-      }
-    } catch (e) { console.warn('[gif] static fallback failed', e); }
+    return _gifencModule;
   }
 
   async function generateGif() {
@@ -4137,233 +4022,71 @@
     img.style.opacity = gifUrl ? '0.35' : '0';
     lbl.textContent = 'Generating GIF…';
 
-    // Smaller dimensions on iOS to reduce per-frame work on the main thread fallback
     const GIF_W = _IS_IOS ? 360 : 480, GIF_H = _IS_IOS ? 270 : 360;
 
-    console.log('[gif] starting generation', { iOS: _IS_IOS, GIF_W, GIF_H, frames: photos.length, gifLibLoaded: typeof GIF !== 'undefined' });
+    console.log('[gif] starting gifenc generation', { iOS: _IS_IOS, GIF_W, GIF_H, frames: photos.length });
 
-    if (typeof GIF === 'undefined') {
-      gifWorking = false;
-      spinner.classList.add('hidden');
-      lbl.textContent = 'GIF library failed to load — check internet';
-      console.error('[gif] gif.js script failed to load from CDN');
-      // Build fallback static stack so user gets SOMETHING
-      _gifStaticFallback(GIF_W, GIF_H);
-      return;
-    }
     if (!photos || photos.length < 1) {
       gifWorking = false;
       spinner.classList.add('hidden');
       lbl.textContent = 'No photos to make a GIF from';
-      console.warn('[gif] no photos in array');
       return;
     }
 
-    // iOS Safari sometimes blocks cross-origin Workers entirely.
-    // Try with workers first; if that fails quickly, retry with 0 workers (main thread).
-    let timeoutId = null;
-    const runWithWorkers = (useWorkers, workerScript) => new Promise((resolve, reject) => {
-      try {
-        const gif = new GIF({
-          workers: useWorkers,
-          quality: 10,
-          width:  GIF_W,
-          height: GIF_H,
-          workerScript
-        });
+    try {
+      // Load gifenc library (cached after first load)
+      const { GIFEncoder, quantize, applyPalette } = await _loadGifenc();
 
-        (async () => {
-          for (const src of photos) {
-            const im = await loadImg(src);
-            const fc = document.createElement('canvas');
-            fc.width = GIF_W; fc.height = GIF_H;
-            const fctx = fc.getContext('2d', { willReadFrequently: true });
-            const s = Math.max(GIF_W/im.naturalWidth, GIF_H/im.naturalHeight);
-            fctx.drawImage(im,
-              (GIF_W - im.naturalWidth*s)/2, (GIF_H - im.naturalHeight*s)/2,
-              im.naturalWidth*s, im.naturalHeight*s
-            );
-            applyPixelFilter(fctx, GIF_W, GIF_H, activeFilter);
-            gif.addFrame(fc, { delay: frameDelay, copy: true });
-          }
+      const gif = GIFEncoder();
 
-          gif.on('progress', p => { lbl.textContent = `Generating GIF… ${Math.round(p*100)}%`; });
-          gif.on('abort', () => reject(new Error('aborted')));
-          gif.on('finished', blob => {
-            if (timeoutId) clearTimeout(timeoutId);
-            resolve(blob);
-          });
-          // Timeout guard: 45s on iOS (main-thread is slow but should beat that),
-          // 45s elsewhere
-          timeoutId = setTimeout(() => {
-            try { gif.abort(); } catch {}
-            reject(new Error('timeout'));
-          }, 45000);
-          gif.render();
-        })().catch(reject);
-      } catch (e) { reject(e); }
-    });
+      for (let i = 0; i < photos.length; i++) {
+        lbl.textContent = `Generating GIF… ${Math.round((i / photos.length) * 100)}%`;
+        // Yield to UI so progress label updates and screen doesn't freeze
+        await new Promise(r => setTimeout(r, 0));
 
-    let blob = null;
-    let lastErr = null;
-    let isMp4 = false; // track whether the result is actually an mp4 (iOS path)
-    if (_IS_IOS) {
-      // iOS path: try multiple strategies in order of reliability.
-      // 1. MediaRecorder MP4 (iOS 17.4+) — best quality, native HW accel
-      // 2. gif.js main thread (workers:0) — works on most iOS but slow
-      // 3. Tiny 200x150 gif.js — last resort animated
-      // 4. Stacked PNG fallback — not animated but always works
+        const im = await loadImg(photos[i]);
+        const fc = document.createElement('canvas');
+        fc.width = GIF_W; fc.height = GIF_H;
+        const fctx = fc.getContext('2d', { willReadFrequently: true });
+        const s = Math.max(GIF_W / im.naturalWidth, GIF_H / im.naturalHeight);
+        fctx.drawImage(im,
+          (GIF_W - im.naturalWidth * s) / 2, (GIF_H - im.naturalHeight * s) / 2,
+          im.naturalWidth * s, im.naturalHeight * s
+        );
+        applyPixelFilter(fctx, GIF_W, GIF_H, activeFilter);
 
-      // Strategy 1: MediaRecorder (only works on newer iOS)
-      const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
-      const hasCaptureStream = typeof HTMLCanvasElement !== 'undefined' &&
-        typeof HTMLCanvasElement.prototype.captureStream === 'function';
-      console.log('[gif] iOS capabilities:', { hasMediaRecorder, hasCaptureStream });
+        const imageData = fctx.getImageData(0, 0, GIF_W, GIF_H);
+        const palette = quantize(imageData.data, 256);
+        const index = applyPalette(imageData.data, palette);
 
-      if (hasMediaRecorder && hasCaptureStream) {
-        try {
-          console.log('[gif] iOS → trying MediaRecorder MP4 path');
-          blob = await generateAnimatedMp4(GIF_W, GIF_H, 3);
-          if (blob && blob.size > 0) {
-            isMp4 = true;
-            console.log('[gif] iOS MP4 success, size:', blob.size);
-          } else {
-            blob = null;
-            throw new Error('empty MP4 blob');
-          }
-        } catch (e) {
-          blob = null;
-          lastErr = e;
-          console.warn('[gif] iOS MP4 path failed:', e.message);
-        }
+        gif.writeFrame(index, GIF_W, GIF_H, { palette, delay: frameDelay });
       }
 
-      // Strategy 2: gif.js main thread with extended timeout
-      if (!blob) {
-        try {
-          console.log('[gif] iOS → trying gif.js main thread (workers:0)');
-          lbl.textContent = 'Generating GIF (this may take a moment)…';
-          blob = await runWithWorkers(0, undefined);
-          console.log('[gif] iOS gif.js main-thread success');
-        } catch (e2) {
-          lastErr = e2;
-          console.warn('[gif] iOS main-thread attempt failed:', e2.message);
-        }
-      }
-    } else {
-      // Non-iOS: try workers first (much faster), fall back to main thread
-      try {
-        const workerScript = await ensureWorkerBlob();
-        blob = await runWithWorkers(2, workerScript);
-      } catch (e) { lastErr = e; console.warn('[gif] workers attempt failed:', e); }
-      if (!blob) {
-        try { blob = await runWithWorkers(0, undefined); }
-        catch (e) { lastErr = e; console.warn('[gif] main-thread attempt failed:', e); }
-      }
-    }
-    // Final retry at tiny dimensions — gif.js can usually finish a 200x150 GIF
-    // even on locked-down iPad Safari
-    if (!blob) {
-      console.warn('[gif] retrying at tiny 200x150…');
-      const TW = 200, TH = 150;
-      // Temporarily override the closure-captured GIF_W/GIF_H by directly using
-      // a tiny inline gif.js call
-      try {
-        blob = await new Promise((resolve, reject) => {
-          const g = new GIF({ workers: 0, quality: 12, width: TW, height: TH });
-          (async () => {
-            for (const src of photos) {
-              const im = await loadImg(src);
-              const fc = document.createElement('canvas');
-              fc.width = TW; fc.height = TH;
-              const fctx = fc.getContext('2d', { willReadFrequently: true });
-              const s = Math.max(TW/im.naturalWidth, TH/im.naturalHeight);
-              fctx.drawImage(im, (TW - im.naturalWidth*s)/2, (TH - im.naturalHeight*s)/2, im.naturalWidth*s, im.naturalHeight*s);
-              g.addFrame(fc, { delay: frameDelay, copy: true });
-            }
-            g.on('finished', resolve);
-            g.on('abort', () => reject(new Error('aborted')));
-            setTimeout(() => { try { g.abort(); } catch {} reject(new Error('tiny timeout')); }, 15000);
-            g.render();
-          })().catch(reject);
-        });
-      } catch (e) { lastErr = e; console.warn('[gif] tiny retry failed:', e); }
-    }
+      gif.finish();
+      lbl.textContent = 'Generating GIF… 100%';
 
-    gifWorking = false;
-    spinner.classList.add('hidden');
+      const blob = new Blob([gif.bytes()], { type: 'image/gif' });
+      console.log('[gif] gifenc success, size:', blob.size);
 
-    if (!blob) {
-      // Last-resort: build a static "GIF" by stacking photos vertically into a single PNG
-      // Not animated, but at least the user gets a downloadable artifact
-      console.warn('[gif] all attempts failed — falling back to stacked PNG');
-      try {
-        const stackC = document.createElement('canvas');
-        stackC.width = GIF_W; stackC.height = GIF_H * Math.max(1, photos.length);
-        const sctx = stackC.getContext('2d');
-        let y = 0;
-        for (const src of photos) {
-          const im = await loadImg(src);
-          const s = Math.max(GIF_W/im.naturalWidth, GIF_H/im.naturalHeight);
-          sctx.drawImage(im,
-            (GIF_W - im.naturalWidth*s)/2, y + (GIF_H - im.naturalHeight*s)/2,
-            im.naturalWidth*s, im.naturalHeight*s
-          );
-          y += GIF_H;
-        }
-        await new Promise(res => stackC.toBlob(b => {
-          if (b) {
-            if (gifUrl) URL.revokeObjectURL(gifUrl);
-            gifUrl = URL.createObjectURL(b);
-            img.src = gifUrl; img.style.opacity = '1';
-          }
-          res();
-        }, 'image/png'));
-        lbl.textContent = 'GIF unavailable on this device — saved as a stacked image instead';
-      } catch {
-        lbl.textContent = 'GIF generation failed (' + (lastErr && lastErr.message || 'unknown') + ')';
-        if (compositeDataUrl) { img.src = compositeDataUrl; img.style.opacity = '0.6'; }
-      }
-      return;
-    }
+      if (gifUrl) URL.revokeObjectURL(gifUrl);
+      gifUrl = URL.createObjectURL(blob);
 
-    if (gifUrl) URL.revokeObjectURL(gifUrl);
-    gifUrl = URL.createObjectURL(blob);
-    spinner.classList.add('hidden');
-    // If the iOS path produced an MP4, swap the <img> for a <video> so it plays
-    if (isMp4) {
-      const isMp4Type = (blob.type || '').includes('mp4');
-      const ext = isMp4Type ? 'mp4' : 'webm';
-      const parent = img.parentElement;
-      // Replace the img with a video element (or reuse existing if we already swapped)
-      let vid = parent.querySelector('video.gif-as-video');
-      if (!vid) {
-        vid = document.createElement('video');
-        vid.className = 'gif-as-video panel-img';
-        vid.setAttribute('playsinline', '');
-        vid.setAttribute('autoplay', '');
-        vid.setAttribute('loop', '');
-        vid.setAttribute('muted', '');
-        vid.muted = true;
-        vid.style.cssText = 'width:100%;height:auto;max-height:60vh;background:#000;display:block';
-        parent.appendChild(vid);
-      }
-      img.style.display = 'none';
-      vid.src = gifUrl;
-      vid.style.display = 'block';
-      vid.play().catch(() => {});
-      _gifIsMp4 = true; // remember for sharing/download
-      _gifExt = ext;
-    } else {
-      // Real GIF — show as image
+      // Always a real GIF — hide any leftover video element from old iOS MP4 path
       const vid = img.parentElement.querySelector('video.gif-as-video');
       if (vid) { vid.style.display = 'none'; vid.removeAttribute('src'); vid.load(); }
       img.style.display = '';
       img.src = gifUrl; img.style.opacity = '1';
       _gifIsMp4 = false;
       _gifExt = 'gif';
+
+    } catch (err) {
+      console.error('[gif] gifenc generation failed:', err);
+      lbl.textContent = 'GIF failed: ' + (err.message || 'unknown error');
+      if (compositeDataUrl) { img.src = compositeDataUrl; img.style.opacity = '0.6'; }
     }
-    // No auto-download — user taps the download/share button explicitly.
+
+    gifWorking = false;
+    spinner.classList.add('hidden');
   }
 
   function saveExport() {
