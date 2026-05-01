@@ -1326,7 +1326,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.6</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v4.7</span>
   </div>
 </div>
 
@@ -1510,6 +1510,7 @@
     <button class="btn-ghost" onclick="retakeVideo()" style="flex:1;min-width:80px">↩ Retake</button>
     <button class="btn-ghost" onclick="doGetVideo()" id="save-video-btn" style="flex:1;min-width:80px">💾 Save</button>
     <button class="btn-warm" onclick="shareVideo()" id="share-video-btn" style="flex:1;min-width:80px">↗ Share</button>
+    <button class="btn-warm" onclick="doGetVideoQR()" id="video-qr-btn" style="flex:1;min-width:80px;display:none">📲 Get QR</button>
   </div>
   <p style="font-size:0.7rem;color:var(--muted);text-align:center;margin-top:6px;max-width:380px;line-height:1.4">
     Tip: If Messenger or Instagram doesn't accept the video, tap <b>Save</b> first, then share it from your Photos/Gallery app.
@@ -3260,8 +3261,14 @@
       // Try to auto-play the preview so user sees the recorded video immediately
       vid.play().catch(() => {});
     }
+    // Show QR button only when Supabase is configured
+    const qrBtn = $('video-qr-btn');
+    if (qrBtn) qrBtn.style.display = (SUPABASE_URL && SUPABASE_KEY) ? '' : 'none';
     showScreen('video-preview');
-    // No second auto-download — the recording onstop already saved the file.
+    // Auto-upload video to gallery in the background
+    if (SUPABASE_URL && SUPABASE_KEY && _recordedBlobUrl) {
+      _uploadVideoToGallery();
+    }
   }
 
   function retakeVideo() {
@@ -3304,6 +3311,67 @@
       }
     } catch (err) {
       if (err.name !== 'AbortError') doGetVideo();
+    }
+  }
+
+  /* Upload video to Supabase gallery in the background */
+  let _videoPublicUrl = null;
+  async function _uploadVideoToGallery() {
+    if (!_recordedBlobUrl) return;
+    try {
+      const resp = await fetch(_recordedBlobUrl);
+      const blob = await resp.blob();
+      const isActualMp4 = blob.type.includes('mp4') || (_mediaRecorder && _mediaRecorder.mimeType.includes('mp4'));
+      const ext = isActualMp4 ? 'mp4' : 'webm';
+      const contentType = isActualMp4 ? 'video/mp4' : 'video/webm';
+      _videoPublicUrl = await uploadPhotoToSupabase(_recordedBlobUrl, contentType, ext);
+      console.log('[video] uploaded to gallery:', _videoPublicUrl);
+    } catch (e) {
+      console.warn('[video] gallery upload failed:', e);
+      _videoPublicUrl = null;
+    }
+  }
+
+  /* Get Video QR — upload video (or reuse), show QR on thank-you screen */
+  async function doGetVideoQR() {
+    $('ty-name').textContent = 'Your video is ready!';
+    $('ty-img').src = '';
+    // Show video playback in thank-you if possible
+    const tyImg = $('ty-img');
+    if (tyImg && _recordedBlobUrl) {
+      tyImg.style.display = 'none';
+      // Create or reuse a video element in the thank-you screen
+      let tyVid = tyImg.parentElement.querySelector('video.ty-video');
+      if (!tyVid) {
+        tyVid = document.createElement('video');
+        tyVid.className = 'ty-video panel-img';
+        tyVid.setAttribute('playsinline', '');
+        tyVid.setAttribute('loop', '');
+        tyVid.setAttribute('controls', '');
+        tyVid.style.cssText = 'max-height:40vh;width:100%;object-fit:contain;background:#000;border-radius:12px';
+        tyImg.parentElement.appendChild(tyVid);
+      }
+      tyVid.src = _recordedBlobUrl;
+      tyVid.style.display = '';
+    }
+    $('qr-container').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div><span style="font-size:0.72rem;color:var(--muted)">Uploading video…</span></div>';
+    $('qr-hint').textContent = 'Uploading your video…';
+    showScreen('thankyou');
+
+    try {
+      // Reuse already-uploaded URL if available, otherwise upload now
+      if (!_videoPublicUrl) await _uploadVideoToGallery();
+      if (_videoPublicUrl) {
+        const claimUrl = `${location.origin}${location.pathname}?video=${encodeURIComponent(_videoPublicUrl)}`;
+        renderQR(claimUrl);
+        $('qr-hint').textContent = 'Scan QR to get your video';
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (err) {
+      console.error('Video upload failed:', err);
+      $('qr-container').innerHTML = '<p style="font-size:0.78rem;color:var(--text);padding:14px;text-align:center">Upload failed — try Save or Share instead</p>';
+      $('qr-hint').textContent = '';
     }
   }
 
@@ -4328,12 +4396,19 @@
     let uploadPromise;
 
     if (hasGif) {
-      uploadPromise = Promise.all([
-        uploadPhotoToSupabase(compositeDataUrl, 'image/png', 'png'),
-        uploadPhotoToSupabase(gifUrl, 'image/gif', 'gif')
-      ]).then(([pngUrl, gifPublicUrl]) => {
-        return `${location.origin}${location.pathname}?photo=${encodeURIComponent(pngUrl)}&gif=${encodeURIComponent(gifPublicUrl)}`;
-      });
+      // Detect actual GIF type — iOS path generates MP4/WebM, not real GIF
+      const gifContentType = _gifIsMp4 ? ('video/' + (_gifExt || 'mp4')) : 'image/gif';
+      const gifExtActual = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
+      // Upload photo first (required), GIF is best-effort (don't block QR if GIF fails)
+      uploadPromise = uploadPhotoToSupabase(compositeDataUrl, 'image/png', 'png')
+        .then(async pngUrl => {
+          let gifParam = '';
+          try {
+            const gifPublicUrl = await uploadPhotoToSupabase(gifUrl, gifContentType, gifExtActual);
+            gifParam = '&gif=' + encodeURIComponent(gifPublicUrl);
+          } catch (e) { console.warn('[upload] GIF upload failed (photo still OK):', e.message); }
+          return `${location.origin}${location.pathname}?photo=${encodeURIComponent(pngUrl)}${gifParam}`;
+        });
     } else {
       uploadPromise = uploadPhotoToSupabase(compositeDataUrl, 'image/png', 'png')
         .then(publicUrl => `${location.origin}${location.pathname}?photo=${encodeURIComponent(publicUrl)}`);
@@ -5766,6 +5841,25 @@
         layout = firstEnabled.dataset.layout;
       }
     }
+    // Adaptive grid columns based on visible card count
+    _adaptGridColumns();
+  }
+  function _adaptGridColumns() {
+    const grid = document.querySelector('.layout-grid');
+    if (!grid) return;
+    const visible = grid.querySelectorAll('.layout-card:not([style*="display: none"])').length;
+    // Pick the best column count so rows are balanced:
+    //  1 → 1 col, 2 → 2 cols, 3 → 3 cols (on tablet) / 2 cols (mobile),
+    //  4 → 2 cols, 5 → 3 cols (tablet) / 2 cols (mobile), 6 → 3 cols (tablet) / 2 cols (mobile)
+    const isWide = window.innerWidth >= 600;
+    let cols;
+    if (visible <= 1) cols = 1;
+    else if (visible === 2) cols = 2;
+    else if (visible === 3) cols = isWide ? 3 : 2;
+    else if (visible === 4) cols = 2;
+    else if (visible === 5) cols = isWide ? 3 : 2;
+    else cols = isWide ? 3 : 2;
+    grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
   }
   function _syncEnabledLayoutsUI() {
     document.querySelectorAll('#layout-toggles input[data-layout]').forEach(cb => {
@@ -6971,6 +7065,8 @@
     applyFeatures();
     // Apply enabled-layouts (hide disabled layout cards)
     applyEnabledLayouts();
+    // Re-adapt grid on orientation/resize changes
+    window.addEventListener('resize', _adaptGridColumns);
     // Init EmailJS v4 once on page load
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
