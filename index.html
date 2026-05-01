@@ -1326,7 +1326,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.1</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.2</span>
   </div>
 </div>
 
@@ -3132,6 +3132,7 @@
 
   let _recCanvas = null;
   let _recAnimId = null;
+  let _recAudioCtx = null;
 
   function startRecording() {
     if (!stream) return;
@@ -3184,13 +3185,28 @@
     }
     drawFrame();
 
-    // Capture canvas stream + audio from original stream
+    // Capture canvas stream + audio from original stream (boosted via GainNode)
     const canvasStream = rc.captureStream(30);
     const audioTracks = stream.getAudioTracks();
-    audioTracks.forEach(t => {
-      t.enabled = true;
-      canvasStream.addTrack(t);
-    });
+    if (audioTracks.length > 0) {
+      try {
+        // Boost audio volume through a GainNode so recorded video is louder
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(new MediaStream(audioTracks));
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = 3.0; // 3× louder
+        source.connect(gainNode);
+        const dest = audioCtx.createMediaStreamDestination();
+        gainNode.connect(dest);
+        dest.stream.getAudioTracks().forEach(t => canvasStream.addTrack(t));
+        console.log('[rec] audio boosted 3× via GainNode');
+        // Keep reference so GC doesn't kill the audio pipeline
+        _recAudioCtx = audioCtx;
+      } catch (e) {
+        console.warn('[rec] audio boost failed, using raw audio:', e);
+        audioTracks.forEach(t => { t.enabled = true; canvasStream.addTrack(t); });
+      }
+    }
     console.log('[rec] audio tracks on recording stream:', canvasStream.getAudioTracks().length);
 
     // Prefer codecs that EXPLICITLY include an audio codec so audio is recorded.
@@ -3205,7 +3221,7 @@
                    : '';
     // Scale bitrate with resolution: ~3 bpp for HD, more for 1080p / vertical
     const targetBitrate = Math.max(2500000, Math.round(rc.width * rc.height * 3.5));
-    const opts = { videoBitsPerSecond: targetBitrate, audioBitsPerSecond: 128000 };
+    const opts = { videoBitsPerSecond: targetBitrate, audioBitsPerSecond: 192000 };
     if (mimeType) opts.mimeType = mimeType;
     console.log('[rec] mime:', mimeType);
     _mediaRecorder = new MediaRecorder(canvasStream, opts);
@@ -3213,6 +3229,7 @@
     _mediaRecorder.onstop = () => {
       if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
       _recCanvas = null;
+      if (_recAudioCtx) { try { _recAudioCtx.close(); } catch {} _recAudioCtx = null; }
       const blob = new Blob(_recordedChunks, { type: _mediaRecorder.mimeType });
       if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
       _recordedBlobUrl = URL.createObjectURL(blob);
