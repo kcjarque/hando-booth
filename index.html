@@ -1495,7 +1495,7 @@
   <!-- Action row: Back + Get Photo (Print is in the top-right of this screen) -->
   <div class="action-row" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
-    <button class="btn-warm"  onclick="doGetPhoto()" style="flex:1.4;min-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📤 Get Photo</button>
+    <button class="btn-warm"  onclick="sharePhoto()" style="flex:1.4;min-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">↗ Share</button>
   </div>
 
 </div>
@@ -3366,20 +3366,20 @@
       const blob = await resp.blob();
       const recMime = _mediaRecorder ? _mediaRecorder.mimeType : '';
       const isActualMp4 = blob.type.includes('mp4') || recMime.includes('mp4');
-      // Use correct type so the OS can process the file correctly
       const ext = isActualMp4 ? 'mp4' : 'webm';
       const mime = isActualMp4 ? 'video/mp4' : 'video/webm';
       const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Try native share — always attempt with file first
+      if (navigator.share) {
         try {
           await navigator.share({ files: [file], title: 'Hando Booth Video', text: 'Check out my Hando Booth video!' });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
-          // Share failed — fall through to download + instructions
+          console.warn('[share] video file share failed:', e.message);
         }
       }
-      // Fallback: download the video and show instructions
+      // Fallback: download
       doGetVideo();
       if (!isActualMp4) {
         setTimeout(() => alert('Video saved to Downloads!\n\nTo share on Messenger or Instagram:\n1. Open your Photos/Gallery app\n2. Find the video in Downloads\n3. Tap Share from there'), 600);
@@ -3456,9 +3456,25 @@
       // Convert to JPEG for wider app compatibility (Messenger, Instagram, email)
       const blob = await _dataUrlToJpeg(compositeDataUrl);
       const file = new File([blob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
-      await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', doGetPhoto);
+      const downloadFallback = () => saveToDevice(blob, file.name, 'image/jpeg');
+      await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', downloadFallback);
+      // Also upload to Telegram in the background (non-blocking)
+      if (_tgConfigured()) {
+        uploadToTelegram(compositeDataUrl, 'image/png', 'png').catch(e => console.warn('[telegram] bg upload failed:', e.message));
+        if (gifUrl && photos.length > 1) {
+          const gifCT = _gifIsMp4 ? ('video/' + (_gifExt || 'mp4')) : 'image/gif';
+          const gifExt = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
+          uploadToTelegram(gifUrl, gifCT, gifExt).catch(e => console.warn('[telegram] gif bg upload failed:', e.message));
+        }
+      }
     } catch (err) {
-      if (err.name !== 'AbortError') doGetPhoto();
+      if (err.name !== 'AbortError') {
+        // Last-resort download
+        try {
+          const blob = await _dataUrlToJpeg(compositeDataUrl);
+          saveToDevice(blob, 'hando-booth-' + Date.now() + '.jpg', 'image/jpeg');
+        } catch { /* nothing left to try */ }
+      }
     }
   }
 
@@ -3489,12 +3505,17 @@
       return;
     }
     try {
-      // Try sharing with file (works for Messenger, email, WhatsApp, etc.)
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Always try sharing with file first — some iOS versions support it
+      // even when canShare reports false (especially in standalone mode)
+      try {
         await navigator.share({ files: [file], title, text });
         return;
+      } catch (e1) {
+        if (e1.name === 'AbortError') throw e1;
+        // File share not supported — try URL/text share
+        console.warn('[share] file share failed, trying text:', e1.message);
       }
-      // Some browsers support share but not files — share text only
+      // Fallback: share without files
       await navigator.share({ title, text });
     } catch (e) {
       if (e.name === 'AbortError') throw e;
