@@ -41,6 +41,30 @@ If a filter is changed before a previous render completes, both renders run conc
 **Root cause:** `showGifScreen()` auto-downloaded the photo via `fetch(compositeDataUrl).then(…a.click())`, and `_autoDownloadGif` auto-downloaded the GIF when generation finished. User explicitly requested removal.
 **Fix applied (v4.6):** Both auto-download blocks removed. User taps download/share button explicitly.
 
+### 9. Auto-advance to "Save Your Moment" (FIXED in v5.4)
+**Root cause:** `_previewAutoAdvanceTimer` auto-called `continueFlow()` after 6 seconds on the preview screen.
+**Fix applied (v5.4):** Removed the auto-advance timer entirely. User must explicitly tap Continue.
+
+### 10. Admin ghost touches / crashes (FIXED in v5.4)
+**Root cause:** iOS double-tap zoom and 300ms touch delay caused phantom button activations in the admin modal.
+**Fix applied (v5.4):** Added `touch-action: pan-y` to `.modal-body` and `touch-action: manipulation` to all admin buttons, labels, toggles, and checkboxes.
+
+### 11. Countdown sound disappears mid-session (FIXED in v5.4)
+**Root cause:** iOS suspends `AudioContext` after a period of inactivity; custom sound `_customShortAudio` was never pre-unlocked.
+**Fix applied (v5.4):** Added `_ensureAudioReady()` called before every countdown — resumes AudioContext and pre-loads custom audio. Also unlock `_customShortAudio` alongside `_customAudio` in `unlockAudioOnGesture()`.
+
+### 12. Custom sound photo timing (FIXED in v5.4)
+**Root cause:** Custom sound played at n=1 but photo was taken at n=0 (1 second later).
+**Fix applied (v5.4):** When custom sound preset is active, `runCountdown()` resolves immediately after playing the sound (150ms delay for the sound to be heard), instead of waiting for the next tick.
+
+### 13. Clear All gallery not working (FIXED in v5.4)
+**Root cause:** Supabase Storage `DELETE /object/{bucket}` with `{ prefixes: [...] }` is for folder-prefix deletion, not individual files.
+**Fix applied (v5.4):** Changed to delete files individually via `DELETE /object/{bucket}/{filename}` in a loop.
+
+### 14. Custom sound not playing (FIXED in v5.4)
+**Root cause:** `_customShortAudio` (the Audio element used in `_playCustomShort()`) was never created on page load — only `_customAudio` was. On iOS, this meant it was never unlocked by user gesture.
+**Fix applied (v5.4):** Pre-create `_customShortAudio` on page load when restoring saved custom sound. Also create it in `handleSoundUpload()`. Both elements are now unlocked in `unlockAudioOnGesture()`.
+
 ---
 
 ## Architecture

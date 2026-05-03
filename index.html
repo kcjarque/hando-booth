@@ -873,6 +873,15 @@
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       padding: 16px 22px 16px;
+      touch-action: pan-y;
+    }
+    /* Prevent ghost touches / 300ms delay on admin buttons and toggles */
+    .modal-body button,
+    .modal-body .delay-btn,
+    .modal-body label,
+    .modal-body .toggle-switch,
+    .modal-body input[type="checkbox"] {
+      touch-action: manipulation;
     }
     /* Admin section wrappers — proper flex containers instead of display:contents
        (display:contents inside a flex parent breaks scrolling on iOS & some Android browsers) */
@@ -1326,7 +1335,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.3</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.4</span>
   </div>
 </div>
 
@@ -2610,11 +2619,25 @@
       const src = ctx.createBufferSource();
       src.buffer = buf; src.connect(ctx.destination); src.start(0);
     } catch {}
-    // Prime the custom audio element if it exists
+    // Prime the custom audio elements if they exist (iOS requires gesture to unlock)
     try {
       if (_customAudio) {
         const v = _customAudio.volume; _customAudio.volume = 0;
         _customAudio.play().then(() => { _customAudio.pause(); _customAudio.currentTime = 0; _customAudio.volume = v; }).catch(() => { _customAudio.volume = v; });
+      }
+    } catch {}
+    // Also unlock _customShortAudio (the one actually used in countdown)
+    try {
+      if (_customShortAudio) {
+        const v2 = _customShortAudio.volume; _customShortAudio.volume = 0;
+        _customShortAudio.play().then(() => { _customShortAudio.pause(); _customShortAudio.currentTime = 0; _customShortAudio.volume = v2; }).catch(() => { _customShortAudio.volume = v2; });
+      } else if (_customSoundUrl) {
+        // Pre-create and unlock it
+        _customShortAudio = new Audio(_customSoundUrl);
+        _customShortAudio._srcUrl = _customSoundUrl;
+        _customShortAudio.preload = 'auto';
+        _customShortAudio.volume = 0;
+        _customShortAudio.play().then(() => { _customShortAudio.pause(); _customShortAudio.currentTime = 0; _customShortAudio.volume = 1.0; }).catch(() => { _customShortAudio.volume = 1.0; });
       }
     } catch {}
   }
@@ -2688,6 +2711,24 @@
   // FIX: Reuse a SINGLE Audio instance so overlapping calls don't stack.
   let _customShortAudio = null;
   let _customShortTimer = null;
+
+  // Re-prime audio before each countdown — ensures iOS AudioContext hasn't gone to sleep
+  function _ensureAudioReady() {
+    try {
+      if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+      // Re-prime custom short audio if custom sound is selected
+      if (_soundPreset === 'custom' && _customSoundUrl) {
+        if (!_customShortAudio || _customShortAudio._srcUrl !== _customSoundUrl) {
+          _customShortAudio = new Audio(_customSoundUrl);
+          _customShortAudio._srcUrl = _customSoundUrl;
+          _customShortAudio.preload = 'auto';
+        }
+        // Warm up the audio element by loading it
+        try { _customShortAudio.load(); } catch {}
+      }
+    } catch {}
+  }
+
   function _playCustomShort() {
     if (!_customSoundUrl) return false;
     try {
@@ -3506,6 +3547,8 @@
 
   function runCountdown(label, secsOverride) {
     return new Promise(resolve => {
+      // Re-prime audio so iOS doesn't lose sound mid-session
+      _ensureAudioReady();
       cdLabel.textContent = label;
       cdOverlay.classList.add('show');
       let n = (typeof secsOverride === 'number' && secsOverride > 0) ? secsOverride : countdownSecs;
@@ -3516,7 +3559,18 @@
         void cdNum.offsetHeight;
         cdNum.style.animation = 'cdPop 1s cubic-bezier(0.22,1,0.36,1) forwards';
         // Play tick sound — final number gets a distinct tone
-        if (n === 1) playCountdownFinal(); else playCountdownTick();
+        if (n === 1) {
+          playCountdownFinal();
+          // FIX 5: When custom sound is active, take the photo NOW (when the sound plays)
+          // instead of waiting another 1s tick. The custom sound IS the shutter cue.
+          if (_soundPreset === 'custom' && _customSoundUrl) {
+            // Short delay so the sound is heard before the flash
+            setTimeout(resolve, 150);
+            return;
+          }
+        } else {
+          playCountdownTick();
+        }
         n--;
         setTimeout(tick, 1000);
       }
@@ -3811,7 +3865,6 @@
   }
 
   /* ─── Preview screen ──────────────────────────────── */
-  let _previewAutoAdvanceTimer = null;
   function showPreviewScreen() {
     stopStream();
     document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === activeFilter));
@@ -3823,26 +3876,7 @@
     buildRetakeStrip();
     showScreen('preview');
     reRenderComposite();
-    // Auto-advance to Save Your Moment after the user sees the composite for a few seconds.
-    // Any touch on the screen resets the timer so users have time to pick a filter/frame.
-    if (_previewAutoAdvanceTimer) clearTimeout(_previewAutoAdvanceTimer);
-    const arm = () => {
-      if (_previewAutoAdvanceTimer) clearTimeout(_previewAutoAdvanceTimer);
-      _previewAutoAdvanceTimer = setTimeout(() => {
-        // Only advance if still on preview
-        if (document.querySelector('.screen.active')?.id === 'preview' && compositeDataUrl) {
-          continueFlow();
-        }
-      }, 6000);
-    };
-    arm();
-    const previewEl = $('preview');
-    if (previewEl) {
-      // reset on any user interaction
-      ['touchstart','mousedown','wheel','keydown'].forEach(ev => {
-        previewEl.addEventListener(ev, arm, { passive: true });
-      });
-    }
+    // User must explicitly tap Continue — no auto-advance
   }
 
   /* ─── Individual photo retake ─────────────────────── */
@@ -3889,7 +3923,6 @@
   function retake() { photos = []; startBooth(); }
 
   function continueFlow() {
-    if (_previewAutoAdvanceTimer) { clearTimeout(_previewAutoAdvanceTimer); _previewAutoAdvanceTimer = null; }
     showGifScreen();
   }
 
@@ -4945,8 +4978,14 @@
       _customAudio = new Audio(_customSoundUrl);
       _customAudio.volume = 1.0;
       _customAudio.preload = 'auto';
+      // Also create/update the short audio element used in countdown
+      _customShortAudio = new Audio(_customSoundUrl);
+      _customShortAudio._srcUrl = _customSoundUrl;
+      _customShortAudio.volume = 1.0;
+      _customShortAudio.preload = 'auto';
       // Pre-warm so iOS doesn't have to download/decode on first play
       _customAudio.load();
+      _customShortAudio.load();
     };
     reader.onerror = err => { console.warn('[sound] file read failed', err); alert('Could not read audio file'); };
     reader.readAsDataURL(file);
@@ -5508,19 +5547,27 @@
         list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Gallery is already empty</p>';
         return;
       }
-      // Delete in batch
-      const dr = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY
-        },
-        body: JSON.stringify({ prefixes: filenames })
-      });
-      if (!dr.ok) throw new Error('Delete failed: HTTP ' + dr.status);
-      list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Gallery cleared ✓</p>';
-      console.log('[gallery] cleared', filenames.length, 'files');
+      // Delete files individually (batch prefixes API only works for folder prefixes)
+      let deleted = 0, failed = 0;
+      for (const fname of filenames) {
+        try {
+          const dr = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${encodeURIComponent(fname)}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'apikey': SUPABASE_KEY
+            }
+          });
+          if (dr.ok) deleted++; else failed++;
+        } catch { failed++; }
+      }
+      if (failed > 0) {
+        console.warn('[gallery] cleared', deleted, 'files,', failed, 'failed');
+        list.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Cleared ${deleted} files (${failed} failed)</p>`;
+      } else {
+        list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Gallery cleared ✓</p>';
+        console.log('[gallery] cleared', deleted, 'files');
+      }
     } catch (e) {
       console.error('[gallery] clear failed:', e);
       list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#c0392b;font-size:0.75rem;padding:24px">Clear failed: ' + (e.message || 'Unknown') + '</p>';
@@ -6830,6 +6877,11 @@
     if (_savedCustomSound) {
       _customSoundUrl = _savedCustomSound;
       _customAudio = new Audio(_savedCustomSound);
+      // Also pre-create the short audio element used in countdown
+      // (will be unlocked on first user gesture via unlockAudioOnGesture)
+      _customShortAudio = new Audio(_savedCustomSound);
+      _customShortAudio._srcUrl = _savedCustomSound;
+      _customShortAudio.preload = 'auto';
     }
     // Restore button color
     const _savedBtnColor = localStorage.getItem('hb_btn_color');
