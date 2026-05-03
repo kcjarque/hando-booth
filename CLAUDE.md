@@ -72,10 +72,11 @@ If a filter is changed before a previous render completes, both renders run conc
 - **Single file app:** All code in `index.html`. No build step.
 - **5 screens:** `#home`, `#camera`, `#preview`, `#gif-screen`, `#video-preview`, `#thankyou`
 - **Filters:** Pixel manipulation in `applyPixelFilter()`. 14 built-in + custom filters with 13 adjustable params.
-- **Composite:** `buildComposite()` draws each photo into a cell canvas, applies pixel filter, clips to rounded rect, stamps onto main canvas.
+- **Composite:** `buildComposite()` draws each photo into a cell canvas, applies pixel filter, stamps onto main canvas with sharp corners (no rounding).
 - **GIF:** `gifenc` (v1.0.3) via dynamic `import()` from unpkg CDN. Pure-JS encoder — no Web Workers, no CORS issues, works on ALL browsers including iOS Safari. Replaced `gif.js` in v4.8.
 - **Video:** MediaRecorder from canvas stream + audio tracks. Supports overlay compositing.
-- **Supabase:** Photo/GIF uploads to `photos` bucket for QR claim flow.
+- **Telegram:** Photo/GIF/video uploads sent to a Telegram chat via Bot API. Config stored in localStorage (`hb_tg_bot_token`, `hb_tg_chat_id`). Replaced Supabase in v5.5.
+- **Layout sizes:** Final print size set in inches (4×6 or 2×3) at 300 DPI. Cell sizes auto-computed from final dimensions minus gaps and padding.
 - **Dev server:** Node.js static server at `.claude/serve.js`, port 3003.
 - **Admin:** Triple-tap logo → password `hando2025`. Logo size (`hb_logo_scale`), per-layout sizes (`hb_layout_sizes_v2`), countdown, sounds, overlays, colors, background, camera, features.
 

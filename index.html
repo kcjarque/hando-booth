@@ -1335,7 +1335,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.4</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.5</span>
   </div>
 </div>
 
@@ -1854,14 +1854,23 @@
           </div>
           <div id="cf-list"></div>
         </div>
+        <!-- Telegram Config -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:6px">Telegram</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Photos, GIFs, and videos are sent to a Telegram chat. Create a bot via <strong>@BotFather</strong>, get the token, and add the bot to your group chat.</p>
+          <label style="font-size:0.75rem;color:var(--text);font-weight:600;display:block;margin-bottom:4px">Bot Token</label>
+          <input type="text" id="tg-bot-token" placeholder="123456:ABC-DEF..." oninput="saveTelegramConfig()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;margin-bottom:10px;background:#fff;color:var(--text);box-sizing:border-box">
+          <label style="font-size:0.75rem;color:var(--text);font-weight:600;display:block;margin-bottom:4px">Chat ID</label>
+          <input type="text" id="tg-chat-id" placeholder="-100123456789" oninput="saveTelegramConfig()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;margin-bottom:10px;background:#fff;color:var(--text);box-sizing:border-box">
+          <p style="font-size:0.68rem;color:var(--muted);margin-bottom:10px;line-height:1.4">To find the Chat ID: add <strong>@raw_data_bot</strong> to your group, it will reply with the chat ID. Remove it after.</p>
+          <button onclick="testTelegramConnection()" class="delay-btn" style="width:100%">Test Connection</button>
+        </div>
         <!-- Photo Gallery -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:6px">Photo Gallery</div>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">All uploaded photos from this booth. Sign in to admin from any device to access — useful for printing from a separate machine.</p>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Photos are sent to your Telegram chat. Tap Refresh to check connection status.</p>
           <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
             <button onclick="loadGallery()" class="delay-btn" style="flex:1;min-width:90px">↻ Refresh</button>
-            <button onclick="downloadAllGallery()" class="delay-btn" style="flex:1;min-width:90px">⬇ Download All</button>
-            <button onclick="clearGallery()" class="delay-btn" style="flex:1;min-width:90px;color:#c0392b;border-color:#e74c3c">🗑 Clear All</button>
           </div>
           <div id="gallery-usage" style="display:none;margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
@@ -1911,7 +1920,7 @@
         <!-- Layout Sizes -->
         <div style="background:var(--surface2);border-radius:14px;padding:16px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:4px">Layout Sizes</div>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px;line-height:1.4">Each layout has its own settings. Tap a tab below to edit that layout.</p>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:12px;line-height:1.4">Set the final print size in inches. Each layout has its own settings.</p>
 
           <!-- Live preview — large, prominent -->
           <div id="ls-preview-area" style="background:var(--surface2);border-radius:12px;padding:16px 12px 10px;margin-bottom:16px">
@@ -1930,30 +1939,27 @@
             <div id="ls-dim-label" style="text-align:center;font-size:0.7rem;color:var(--muted);margin-top:6px;font-weight:600"></div>
           </div>
 
-          <!-- Sliders + number inputs for touch editing -->
+          <!-- Print size presets -->
+          <div style="margin-bottom:14px">
+            <label style="font-size:0.8rem;color:var(--text);font-weight:700;display:block;margin-bottom:8px">Final Print Size</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+              <button onclick="setPrintSize(4,6)" id="ps-4x6" class="delay-btn" style="flex:1;min-width:80px;font-weight:700">4 × 6 in</button>
+              <button onclick="setPrintSize(2,3)" id="ps-2x3" class="delay-btn" style="flex:1;min-width:80px;font-weight:700">2 × 3 in</button>
+              <button onclick="setPrintSize(0,0)" id="ps-custom" class="delay-btn" style="flex:1;min-width:80px;font-weight:700">Custom</button>
+            </div>
+            <!-- Custom size inputs (shown when Custom is selected) -->
+            <div id="ls-custom-size" style="display:none">
+              <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+                <label style="font-size:0.75rem;color:var(--text);font-weight:600;white-space:nowrap">Width (in)</label>
+                <input type="number" id="ls-width-in" value="4" min="1" max="20" step="0.5" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
+                <label style="font-size:0.75rem;color:var(--text);font-weight:600;white-space:nowrap">Height (in)</label>
+                <input type="number" id="ls-height-in" value="6" min="1" max="20" step="0.5" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
+              </div>
+            </div>
+          </div>
+
+          <!-- Gap & Padding controls -->
           <div style="display:flex;flex-direction:column;gap:16px">
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                <label style="font-size:0.8rem;color:var(--text);font-weight:700">Cell Width</label>
-                <div style="display:flex;align-items:center;gap:4px">
-                  <button onclick="nudgeLayout('cellW',-50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
-                  <input type="number" id="ls-cellw-num" value="800" min="400" max="1600" step="50" onchange="updateLayoutSize('cellW',this.value)" style="width:60px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700;color:var(--text);background:#fff">
-                  <button onclick="nudgeLayout('cellW',50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
-                </div>
-              </div>
-              <input type="range" id="ls-cellw" min="400" max="1600" step="50" value="800" oninput="updateLayoutSize('cellW',this.value)" style="width:100%;height:36px;touch-action:none">
-            </div>
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                <label style="font-size:0.8rem;color:var(--text);font-weight:700">Cell Height</label>
-                <div style="display:flex;align-items:center;gap:4px">
-                  <button onclick="nudgeLayout('cellH',-50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
-                  <input type="number" id="ls-cellh-num" value="600" min="300" max="1200" step="50" onchange="updateLayoutSize('cellH',this.value)" style="width:60px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:6px 4px;font-size:0.85rem;font-weight:700;color:var(--text);background:#fff">
-                  <button onclick="nudgeLayout('cellH',50)" style="width:36px;height:36px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:1.1rem;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
-                </div>
-              </div>
-              <input type="range" id="ls-cellh" min="300" max="1200" step="50" value="600" oninput="updateLayoutSize('cellH',this.value)" style="width:100%;height:36px;touch-action:none">
-            </div>
             <div>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
                 <label style="font-size:0.8rem;color:var(--text);font-weight:700">Gap</label>
@@ -2556,8 +2562,18 @@
   /* ─── Per-layout size settings ─────────────────────
      Each layout (single/double/strip/strip4/quad) stores its own
      cellW/cellH/gap/pad (plus optional per-side padT/R/B/L).
-     `layout` (global) tells which set is currently active. */
-  const LAYOUT_SIZE_DEFAULTS = { cellW: 800, cellH: 600, gap: 16, pad: 32, padT: null, padR: null, padB: null, padL: null };
+     `layout` (global) tells which set is currently active.
+     Print size is stored in inches; cellW/cellH are computed from it. */
+  const PRINT_DPI = 300;
+  // Layout geometry: cols × rows for each layout type
+  const LAYOUT_GRID = {
+    single: { cols: 1, rows: 1 },
+    double: { cols: 1, rows: 2 },
+    strip:  { cols: 1, rows: 3 },
+    strip4: { cols: 1, rows: 4 },
+    quad:   { cols: 2, rows: 2 }
+  };
+  const LAYOUT_SIZE_DEFAULTS = { cellW: 800, cellH: 600, gap: 16, pad: 32, padT: null, padR: null, padB: null, padL: null, printW: 4, printH: 6 };
   const LAYOUT_SIZES = {
     single: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
     double: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
@@ -2570,6 +2586,7 @@
   // of the app uses. We update these getters/setters whenever `layout` changes.
   let CELL_W = 800, CELL_H = 600, GAP = 16, PAD = 32;
   let PAD_T = null, PAD_R = null, PAD_B = null, PAD_L = null;
+  let _printW = 4, _printH = 6; // current print size in inches
   function _padT() { return PAD_T == null ? PAD : PAD_T; }
   function _padR() { return PAD_R == null ? PAD : PAD_R; }
   function _padB() { return PAD_B == null ? PAD : PAD_B; }
@@ -2580,6 +2597,7 @@
     const s = _ls(name || layout);
     CELL_W = s.cellW; CELL_H = s.cellH; GAP = s.gap; PAD = s.pad;
     PAD_T = s.padT; PAD_R = s.padR; PAD_B = s.padB; PAD_L = s.padL;
+    _printW = s.printW || 4; _printH = s.printH || 6;
     if (typeof _updateCropRatio === 'function') _updateCropRatio();
   }
   // Write current CELL_W/... back to a layout's stored settings
@@ -2587,6 +2605,7 @@
     const s = _ls(name);
     s.cellW = CELL_W; s.cellH = CELL_H; s.gap = GAP; s.pad = PAD;
     s.padT = PAD_T; s.padR = PAD_R; s.padB = PAD_B; s.padL = PAD_L;
+    s.printW = _printW; s.printH = _printH;
   }
 
   /* ─── DOM refs ────────────────────────────────────── */
@@ -3322,7 +3341,7 @@
     }
     showScreen('video-preview');
     // Auto-upload video to gallery in the background
-    if (SUPABASE_URL && SUPABASE_KEY && _recordedBlobUrl) {
+    if (_tgConfigured() && _recordedBlobUrl) {
       _uploadVideoToGallery();
     }
   }
@@ -3720,12 +3739,8 @@
       );
       applyPixelFilter(cc, CELL_W, CELL_H, activeFilter);
 
-      // Stamp filtered cell onto composite with rounded-rect clip
-      c.save();
-      rrPath(c, x, y, CELL_W, CELL_H, 12);
-      c.clip();
+      // Stamp filtered cell onto composite (sharp corners)
       c.drawImage(cell, x, y);
-      c.restore();
     }
 
     if (activeOverlay && activeOverlay.dataUrl) {
@@ -4209,7 +4224,7 @@
     $('qr-container').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div><span style="font-size:0.72rem;color:var(--muted)">Uploading…</span></div>';
     $('qr-hint').textContent = 'Uploading your photo…';
     showScreen('thankyou');
-    if (SUPABASE_URL && SUPABASE_KEY) {
+    if (_tgConfigured()) {
       uploadPhotoToSupabase(compositeDataUrl)
         .then(publicUrl => renderQR(publicUrl))
         .catch(err => {
@@ -4536,62 +4551,119 @@
   }
 
   /* ═══════════════════════════════════════════════════
-     SUPABASE CONFIG  — fill in after creating project
+     TELEGRAM CONFIG  — Bot token + chat ID for saving photos/GIFs/videos
   ═══════════════════════════════════════════════════ */
-  const SUPABASE_URL    = 'https://wdzsjgwhhohxlrzxojgq.supabase.co';
-  const SUPABASE_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenNqZ3doaG9oeGxyenhvamdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzOTkyOTYsImV4cCI6MjA5MDk3NTI5Nn0.K677qTL0E813GSkW9HuALOCLyKh86YOSAgS1RvS_odw';
-  const SUPABASE_BUCKET = 'photos';
+  let TELEGRAM_BOT_TOKEN = localStorage.getItem('hb_tg_bot_token') || '';
+  let TELEGRAM_CHAT_ID   = localStorage.getItem('hb_tg_chat_id') || '';
 
-  async function uploadPhotoToSupabase(dataUrl, contentType = 'image/png', ext = 'png') {
-    const res  = await fetch(dataUrl);
+  function _tgConfigured() { return !!(TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID); }
+
+  /**
+   * Upload a file (photo/GIF/video) to a Telegram chat.
+   * Returns a public download URL for the file (via Telegram's getFile API).
+   */
+  async function uploadToTelegram(dataUrl, contentType = 'image/png', ext = 'png') {
+    if (!_tgConfigured()) throw new Error('Telegram not configured');
+
+    // Convert dataUrl or blobUrl to a Blob
+    const res = await fetch(dataUrl);
     const blob = await res.blob();
     const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
-    const url = `${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`;
-    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
 
-    // Retry with exponential backoff + timeout per attempt
+    // Pick the right Telegram API method based on content type
+    let method = 'sendDocument'; // fallback
+    let fieldName = 'document';
+    if (/^image\/png|^image\/jpe?g/i.test(contentType)) {
+      method = 'sendPhoto'; fieldName = 'photo';
+    } else if (/^image\/gif/i.test(contentType)) {
+      method = 'sendAnimation'; fieldName = 'animation';
+    } else if (/^video\//i.test(contentType)) {
+      method = 'sendVideo'; fieldName = 'video';
+    }
+
+    const form = new FormData();
+    form.append('chat_id', TELEGRAM_CHAT_ID);
+    form.append(fieldName, blob, filename);
+    form.append('caption', 'Hando Booth — ' + new Date().toLocaleString());
+
+    const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
+
+    // Retry with backoff
     const maxAttempts = 3;
     let lastErr = null;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const ac = new AbortController();
-      const timeoutMs = 30000 + (attempt * 15000); // 30s, 45s, 60s
-      const timeout = setTimeout(() => ac.abort(), timeoutMs);
+      const timeoutMs = 30000 + (attempt * 15000);
+      const timer = setTimeout(() => ac.abort(), timeoutMs);
       try {
-        const r = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': contentType,
-            'x-upsert': 'false',
-            'Cache-Control': 'no-cache'
-          },
-          body: blob,
-          signal: ac.signal,
-          // Hint to browser that this is opaque-friendly
-          mode: 'cors',
-          credentials: 'omit'
-        });
-        clearTimeout(timeout);
-        if (!r.ok) {
-          const txt = await r.text().catch(() => '');
-          // 4xx — don't retry (bad request, auth); 5xx — retry
-          if (r.status >= 400 && r.status < 500 && r.status !== 408 && r.status !== 429) {
-            throw new Error(`Upload rejected (${r.status}): ${txt.slice(0,100)}`);
-          }
-          lastErr = new Error(`HTTP ${r.status}: ${txt.slice(0,100)}`);
+        const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
+        clearTimeout(timer);
+        const json = await r.json();
+        if (!json.ok) {
+          lastErr = new Error(`Telegram ${method} failed: ${json.description || r.status}`);
+          if (r.status >= 400 && r.status < 500 && r.status !== 429) throw lastErr;
         } else {
-          return publicUrl;
+          // Extract file_id from response to build a public URL
+          const result = json.result;
+          let fileId = null;
+          if (result.photo && result.photo.length) {
+            // photo array — last element is the largest
+            fileId = result.photo[result.photo.length - 1].file_id;
+          } else if (result.animation) {
+            fileId = result.animation.file_id;
+          } else if (result.video) {
+            fileId = result.video.file_id;
+          } else if (result.document) {
+            fileId = result.document.file_id;
+          }
+          if (fileId) {
+            // Get download URL via getFile
+            const gf = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
+            const gfJson = await gf.json();
+            if (gfJson.ok && gfJson.result.file_path) {
+              return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${gfJson.result.file_path}`;
+            }
+          }
+          // If we can't get a file URL, return a placeholder (upload still succeeded)
+          console.log('[telegram] uploaded but could not get file URL');
+          return null;
         }
       } catch (err) {
-        clearTimeout(timeout);
+        clearTimeout(timer);
         lastErr = err;
-        // Abort/fetch errors are likely network — retry
       }
       if (attempt < maxAttempts) {
         await new Promise(r => setTimeout(r, 800 * attempt));
       }
     }
-    throw new Error(`Upload failed after ${maxAttempts} attempts: ${lastErr && lastErr.message || 'unknown'}`);
+    throw new Error(`Telegram upload failed after ${maxAttempts} attempts: ${lastErr && lastErr.message || 'unknown'}`);
+  }
+
+  // Backward-compatible alias so existing call-sites work
+  async function uploadPhotoToSupabase(dataUrl, contentType, ext) {
+    return uploadToTelegram(dataUrl, contentType, ext);
+  }
+
+  function saveTelegramConfig() {
+    TELEGRAM_BOT_TOKEN = ($('tg-bot-token')?.value || '').trim();
+    TELEGRAM_CHAT_ID = ($('tg-chat-id')?.value || '').trim();
+    try {
+      if (TELEGRAM_BOT_TOKEN) localStorage.setItem('hb_tg_bot_token', TELEGRAM_BOT_TOKEN);
+      else localStorage.removeItem('hb_tg_bot_token');
+      if (TELEGRAM_CHAT_ID) localStorage.setItem('hb_tg_chat_id', TELEGRAM_CHAT_ID);
+      else localStorage.removeItem('hb_tg_chat_id');
+    } catch {}
+  }
+
+  function _restoreTelegramConfig() {
+    const tok = localStorage.getItem('hb_tg_bot_token') || '';
+    const cid = localStorage.getItem('hb_tg_chat_id') || '';
+    TELEGRAM_BOT_TOKEN = tok;
+    TELEGRAM_CHAT_ID = cid;
+    const tokEl = $('tg-bot-token');
+    const cidEl = $('tg-chat-id');
+    if (tokEl) tokEl.value = tok;
+    if (cidEl) cidEl.value = cid;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -4883,7 +4955,7 @@
     }
 
     // 3. Upload composite PNG to Supabase, then render QR with public URL
-    if (SUPABASE_URL && SUPABASE_KEY) {
+    if (_tgConfigured()) {
       uploadPhotoToSupabase(compositeDataUrl)
         .then(publicUrl => {
           renderQR(publicUrl);
@@ -5412,166 +5484,55 @@
   }
 
   /* ── Admin photo gallery ──────────────────────────────
-     Lists all files in the Supabase bucket so admins can review/download/print
-     from any device that knows the admin password. */
+     Photos/GIFs/videos are now sent to Telegram. The gallery shows a
+     link to the Telegram chat — there's no server-side listing API. */
   async function loadGallery() {
     const list = $('gallery-list');
     if (!list) return;
-    list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Loading…</p>';
+    if (!_tgConfigured()) {
+      list.innerHTML =
+        '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--muted);font-size:0.82rem;line-height:1.6">' +
+          '<p style="font-weight:700;color:var(--text);margin-bottom:8px">Telegram not configured</p>' +
+          '<p>Set your Bot Token and Chat ID in the <strong>Telegram</strong> section above to start saving photos.</p>' +
+        '</div>';
+      return;
+    }
+    list.innerHTML =
+      '<div style="grid-column:1/-1;padding:24px;text-align:center;font-size:0.82rem;line-height:1.6">' +
+        '<p style="font-size:1.4rem;margin-bottom:10px">✈️</p>' +
+        '<p style="font-weight:700;color:var(--text);margin-bottom:6px">Photos are saved to Telegram</p>' +
+        '<p style="color:var(--muted);margin-bottom:14px">All photos, GIFs, and videos are sent to your configured Telegram chat.</p>' +
+        '<button onclick="testTelegramConnection()" style="background:var(--orange);color:#fff;border:none;border-radius:10px;padding:10px 20px;font-weight:700;font-size:0.8rem;cursor:pointer">Test Connection</button>' +
+      '</div>';
+    // Hide storage usage since Telegram has no easy way to query it
+    const usageWrap = $('gallery-usage');
+    if (usageWrap) usageWrap.style.display = 'none';
+  }
+
+  async function testTelegramConnection() {
+    if (!_tgConfigured()) { alert('Please enter Bot Token and Chat ID first.'); return; }
     try {
-      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${SUPABASE_BUCKET}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY
-        },
-        body: JSON.stringify({
-          prefix: '',
-          limit: 200,
-          offset: 0,
-          sortBy: { column: 'name', order: 'desc' }
-        })
-      });
-      if (!r.ok) {
-        const txt = await r.text().catch(() => '');
-        throw new Error('HTTP ' + r.status + ' ' + txt.slice(0, 200));
+      const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChat?chat_id=${TELEGRAM_CHAT_ID}`);
+      const json = await r.json();
+      if (json.ok) {
+        const title = json.result.title || json.result.first_name || json.result.username || 'Chat';
+        alert('Connected to: ' + title);
+      } else {
+        alert('Connection failed: ' + (json.description || 'Unknown error'));
       }
-      const items = await r.json();
-      list.innerHTML = '';
-      // Calculate and display storage usage
-      _updateGalleryUsage(items);
-      if (!items.length) {
-        list.innerHTML =
-          '<div style="grid-column:1/-1;padding:18px;font-size:0.78rem;color:var(--muted);line-height:1.5;text-align:left">' +
-            '<p style="font-weight:700;color:var(--text);margin-bottom:8px">No photos returned by Supabase.</p>' +
-            '<p style="margin-bottom:6px">If photos ARE being uploaded but not showing here, the bucket needs an <strong>SELECT</strong> policy for the anon role:</p>' +
-            '<ol style="padding-left:18px;margin:6px 0">' +
-              '<li>Open Supabase dashboard → Storage → <code>' + SUPABASE_BUCKET + '</code></li>' +
-              '<li>Configuration → toggle <strong>"Public bucket"</strong> ON</li>' +
-              '<li>OR add policy: SELECT on <code>storage.objects</code> for role <code>anon</code> with USING (bucket_id = \'' + SUPABASE_BUCKET + '\')</li>' +
-            '</ol>' +
-          '</div>';
-        return;
-      }
-      items.filter(it => it.name).forEach(it => {
-        const url = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${it.name}`;
-        const wrap = document.createElement('div');
-        wrap.style.cssText = 'position:relative;width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;display:block;min-height:90px';
-        wrap.title = it.name;
-        const isGif = /\.gif$/i.test(it.name);
-        const isVid = /\.(mp4|webm|mov)$/i.test(it.name);
-        if (isVid) {
-          wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:1.6rem;color:var(--muted)">🎬</div>';
-        } else {
-          const img = document.createElement('img');
-          img.src = url; img.loading = 'lazy';
-          img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
-          wrap.appendChild(img);
-        }
-        if (isGif) {
-          const tag = document.createElement('span');
-          tag.textContent = 'GIF';
-          tag.style.cssText = 'position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.7);color:#fff;font-size:0.6rem;font-weight:700;padding:2px 6px;border-radius:4px';
-          wrap.appendChild(tag);
-        }
-        const dlBtn = document.createElement('button');
-        dlBtn.innerHTML = '⬇';
-        dlBtn.title = 'Download';
-        dlBtn.style.cssText = 'position:absolute;bottom:4px;right:4px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.65);color:#fff;border:none;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center';
-        dlBtn.onclick = (ev) => { ev.stopPropagation(); saveToDevice(url, it.name); };
-        wrap.appendChild(dlBtn);
-        wrap.onclick = () => window.open(url, '_blank');
-        list.appendChild(wrap);
-      });
     } catch (e) {
-      list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#c0392b;font-size:0.75rem;padding:24px">Failed to load: ' + (e.message || 'Unknown error') + '</p>';
+      alert('Connection failed: ' + e.message);
     }
   }
 
   async function downloadAllGallery() {
-    const list = $('gallery-list');
-    const items = list.querySelectorAll('img, [title]');
-    if (!items.length) return;
-    if (!confirm('Download all photos in the gallery?')) return;
-    list.querySelectorAll('div[title]').forEach((wrap, i) => {
-      setTimeout(() => {
-        const url = wrap.querySelector('img')?.src;
-        if (url) saveToDevice(url, wrap.title || ('hando-photo-' + i + '.png'));
-      }, i * 250);
-    });
+    alert('Photos are stored in your Telegram chat. Open Telegram to download them.');
   }
 
-  function _updateGalleryUsage(items) {
-    const usageWrap = $('gallery-usage');
-    const usageText = $('gallery-usage-text');
-    const usageBar  = $('gallery-usage-bar');
-    const fileCount = $('gallery-file-count');
-    if (!usageWrap) return;
-    const files = items.filter(it => it.name && it.metadata);
-    const totalBytes = files.reduce((sum, it) => sum + (it.metadata.size || 0), 0);
-    const totalMB = totalBytes / (1024 * 1024);
-    const LIMIT_GB = 1; // Supabase free plan: 1 GB storage
-    const LIMIT_MB = LIMIT_GB * 1024;
-    const pct = Math.min(100, (totalMB / LIMIT_MB) * 100);
-    usageText.textContent = totalMB < 1
-      ? Math.round(totalBytes / 1024) + ' KB / ' + LIMIT_GB + ' GB used'
-      : totalMB.toFixed(1) + ' MB / ' + LIMIT_GB + ' GB used';
-    fileCount.textContent = files.length + ' file' + (files.length !== 1 ? 's' : '');
-    usageBar.style.width = Math.max(0.5, pct) + '%';
-    // Color: green < 60%, orange 60-85%, red > 85%
-    usageBar.style.background = pct > 85 ? '#e74c3c' : pct > 60 ? 'var(--orange)' : '#27ae60';
-    usageWrap.style.display = '';
-  }
+  function _updateGalleryUsage() {}
 
   async function clearGallery() {
-    if (!SUPABASE_URL || !SUPABASE_KEY) { alert('Supabase not configured.'); return; }
-    if (!confirm('Delete ALL photos and videos from the server gallery?\n\nThis cannot be undone.')) return;
-    const list = $('gallery-list');
-    list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Deleting…</p>';
-    try {
-      // List all files first
-      const r = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${SUPABASE_BUCKET}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY
-        },
-        body: JSON.stringify({ prefix: '', limit: 1000, offset: 0 })
-      });
-      if (!r.ok) throw new Error('Failed to list files: HTTP ' + r.status);
-      const items = await r.json();
-      const filenames = items.filter(it => it.name).map(it => it.name);
-      if (!filenames.length) {
-        list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Gallery is already empty</p>';
-        return;
-      }
-      // Delete files individually (batch prefixes API only works for folder prefixes)
-      let deleted = 0, failed = 0;
-      for (const fname of filenames) {
-        try {
-          const dr = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${encodeURIComponent(fname)}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${SUPABASE_KEY}`,
-              'apikey': SUPABASE_KEY
-            }
-          });
-          if (dr.ok) deleted++; else failed++;
-        } catch { failed++; }
-      }
-      if (failed > 0) {
-        console.warn('[gallery] cleared', deleted, 'files,', failed, 'failed');
-        list.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Cleared ${deleted} files (${failed} failed)</p>`;
-      } else {
-        list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:0.75rem;padding:24px">Gallery cleared ✓</p>';
-        console.log('[gallery] cleared', deleted, 'files');
-      }
-    } catch (e) {
-      console.error('[gallery] clear failed:', e);
-      list.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#c0392b;font-size:0.75rem;padding:24px">Clear failed: ' + (e.message || 'Unknown') + '</p>';
-    }
+    alert('Photos are stored in your Telegram chat.\n\nTo delete them, open the chat in Telegram and clear the history.');
   }
 
   /* ── Filter visibility ────────────────────────────────
@@ -6537,8 +6498,94 @@
     const s = _ls(name);
     CELL_W = s.cellW; CELL_H = s.cellH; GAP = s.gap; PAD = s.pad;
     PAD_T = s.padT; PAD_R = s.padR; PAD_B = s.padB; PAD_L = s.padL;
+    _printW = s.printW || 4; _printH = s.printH || 6;
     _syncLayoutSizeUI();
+    _syncPrintSizeUI();
     drawLayoutPreview();
+  }
+
+  /* ─── Print size in inches ─────────────────────────── */
+  // Compute cellW/cellH from print size (inches) + gap + padding
+  function _computeCellsFromPrint(layoutName) {
+    const g = LAYOUT_GRID[layoutName || _activeLayoutTab || layout] || { cols: 1, rows: 1 };
+    const totalPxW = Math.round(_printW * PRINT_DPI);
+    const totalPxH = Math.round(_printH * PRINT_DPI);
+    const pT = PAD_T != null ? PAD_T : PAD;
+    const pR = PAD_R != null ? PAD_R : PAD;
+    const pB = PAD_B != null ? PAD_B : PAD;
+    const pL = PAD_L != null ? PAD_L : PAD;
+    CELL_W = Math.max(100, Math.round((totalPxW - pL - pR - (g.cols - 1) * GAP) / g.cols));
+    CELL_H = Math.max(100, Math.round((totalPxH - pT - pB - (g.rows - 1) * GAP) / g.rows));
+  }
+
+  function setPrintSize(w, h) {
+    // Update preset button states
+    ['4x6','2x3','custom'].forEach(id => {
+      const btn = $('ps-' + id);
+      if (btn) btn.classList.remove('active');
+    });
+    const customDiv = $('ls-custom-size');
+    if (w === 0 && h === 0) {
+      // Custom — show inputs
+      $('ps-custom').classList.add('active');
+      if (customDiv) customDiv.style.display = '';
+      // Read values from inputs
+      const wIn = parseFloat($('ls-width-in')?.value) || 4;
+      const hIn = parseFloat($('ls-height-in')?.value) || 6;
+      _printW = wIn; _printH = hIn;
+    } else {
+      if (w === 4 && h === 6) $('ps-4x6').classList.add('active');
+      else if (w === 2 && h === 3) $('ps-2x3').classList.add('active');
+      if (customDiv) customDiv.style.display = 'none';
+      _printW = w; _printH = h;
+      // Sync custom inputs too
+      const wEl = $('ls-width-in'); if (wEl) wEl.value = w;
+      const hEl = $('ls-height-in'); if (hEl) hEl.value = h;
+    }
+    _computeCellsFromPrint();
+    const targetLayout = _activeLayoutTab || layout;
+    _storeLayoutSizes(targetLayout);
+    if (targetLayout === layout) _applyActiveLayoutSizes(layout);
+    _saveLayoutSizes();
+    _syncLayoutSizeUI();
+    updateTemplateDimLabels();
+    drawLayoutPreview();
+  }
+
+  function applyCustomPrintSize() {
+    const w = parseFloat($('ls-width-in')?.value) || 4;
+    const h = parseFloat($('ls-height-in')?.value) || 6;
+    _printW = Math.max(1, Math.min(20, w));
+    _printH = Math.max(1, Math.min(20, h));
+    _computeCellsFromPrint();
+    const targetLayout = _activeLayoutTab || layout;
+    _storeLayoutSizes(targetLayout);
+    if (targetLayout === layout) _applyActiveLayoutSizes(layout);
+    _saveLayoutSizes();
+    _syncLayoutSizeUI();
+    updateTemplateDimLabels();
+    drawLayoutPreview();
+  }
+
+  // Highlight the correct print size preset button
+  function _syncPrintSizeUI() {
+    ['4x6','2x3','custom'].forEach(id => {
+      const btn = $('ps-' + id);
+      if (btn) btn.classList.remove('active');
+    });
+    const customDiv = $('ls-custom-size');
+    if (_printW === 4 && _printH === 6) {
+      $('ps-4x6')?.classList.add('active');
+      if (customDiv) customDiv.style.display = 'none';
+    } else if (_printW === 2 && _printH === 3) {
+      $('ps-2x3')?.classList.add('active');
+      if (customDiv) customDiv.style.display = 'none';
+    } else {
+      $('ps-custom')?.classList.add('active');
+      if (customDiv) customDiv.style.display = '';
+    }
+    const wEl = $('ls-width-in'); if (wEl) wEl.value = _printW;
+    const hEl = $('ls-height-in'); if (hEl) hEl.value = _printH;
   }
 
   function updateLayoutSize(prop, val) {
@@ -6546,19 +6593,19 @@
     if (isNaN(val)) return;
     // Clamp to valid range
     const ranges = {
-      cellW: [400,1600], cellH: [300,1200], gap: [0,50], pad: [0,400],
+      gap: [0,50], pad: [0,400],
       padT: [0,500], padR: [0,500], padB: [0,500], padL: [0,500]
     };
     const r = ranges[prop];
     if (r) val = Math.max(r[0], Math.min(r[1], val));
-    if (prop === 'cellW') CELL_W = val;
-    else if (prop === 'cellH') CELL_H = val;
-    else if (prop === 'gap') GAP = val;
+    if (prop === 'gap') GAP = val;
     else if (prop === 'pad') { PAD = val; PAD_T = PAD_R = PAD_B = PAD_L = null; }
     else if (prop === 'padT') PAD_T = val;
     else if (prop === 'padR') PAD_R = val;
     else if (prop === 'padB') PAD_B = val;
     else if (prop === 'padL') PAD_L = val;
+    // Recompute cell sizes from print dimensions whenever gap/pad changes
+    _computeCellsFromPrint();
     // Persist into the CURRENT tab's layout record (not the global session layout,
     // because the admin UI is editing whichever tab is active)
     const targetLayout = _activeLayoutTab || layout;
@@ -6618,9 +6665,12 @@
     // Reset ONLY the currently-viewed layout to defaults
     const target = _activeLayoutTab || layout;
     LAYOUT_SIZES[target] = Object.assign({}, LAYOUT_SIZE_DEFAULTS);
-    CELL_W = 800; CELL_H = 600; GAP = 16; PAD = 32;
+    _printW = 4; _printH = 6; GAP = 16; PAD = 32;
     PAD_T = PAD_R = PAD_B = PAD_L = null;
+    _computeCellsFromPrint(target);
+    _storeLayoutSizes(target);
     _syncLayoutSizeUI();
+    _syncPrintSizeUI();
     _saveLayoutSizes();
     _updateCropRatio();
     updateTemplateDimLabels();
@@ -6661,30 +6711,25 @@
       const cy = (pT + pos.y * (CELL_H + GAP)) * scale;
       const cw = CELL_W * scale;
       const ch = CELL_H * scale;
-      const r = Math.max(3, 14 * scale);
       // Cell shadow
       ctx.fillStyle = 'rgba(0,0,0,0.06)';
-      _roundRect(ctx, cx + 2, cy + 2, cw, ch, r);
-      ctx.fill();
+      ctx.fillRect(cx + 2, cy + 2, cw, ch);
       // Cell
       ctx.fillStyle = '#d4a96a';
-      _roundRect(ctx, cx, cy, cw, ch, r);
-      ctx.fill();
+      ctx.fillRect(cx, cy, cw, ch);
       // Cell inner highlight
       ctx.strokeStyle = 'rgba(255,255,255,0.3)';
       ctx.lineWidth = 1;
-      _roundRect(ctx, cx + 1, cy + 1, cw - 2, ch - 2, r - 1);
-      ctx.stroke();
+      ctx.strokeRect(cx + 1, cy + 1, cw - 2, ch - 2);
     });
-    // Dimension label
+    // Dimension label — show inches + pixel count
     const dimLabel = $('ls-dim-label');
     if (dimLabel) {
-      // Show final composite + each photo + aspect ratio of photo
-      const g = _gcd(CELL_W, CELL_H);
-      const rw = CELL_W / g, rh = CELL_H / g;
+      const inW = (totalW / PRINT_DPI).toFixed(1);
+      const inH = (totalH / PRINT_DPI).toFixed(1);
       dimLabel.innerHTML =
-        '<div style="font-size:0.85rem;color:var(--text);font-weight:700;margin-bottom:2px">Final size: ' + totalW + ' × ' + totalH + ' px</div>' +
-        '<div style="font-size:0.7rem;color:var(--muted);font-weight:500">Each photo: ' + CELL_W + ' × ' + CELL_H + ' px (' + rw + ':' + rh + ' ratio)</div>';
+        '<div style="font-size:0.95rem;color:var(--text);font-weight:700;margin-bottom:2px">' + _printW + ' × ' + _printH + ' inches</div>' +
+        '<div style="font-size:0.7rem;color:var(--muted);font-weight:500">' + totalW + ' × ' + totalH + ' px at ' + PRINT_DPI + ' DPI</div>';
     }
   }
 
@@ -6732,6 +6777,23 @@
       }
       // Apply current layout's settings
       _applyActiveLayoutSizes(layout);
+      // Recompute cells from print size for all layouts that have print dimensions
+      Object.keys(LAYOUT_SIZES).forEach(k => {
+        const s = _ls(k);
+        if (s.printW && s.printH) {
+          // Temporarily set globals, compute, store back
+          const savedW = _printW, savedH = _printH, savedGAP = GAP, savedPAD = PAD;
+          const savedPT = PAD_T, savedPR = PAD_R, savedPB = PAD_B, savedPL = PAD_L;
+          _printW = s.printW; _printH = s.printH; GAP = s.gap; PAD = s.pad;
+          PAD_T = s.padT; PAD_R = s.padR; PAD_B = s.padB; PAD_L = s.padL;
+          _computeCellsFromPrint(k);
+          s.cellW = CELL_W; s.cellH = CELL_H;
+          _printW = savedW; _printH = savedH; GAP = savedGAP; PAD = savedPAD;
+          PAD_T = savedPT; PAD_R = savedPR; PAD_B = savedPB; PAD_L = savedPL;
+        }
+      });
+      // Re-apply current layout
+      _applyActiveLayoutSizes(layout);
       _syncLayoutSizeUI();
       if (typeof drawLayoutPreview === 'function') drawLayoutPreview();
     } catch {}
@@ -6741,7 +6803,7 @@
   function _syncLayoutSizeUI() {
     const name = _activeLayoutTab || layout;
     const s = _ls(name);
-    const vals = { cellw: s.cellW, cellh: s.cellH, gap: s.gap, pad: s.pad };
+    const vals = { gap: s.gap, pad: s.pad };
     Object.keys(vals).forEach(key => {
       const slider = $('ls-' + key); if (slider) slider.value = vals[key];
       const num = $('ls-' + key + '-num'); if (num) num.value = vals[key];
@@ -6756,6 +6818,8 @@
         const el = $('ls-' + k); if (el) el.value = pvs[i];
       });
     }
+    // Sync print size buttons + inputs
+    _syncPrintSizeUI();
   }
 
   function _updateCropRatio() {
@@ -6915,6 +6979,8 @@
     }
     // Restore layout sizes
     _restoreLayoutSizes();
+    // Restore Telegram config
+    _restoreTelegramConfig();
     updateTemplateDimLabels();
     drawLayoutPreviews();
     // Add custom filter pills to preview screen
