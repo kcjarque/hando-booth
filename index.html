@@ -5512,13 +5512,29 @@
   async function testTelegramConnection() {
     if (!_tgConfigured()) { alert('Please enter Bot Token and Chat ID first.'); return; }
     try {
+      // First verify the chat exists
       const r = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChat?chat_id=${TELEGRAM_CHAT_ID}`);
       const json = await r.json();
-      if (json.ok) {
-        const title = json.result.title || json.result.first_name || json.result.username || 'Chat';
-        alert('Connected to: ' + title);
-      } else {
+      if (!json.ok) {
         alert('Connection failed: ' + (json.description || 'Unknown error'));
+        return;
+      }
+      const title = json.result.title || json.result.first_name || json.result.username || 'Chat';
+      // Send a test message to the chat
+      const msg = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: '📸 *Hando Booth connected\\!*\n\nPhotos, GIFs, and videos from the booth will be sent here\\.',
+          parse_mode: 'MarkdownV2'
+        })
+      });
+      const msgJson = await msg.json();
+      if (msgJson.ok) {
+        alert('Connected to: ' + title + '\n\nA test message was sent to the chat.');
+      } else {
+        alert('Connected to: ' + title + '\n\nBut could not send message: ' + (msgJson.description || 'Unknown error') + '\n\nMake sure the bot is added to the chat.');
       }
     } catch (e) {
       alert('Connection failed: ' + e.message);
