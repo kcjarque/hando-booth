@@ -1335,7 +1335,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.5</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.6</span>
   </div>
 </div>
 
@@ -1943,17 +1943,18 @@
           <div style="margin-bottom:14px">
             <label style="font-size:0.8rem;color:var(--text);font-weight:700;display:block;margin-bottom:8px">Final Print Size</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-              <button onclick="setPrintSize(4,6)" id="ps-4x6" class="delay-btn" style="flex:1;min-width:80px;font-weight:700">4 × 6 in</button>
-              <button onclick="setPrintSize(2,3)" id="ps-2x3" class="delay-btn" style="flex:1;min-width:80px;font-weight:700">2 × 3 in</button>
-              <button onclick="setPrintSize(0,0)" id="ps-custom" class="delay-btn" style="flex:1;min-width:80px;font-weight:700">Custom</button>
+              <button onclick="setPrintSize(4,6)" id="ps-4x6" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">4 × 6</button>
+              <button onclick="setPrintSize(3,4)" id="ps-3x4" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">3 × 4</button>
+              <button onclick="setPrintSize(2,6)" id="ps-2x6" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">2 × 6</button>
+              <button onclick="setPrintSize(0,0)" id="ps-custom" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">Custom</button>
             </div>
             <!-- Custom size inputs (shown when Custom is selected) -->
             <div id="ls-custom-size" style="display:none">
               <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
                 <label style="font-size:0.75rem;color:var(--text);font-weight:600;white-space:nowrap">Width (in)</label>
-                <input type="number" id="ls-width-in" value="4" min="1" max="20" step="0.5" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
+                <input type="number" id="ls-width-in" value="4" min="1" max="20" step="0.5" oninput="applyCustomPrintSize()" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
                 <label style="font-size:0.75rem;color:var(--text);font-weight:600;white-space:nowrap">Height (in)</label>
-                <input type="number" id="ls-height-in" value="6" min="1" max="20" step="0.5" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
+                <input type="number" id="ls-height-in" value="6" min="1" max="20" step="0.5" oninput="applyCustomPrintSize()" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
               </div>
             </div>
           </div>
@@ -2575,11 +2576,11 @@
   };
   const LAYOUT_SIZE_DEFAULTS = { cellW: 800, cellH: 600, gap: 16, pad: 32, padT: null, padR: null, padB: null, padL: null, printW: 4, printH: 6 };
   const LAYOUT_SIZES = {
-    single: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
-    double: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
-    strip:  Object.assign({}, LAYOUT_SIZE_DEFAULTS),
-    strip4: Object.assign({}, LAYOUT_SIZE_DEFAULTS),
-    quad:   Object.assign({}, LAYOUT_SIZE_DEFAULTS)
+    single: Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 4, printH: 6 }),
+    double: Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 3, printH: 4 }),
+    strip:  Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 2, printH: 6 }),
+    strip4: Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 2, printH: 6 }),
+    quad:   Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 4, printH: 6 })
   };
   function _ls(layoutName) { return LAYOUT_SIZES[layoutName] || LAYOUT_SIZES.single; }
   // Expose the active layout's values through the same variable names the rest
@@ -2764,18 +2765,27 @@
       }
       _customShortAudio.volume = 1.0;
       _customShortAudio.currentTime = 0;
-      // Play just the first second so countdown stays snappy
-      _customShortTimer = setTimeout(() => {
-        try { _customShortAudio.pause(); _customShortAudio.currentTime = 0; } catch {}
-      }, 1000);
+      // Let the full sound play — do NOT cut it short
       _customShortAudio.play().catch(() => {});
       return true;
     } catch { return false; }
   }
 
+  // Get the duration of the custom sound (returns a promise)
+  function _getCustomSoundDuration() {
+    return new Promise(resolve => {
+      if (!_customShortAudio || !_customShortAudio.duration || isNaN(_customShortAudio.duration)) {
+        resolve(1000); // fallback 1s if unknown
+        return;
+      }
+      resolve(Math.ceil(_customShortAudio.duration * 1000));
+    });
+  }
+
   function playCountdownTick() {
     if (_soundPreset === 'silent') return;
-    // Custom sound is reserved for the FINAL tick / shutter — ticks always beep
+    // Custom sound plays at EVERY tick (not just final)
+    if (_soundPreset === 'custom' && _playCustomShort()) return;
     if (_soundPreset === 'classic') { playBeep(800, 0.06, 1.0, 'square'); return; }
     playBeep(660, 0.10, 1.0, 'sine');
   }
@@ -3598,21 +3608,29 @@
         cdNum.style.animation = 'none';
         void cdNum.offsetHeight;
         cdNum.style.animation = 'cdPop 1s cubic-bezier(0.22,1,0.36,1) forwards';
-        // Play tick sound — final number gets a distinct tone
+        // Play tick sound
         if (n === 1) {
           playCountdownFinal();
-          // FIX 5: When custom sound is active, take the photo NOW (when the sound plays)
-          // instead of waiting another 1s tick. The custom sound IS the shutter cue.
+          // When custom sound is active, take the photo after the sound finishes
           if (_soundPreset === 'custom' && _customSoundUrl) {
-            // Short delay so the sound is heard before the flash
-            setTimeout(resolve, 150);
+            _getCustomSoundDuration().then(dur => {
+              // Wait for sound to finish, then resolve (take photo)
+              setTimeout(resolve, Math.max(150, dur));
+            });
             return;
           }
         } else {
           playCountdownTick();
         }
         n--;
-        setTimeout(tick, 1000);
+        // When custom sound is active, wait for the sound to finish before next tick
+        if (_soundPreset === 'custom' && _customSoundUrl && _customShortAudio) {
+          _getCustomSoundDuration().then(dur => {
+            setTimeout(tick, Math.max(1000, dur));
+          });
+        } else {
+          setTimeout(tick, 1000);
+        }
       }
       tick();
     });
@@ -4588,8 +4606,20 @@
 
     // Convert dataUrl or blobUrl to a Blob
     const res = await fetch(dataUrl);
-    const blob = await res.blob();
-    const filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    let blob = await res.blob();
+    let filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+
+    // For photos: compress to JPEG for much faster upload (PNG can be 5MB+, JPEG ~300KB)
+    if (/^image\/(png|jpe?g)/i.test(contentType) && blob.size > 500000) {
+      try {
+        const jpegBlob = await _compressForTelegram(blob);
+        if (jpegBlob && jpegBlob.size < blob.size) {
+          blob = jpegBlob;
+          filename = filename.replace(/\.\w+$/, '.jpg');
+          contentType = 'image/jpeg';
+        }
+      } catch {}
+    }
 
     // Pick the right Telegram API method based on content type
     let method = 'sendDocument'; // fallback
@@ -4609,55 +4639,41 @@
 
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
-    // Retry with backoff
-    const maxAttempts = 3;
-    let lastErr = null;
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const ac = new AbortController();
-      const timeoutMs = 30000 + (attempt * 15000);
-      const timer = setTimeout(() => ac.abort(), timeoutMs);
-      try {
-        const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
-        clearTimeout(timer);
-        const json = await r.json();
-        if (!json.ok) {
-          lastErr = new Error(`Telegram ${method} failed: ${json.description || r.status}`);
-          if (r.status >= 400 && r.status < 500 && r.status !== 429) throw lastErr;
-        } else {
-          // Extract file_id from response to build a public URL
-          const result = json.result;
-          let fileId = null;
-          if (result.photo && result.photo.length) {
-            // photo array — last element is the largest
-            fileId = result.photo[result.photo.length - 1].file_id;
-          } else if (result.animation) {
-            fileId = result.animation.file_id;
-          } else if (result.video) {
-            fileId = result.video.file_id;
-          } else if (result.document) {
-            fileId = result.document.file_id;
-          }
-          if (fileId) {
-            // Get download URL via getFile
-            const gf = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`);
-            const gfJson = await gf.json();
-            if (gfJson.ok && gfJson.result.file_path) {
-              return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${gfJson.result.file_path}`;
-            }
-          }
-          // If we can't get a file URL, return a placeholder (upload still succeeded)
-          console.log('[telegram] uploaded but could not get file URL');
-          return null;
-        }
-      } catch (err) {
-        clearTimeout(timer);
-        lastErr = err;
+    // Single attempt with 20s timeout (uploads run in background, no need for retries)
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 20000);
+    try {
+      const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
+      clearTimeout(timer);
+      const json = await r.json();
+      if (!json.ok) {
+        throw new Error(`Telegram ${method} failed: ${json.description || r.status}`);
       }
-      if (attempt < maxAttempts) {
-        await new Promise(r => setTimeout(r, 800 * attempt));
-      }
+      console.log('[telegram] uploaded:', filename, Math.round(blob.size/1024) + 'KB');
+      return null; // No URL needed — sharing handled via native share sheet
+    } catch (err) {
+      clearTimeout(timer);
+      console.warn('[telegram] upload failed:', err.message);
+      throw err;
     }
-    throw new Error(`Telegram upload failed after ${maxAttempts} attempts: ${lastErr && lastErr.message || 'unknown'}`);
+  }
+
+  // Compress image to JPEG for faster Telegram upload
+  function _compressForTelegram(blob) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0);
+        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b); }, 'image/jpeg', 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
   }
 
   // Backward-compatible alias so existing call-sites work
@@ -4831,28 +4847,42 @@
 
   async function shareClaimPhoto() {
     const doneImg = $('claim-done-img');
-    // Get src from either the img element or the hidden input — more reliable
+    // Get src from either the img element or the hidden input
     const imgSrc = doneImg.src || $('claim-photo-url').value;
     if (!imgSrc) { alert('No photo to share.'); return; }
     try {
-      const resp = await fetch(imgSrc);
-      const blob = await resp.blob();
-      // Convert to JPEG for broader compatibility
+      // Try to fetch the image (may fail with CORS for external URLs)
+      let blob;
+      try {
+        const resp = await fetch(imgSrc);
+        blob = await resp.blob();
+      } catch {
+        // CORS blocked — try using the img element directly via canvas
+        if (doneImg.naturalWidth) {
+          const c = document.createElement('canvas');
+          c.width = doneImg.naturalWidth; c.height = doneImg.naturalHeight;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(doneImg, 0, 0);
+          blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+        }
+        if (!blob) { window.open(imgSrc, '_blank'); return; }
+      }
       const jpegBlob = blob.type === 'image/jpeg' ? blob : await _toJpegBlob(blob);
       const file = new File([jpegBlob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Always try share with file first (skip canShare check — it's unreliable on iOS)
+      if (navigator.share) {
         try {
           await navigator.share({ files: [file], title: 'Hando Booth Photo', text: 'Check out my Hando Booth photo!' });
           return;
-        } catch (e) { if (e.name === 'AbortError') return; }
+        } catch (e) {
+          if (e.name === 'AbortError') return;
+          console.warn('[share] claim photo share failed:', e.message);
+        }
       }
       // Fallback: download
       saveToDevice(jpegBlob, file.name, 'image/jpeg');
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        // Last resort: open in new tab
-        window.open(imgSrc, '_blank');
-      }
+      if (err.name !== 'AbortError') window.open(imgSrc, '_blank');
     }
   }
 
@@ -4879,34 +4909,37 @@
     const url = gifEl && gifEl.value ? gifEl.value : null;
     if (!url) return;
 
-    // iOS flattens shared GIF files to a single-frame still image.
-    // On iOS, share the URL directly — the receiving app embeds a playing preview.
-    if (_IS_IOS && navigator.share) {
-      try {
-        await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
-        return;
-      } catch (e) { if (e.name === 'AbortError') return; }
-    }
-
     try {
-      const resp = await fetch(url);
-      const blob = await resp.blob();
+      let blob;
+      try {
+        const resp = await fetch(url);
+        blob = await resp.blob();
+      } catch {
+        // CORS blocked — try sharing URL directly
+        if (navigator.share) {
+          await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
+          return;
+        }
+        window.open(url, '_blank'); return;
+      }
       const file = new File([blob], 'hando-booth-' + Date.now() + '.gif', { type: 'image/gif' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      // Try share with file first
+      if (navigator.share) {
         try {
           await navigator.share({ files: [file], title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!' });
           return;
-        } catch (e) { if (e.name === 'AbortError') return; }
-      }
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
-          return;
-        } catch (e) { if (e.name === 'AbortError') return; }
+        } catch (e) {
+          if (e.name === 'AbortError') return;
+          // File share failed — try URL share
+          try {
+            await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
+            return;
+          } catch (e2) { if (e2.name === 'AbortError') return; }
+        }
       }
       saveToDevice(blob, file.name, 'image/gif');
-    } catch {
-      window.open(url, '_blank');
+    } catch (e) {
+      if (e.name !== 'AbortError') window.open(url, '_blank');
     }
   }
 
@@ -5738,6 +5771,9 @@
     // "Add Photo" button inside editor (toggled by userSticker flag)
     const addPhotoBtn = document.getElementById('editor-add-photo-btn');
     if (addPhotoBtn) addPhotoBtn.style.display = _features.userSticker ? '' : 'none';
+    // Mirror toggle button on preview screen
+    const mirrorBtn = $('preview-mirror-btn');
+    if (mirrorBtn) mirrorBtn.style.display = _features.mirrorToggle ? '' : 'none';
     // Re-render editor sticker bar if it exists
     if (typeof renderEditorStickers === 'function') { try { renderEditorStickers(); } catch {} }
   }
@@ -6557,7 +6593,7 @@
 
   function setPrintSize(w, h) {
     // Update preset button states
-    ['4x6','2x3','custom'].forEach(id => {
+    ['4x6','3x4','2x6','custom'].forEach(id => {
       const btn = $('ps-' + id);
       if (btn) btn.classList.remove('active');
     });
@@ -6571,8 +6607,9 @@
       const hIn = parseFloat($('ls-height-in')?.value) || 6;
       _printW = wIn; _printH = hIn;
     } else {
-      if (w === 4 && h === 6) $('ps-4x6').classList.add('active');
-      else if (w === 2 && h === 3) $('ps-2x3').classList.add('active');
+      if (w === 4 && h === 6) $('ps-4x6')?.classList.add('active');
+      else if (w === 3 && h === 4) $('ps-3x4')?.classList.add('active');
+      else if (w === 2 && h === 6) $('ps-2x6')?.classList.add('active');
       if (customDiv) customDiv.style.display = 'none';
       _printW = w; _printH = h;
       // Sync custom inputs too
@@ -6606,7 +6643,7 @@
 
   // Highlight the correct print size preset button
   function _syncPrintSizeUI() {
-    ['4x6','2x3','custom'].forEach(id => {
+    ['4x6','3x4','2x6','custom'].forEach(id => {
       const btn = $('ps-' + id);
       if (btn) btn.classList.remove('active');
     });
@@ -6614,8 +6651,11 @@
     if (_printW === 4 && _printH === 6) {
       $('ps-4x6')?.classList.add('active');
       if (customDiv) customDiv.style.display = 'none';
-    } else if (_printW === 2 && _printH === 3) {
-      $('ps-2x3')?.classList.add('active');
+    } else if (_printW === 3 && _printH === 4) {
+      $('ps-3x4')?.classList.add('active');
+      if (customDiv) customDiv.style.display = 'none';
+    } else if (_printW === 2 && _printH === 6) {
+      $('ps-2x6')?.classList.add('active');
       if (customDiv) customDiv.style.display = 'none';
     } else {
       $('ps-custom')?.classList.add('active');
