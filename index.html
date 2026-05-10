@@ -3551,13 +3551,7 @@
       const file = new File([blob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
       const downloadFallback = () => saveToDevice(blob, file.name, 'image/jpeg');
       await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', downloadFallback);
-      // Also upload to Telegram in the background (non-blocking)
-      if (_tgConfigured()) {
-        uploadToTelegram(compositeDataUrl, 'image/png', 'png').catch(e => console.warn('[telegram] bg upload failed:', e.message));
-        if (photos.length > 1) {
-          _uploadGifAsMp4ToTelegram();
-        }
-      }
+      // Telegram upload already happens in doGetQR() — don't upload again
     } catch (err) {
       if (err.name !== 'AbortError') {
         // Last-resort download
