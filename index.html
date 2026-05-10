@@ -1595,11 +1595,14 @@
   <div class="prev-section" style="text-align:center">
     <p class="section-label">Get your photo</p>
     <!-- FIX 2: stable #qr-box wrapper; only #qr-container contents are replaced -->
-    <div id="qr-box" style="display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 4px 20px var(--shadow);min-width:164px;min-height:164px">
+    <div id="qr-box" style="display:none;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 4px 20px var(--shadow);min-width:164px;min-height:164px">
       <div id="qr-container"></div>
     </div>
     <p id="qr-hint" style="font-size:0.7rem;color:var(--muted);margin-top:10px;text-align:center"></p>
   </div>
+
+  <!-- Share buttons (free-floating, same style as action-row) -->
+  <div id="ty-share-row" class="action-row" style="max-width:380px;width:100%"></div>
 
   <div class="action-row" style="max-width:380px;width:100%">
     <button class="btn-ghost" style="font-size:1rem;flex:0 0 auto;padding:0 28px" onclick="showScreen('gif-screen')">← Back</button>
@@ -4268,16 +4271,16 @@
     $('ty-name').textContent = 'Enjoy your photo!';
     $('ty-img').src = compositeDataUrl || '';
 
-    // Build share buttons instead of QR (Telegram doesn't provide public URLs)
+    // Build share buttons in the free-floating row (not inside the QR box)
     const hasGif = gifUrl && photos.length > 1;
-    let btns = '<div style="display:flex;flex-direction:column;gap:10px;padding:8px 0;align-items:center">';
-    btns += '<button onclick="sharePhoto()" style="background:var(--orange);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-weight:700;font-size:0.85rem;cursor:pointer;min-width:180px;touch-action:manipulation">↗ Share Photo</button>';
+    const shareRow = $('ty-share-row');
+    let btns = '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="sharePhoto()">↗ Share Photo</button>';
     if (hasGif) {
-      btns += '<button onclick="shareGifFromTY()" style="background:var(--orange);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-weight:700;font-size:0.85rem;cursor:pointer;min-width:180px;touch-action:manipulation">↗ Share GIF</button>';
+      btns += '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="shareGifFromTY()">↗ Share GIF</button>';
     }
-    btns += '</div>';
-    $('qr-container').innerHTML = btns;
-    $('qr-hint').textContent = 'Tap to share via AirDrop, Messages, or social media';
+    shareRow.innerHTML = btns;
+    $('qr-box').style.display = 'none';
+    $('qr-hint').textContent = '';
 
     showScreen('thankyou');
 
