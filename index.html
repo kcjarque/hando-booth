@@ -2687,17 +2687,6 @@
   window.addEventListener('touchstart', function() {
     try {
       if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
-      // Also keep custom audio element alive by touching it on each gesture
-      if (_customShortAudio && _soundPreset === 'custom') {
-        // Silent play+pause to keep iOS from suspending the element
-        const vol = _customShortAudio.volume;
-        _customShortAudio.volume = 0;
-        _customShortAudio.play().then(() => {
-          _customShortAudio.pause();
-          _customShortAudio.currentTime = 0;
-          _customShortAudio.volume = vol;
-        }).catch(() => { _customShortAudio.volume = vol; });
-      }
     } catch {}
   }, { passive: true });
 
@@ -2791,17 +2780,6 @@
           _customShortAudio._srcUrl = _customSoundUrl;
           _customShortAudio.preload = 'auto';
         }
-        // Silent play+pause to keep iOS from killing the audio element
-        // Do NOT call .load() — that resets the unlock state on iOS
-        try {
-          const v = _customShortAudio.volume;
-          _customShortAudio.volume = 0;
-          _customShortAudio.play().then(() => {
-            _customShortAudio.pause();
-            _customShortAudio.currentTime = 0;
-            _customShortAudio.volume = v;
-          }).catch(() => { _customShortAudio.volume = v; });
-        } catch {}
       }
     } catch {}
   }
@@ -3219,11 +3197,17 @@
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
+      // Show full camera frame in video mode — no cropping, so preview matches recording
+      $('video').style.objectFit = 'contain';
+      $('video').style.background = '#000';
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
       showVideoOverlayOnCamera(false);
       buildThumbs();
+      // Photos use cover to fill the preview area
+      $('video').style.objectFit = 'cover';
+      $('video').style.background = '';
     }
     showScreen('camera');
   }
@@ -3271,35 +3255,14 @@
     const vid = $('video');
     const vw = vid.videoWidth || 1280, vh = vid.videoHeight || 720;
 
-    // Match the recording to what the user actually sees on screen.
-    // The camera preview uses object-fit:cover on the viewport, so compute
-    // the visible region and use that same aspect ratio for the recording.
-    const vidRect = vid.getBoundingClientRect();
-    const screenAR = vidRect.width / vidRect.height;
-    const camAR = vw / vh;
-
-    // Visible portion of the camera (what the user sees)
-    let visW = vw, visH = vh;
-    if (camAR > screenAR) {
-      // camera is wider than screen → sides are cropped
-      visW = vh * screenAR;
-    } else if (camAR < screenAR) {
-      // camera is taller than screen → top/bottom cropped
-      visH = vw / screenAR;
-    }
-
-    // Use admin vidWidth/vidHeight if set, but default to the visible area ratio
-    const useCustomSize = (vidWidth !== 1280 || vidHeight !== 720);
+    // Record exactly what the user sees on screen.
+    // The camera preview uses object-fit:cover which crops the raw feed
+    // to fill the viewport. We use the raw camera resolution directly —
+    // no cropping, so the final video matches the full camera frame.
     const rc = document.createElement('canvas');
-    if (useCustomSize) {
-      rc.width = vidWidth; rc.height = vidHeight;
-    } else {
-      // Match visible area, capped at 1280px for performance
-      const scale = Math.min(1, 1280 / Math.max(visW, visH));
-      rc.width = Math.round(visW * scale);
-      rc.height = Math.round(visH * scale);
-    }
-    console.log('[rec] output canvas:', rc.width + 'x' + rc.height, 'from raw camera:', vw + 'x' + vh, 'visible:', Math.round(visW) + 'x' + Math.round(visH));
+    rc.width = Math.min(vw, 1280);
+    rc.height = Math.round(vh * (rc.width / vw));
+    console.log('[rec] output canvas:', rc.width + 'x' + rc.height, 'from raw camera:', vw + 'x' + vh);
     _recCanvas = rc;
     const rctx = rc.getContext('2d');
 
@@ -3311,25 +3274,15 @@
     }
 
     // Draw loop: video (mirror if enabled) + overlay onto canvas
-    // Compute crop rect from raw video to output canvas (same as what's visible on screen)
+    // Draw the full camera frame — no cropping, so video matches what was captured
     const outW = rc.width, outH = rc.height;
-    const outAR = outW / outH;
-    let sx = 0, sy = 0, sw = vw, sh = vh;
-    if (camAR > outAR) {
-      // raw is wider than output → crop sides
-      sw = vh * outAR;
-      sx = (vw - sw) / 2;
-    } else if (camAR < outAR) {
-      sh = vw / outAR;
-      sy = (vh - sh) / 2;
-    }
     function drawFrame() {
       rctx.save();
       if (_shouldMirror()) {
         rctx.translate(outW, 0);
         rctx.scale(-1, 1);
       }
-      rctx.drawImage(vid, sx, sy, sw, sh, 0, 0, outW, outH);
+      rctx.drawImage(vid, 0, 0, vw, vh, 0, 0, outW, outH);
       rctx.restore();
       if (ovImg && ovImg.complete && ovImg.naturalWidth) {
         rctx.drawImage(ovImg, 0, 0, outW, outH);
@@ -4351,14 +4304,8 @@
     $('qr-hint').textContent = '';
 
     showScreen('thankyou');
-
-    // Upload to Telegram in background (non-blocking)
-    if (_tgConfigured()) {
-      uploadToTelegram(compositeDataUrl, 'image/png', 'png').catch(e => console.warn('[telegram] bg upload:', e.message));
-      if (hasGif) {
-        _uploadGifAsMp4ToTelegram();
-      }
-    }
+    // Telegram upload removed — user shares manually via share buttons.
+    // No auto-upload to avoid double-sending.
   }
 
   /* Convert photo frames to MP4 video for sharing (Messenger strips GIF animation) */
