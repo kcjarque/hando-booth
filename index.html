@@ -1426,6 +1426,7 @@
       <button class="fpill"        data-f="vintage" onclick="setFilter('vintage')">Vintage</button>
       <button class="fpill"        data-f="glow"    onclick="setFilter('glow')">Glow</button>
       <button class="fpill"        data-f="cold"    onclick="setFilter('cold')">Cold</button>
+      <button class="fpill"        data-f="disposable" onclick="setFilter('disposable')">Disposable</button>
     </div>
   </div>
 
@@ -2193,71 +2194,87 @@
 
 
   /* ─── Stock overlays ──────────────────────────────── */
-  const STOCK_OVERLAYS = (() => {
+  // Stock overlays — SVG dimensions update to match layout via refreshStockOverlays()
+  let STOCK_OVERLAYS = [];
+  function refreshStockOverlays() {
+    // Get current layout composite dimensions for correct aspect ratio
+    const geo = (typeof layoutGeometry === 'function') ? layoutGeometry() : { cw: 1200, ch: 1800 };
+    const W = geo.cw, H = geo.ch;
     const mk = (id, label, body) => ({
       id, label, isStock: true, layout: 'all', enabled: true,
       dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
-        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" ` +
-        `preserveAspectRatio="none" width="1600" height="1600">${body}</svg>`
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 ${100*H/W}" ` +
+        `preserveAspectRatio="none" width="${W}" height="${H}">${body}</svg>`
       )
     });
-    const sprockets = [4,13,22,31,40,49,58,67,76,85,94]
-      .map(y =>
-        `<rect x="1.4" y="${y}" width="4.6" height="3.5" rx="0.5" fill="#2d2d2d"/>` +
-        `<rect x="94" y="${y}" width="4.6" height="3.5" rx="0.5" fill="#2d2d2d"/>`
-      ).join('');
+    const vb = 100 * H / W; // viewBox height (width is always 100)
+    // Sprocket positions scaled to viewBox height
+    const sprocketCount = Math.max(6, Math.round(vb / 9));
+    const sprockets = Array.from({length: sprocketCount}, (_, i) => {
+      const y = 4 + i * ((vb - 8) / (sprocketCount - 1));
+      return `<rect x="1.4" y="${y.toFixed(1)}" width="4.6" height="3.5" rx="0.5" fill="#2d2d2d"/>` +
+             `<rect x="94" y="${y.toFixed(1)}" width="4.6" height="3.5" rx="0.5" fill="#2d2d2d"/>`;
+    }).join('');
+    // Confetti at corners, using vb for bottom positions
     const confettiData = [
       [2,2,3,3,'#c8831c',15],  [6,1,2,2,'#e8a840',-10],[1,7,2.5,2.5,'#8a7258',25],
       [5,6,2,2,'#c8831c',-20], [9,3,1.5,1.5,'#e8a840',10],[3,10,1.5,1.5,'#c8831c',35],
       [95,2,3,3,'#e8a840',-15],[91,1,2,2,'#c8831c',10],  [97,7,2.5,2.5,'#8a7258',-25],
       [92,6,2,2,'#e8a840',20], [89,3,1.5,1.5,'#c8831c',-10],[95.5,10,1.5,1.5,'#e8a840',-35],
-      [2,95,3,3,'#8a7258',-15],[6,97,2,2,'#c8831c',10],  [1,88,2.5,2.5,'#e8a840',25],
-      [5,91,2,2,'#c8831c',-20],[9,95.5,1.5,1.5,'#e8a840',10],[3,85,1.5,1.5,'#8a7258',35],
-      [95,95,3,3,'#c8831c',15],[91,97,2,2,'#e8a840',-10],[97,88,2.5,2.5,'#c8831c',-25],
-      [92,91,2,2,'#8a7258',20],[89,95.5,1.5,1.5,'#e8a840',-10],[95.5,85,1.5,1.5,'#c8831c',-35],
+      [2,vb-5,3,3,'#8a7258',-15],[6,vb-3,2,2,'#c8831c',10],  [1,vb-12,2.5,2.5,'#e8a840',25],
+      [5,vb-9,2,2,'#c8831c',-20],[9,vb-4.5,1.5,1.5,'#e8a840',10],[3,vb-15,1.5,1.5,'#8a7258',35],
+      [95,vb-5,3,3,'#c8831c',15],[91,vb-3,2,2,'#e8a840',-10],[97,vb-12,2.5,2.5,'#c8831c',-25],
+      [92,vb-9,2,2,'#8a7258',20],[89,vb-4.5,1.5,1.5,'#e8a840',-10],[95.5,vb-15,1.5,1.5,'#c8831c',-35],
     ];
     const confetti = confettiData
       .map(([x,y,w,h,c,r]) =>
         `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}" transform="rotate(${r},${x+w/2},${y+h/2})"/>`
       ).join('');
 
-    return [
+    // Preserve enabled states from previous overlays
+    const prevStates = {};
+    STOCK_OVERLAYS.forEach(ov => { prevStates[ov.id] = ov.enabled; });
+
+    STOCK_OVERLAYS = [
       mk('stock-classic', 'Classic',
         `<path fill-rule="evenodd" fill="rgba(255,255,255,0.92)"
-           d="M0 0H100V100H0Z M2.8 2.8H97.2V97.2H2.8Z"/>
-         <rect x="3.5" y="3.5" width="93" height="93" fill="none"
+           d="M0 0H100V${vb}H0Z M2.8 2.8H97.2V${vb-2.8}H2.8Z"/>
+         <rect x="3.5" y="3.5" width="93" height="${vb-7}" fill="none"
            stroke="rgba(255,255,255,0.35)" stroke-width="0.5"/>`
       ),
       mk('stock-polaroid', 'Polaroid',
         `<path fill-rule="evenodd" fill="white"
-           d="M0 0H100V100H0Z M4.5 4.5H95.5V81H4.5Z"/>
-         <rect x="4.5" y="81" width="91" height="14.5" fill="rgba(248,244,236,0.95)"/>
-         <rect x="0.3" y="0.3" width="99.4" height="99.4" fill="none" stroke="#d8d0be" stroke-width="0.4"/>`
+           d="M0 0H100V${vb}H0Z M4.5 4.5H95.5V${vb*0.81}H4.5Z"/>
+         <rect x="4.5" y="${vb*0.81}" width="91" height="${vb*0.145}" fill="rgba(248,244,236,0.95)"/>
+         <rect x="0.3" y="0.3" width="99.4" height="${vb-0.6}" fill="none" stroke="#d8d0be" stroke-width="0.4"/>`
       ),
       mk('stock-neon', 'Neon',
-        `<polyline points="3,16 3,3 16,3"    fill="none" stroke="#c8831c" stroke-width="2.6" stroke-linecap="square"/>
-         <polyline points="84,3 97,3 97,16"   fill="none" stroke="#c8831c" stroke-width="2.6" stroke-linecap="square"/>
-         <polyline points="3,84 3,97 16,97"   fill="none" stroke="#e8a840" stroke-width="2.6" stroke-linecap="square"/>
-         <polyline points="84,97 97,97 97,84" fill="none" stroke="#e8a840" stroke-width="2.6" stroke-linecap="square"/>
-         <circle cx="3"  cy="3"  r="1.6" fill="#c8831c"/>
-         <circle cx="97" cy="3"  r="1.6" fill="#c8831c"/>
-         <circle cx="3"  cy="97" r="1.6" fill="#e8a840"/>
-         <circle cx="97" cy="97" r="1.6" fill="#e8a840"/>`
+        `<polyline points="3,16 3,3 16,3"               fill="none" stroke="#c8831c" stroke-width="2.6" stroke-linecap="square"/>
+         <polyline points="84,3 97,3 97,16"              fill="none" stroke="#c8831c" stroke-width="2.6" stroke-linecap="square"/>
+         <polyline points="3,${vb-16} 3,${vb-3} 16,${vb-3}"    fill="none" stroke="#e8a840" stroke-width="2.6" stroke-linecap="square"/>
+         <polyline points="84,${vb-3} 97,${vb-3} 97,${vb-16}" fill="none" stroke="#e8a840" stroke-width="2.6" stroke-linecap="square"/>
+         <circle cx="3"  cy="3"      r="1.6" fill="#c8831c"/>
+         <circle cx="97" cy="3"      r="1.6" fill="#c8831c"/>
+         <circle cx="3"  cy="${vb-3}" r="1.6" fill="#e8a840"/>
+         <circle cx="97" cy="${vb-3}" r="1.6" fill="#e8a840"/>`
       ),
       mk('stock-film', 'Film',
-        `<rect x="0"    y="0" width="7.8"  height="100" fill="#0c0c0c"/>
-         <rect x="92.2" y="0" width="7.8"  height="100" fill="#0c0c0c"/>
+        `<rect x="0"    y="0" width="7.8"  height="${vb}" fill="#0c0c0c"/>
+         <rect x="92.2" y="0" width="7.8"  height="${vb}" fill="#0c0c0c"/>
          ${sprockets}`
       ),
       mk('stock-party', 'Party',
         `${confetti}
          <text x="10" y="19" font-size="8" font-family="serif" fill="#c8831c" opacity="0.9">&#9733;</text>
          <text x="84" y="19" font-size="7" font-family="serif" fill="#e8a840" opacity="0.9">&#9733;</text>
-         <text x="10" y="89" font-size="7" font-family="serif" fill="#e8a840" opacity="0.9">&#9733;</text>
-         <text x="83" y="89" font-size="8" font-family="serif" fill="#c8831c" opacity="0.9">&#9733;</text>`
+         <text x="10" y="${vb-11}" font-size="7" font-family="serif" fill="#e8a840" opacity="0.9">&#9733;</text>
+         <text x="83" y="${vb-11}" font-size="8" font-family="serif" fill="#c8831c" opacity="0.9">&#9733;</text>`
       ),
     ];
-  })();
+    // Restore enabled states
+    STOCK_OVERLAYS.forEach(ov => { if (ov.id in prevStates) ov.enabled = prevStates[ov.id]; });
+  }
+  refreshStockOverlays();
 
   /* ─── Pixel-based filter engine (cross-browser, no ctx.filter) ─── */
   // ctx.filter silently fails in older Safari & some mobile browsers.
@@ -2374,6 +2391,38 @@
         // Brighten highlights + warm
         r = r + (255 - r) * 0.15; g = g + (255 - g) * 0.12; b = b + (255 - b) * 0.08;
         r = r * 1.03 + 4; g = g * 1.01 + 2;
+        px[i]   = Math.max(0, Math.min(255, r));
+        px[i+1] = Math.max(0, Math.min(255, g));
+        px[i+2] = Math.max(0, Math.min(255, b));
+      } else if (name === 'disposable') {
+        // Disposable camera: warm cast, slight desat, lifted blacks, grain, vignette, light leak
+        const avg = (r + g + b) / 3;
+        // Slight desaturation
+        r = avg + (r - avg) * 0.82; g = avg + (g - avg) * 0.82; b = avg + (b - avg) * 0.82;
+        // Warm color shift (green-yellow cast typical of cheap lenses)
+        r = r * 1.06 + 8; g = g * 1.04 + 5; b = b * 0.88 - 6;
+        // Lift blacks (low contrast, washed out shadows)
+        r += (200 - r) * 0.14; g += (195 - g) * 0.14; b += (175 - b) * 0.14;
+        // Slightly crush highlights
+        r = r > 220 ? 220 + (r - 220) * 0.4 : r;
+        g = g > 220 ? 220 + (g - 220) * 0.4 : g;
+        b = b > 215 ? 215 + (b - 215) * 0.4 : b;
+        // Vignette — darken edges
+        const px_x = (i / 4) % w, px_y = Math.floor((i / 4) / w);
+        const dx = (px_x - cx) / cx, dy = (px_y - cy) / cy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const vigF = 1 - Math.max(0, dist - 0.4) * 0.55;
+        r *= vigF; g *= vigF; b *= vigF;
+        // Light leak — warm glow in top-right corner
+        const leakDx = (px_x - w) / w, leakDy = px_y / h;
+        const leakDist = Math.sqrt(leakDx*leakDx + leakDy*leakDy);
+        if (leakDist < 0.6) {
+          const leakAmt = (0.6 - leakDist) * 0.25;
+          r += 180 * leakAmt; g += 80 * leakAmt; b += 20 * leakAmt;
+        }
+        // Film grain
+        const grn = (Math.random() - 0.5) * 25;
+        r += grn; g += grn; b += grn;
         px[i]   = Math.max(0, Math.min(255, r));
         px[i+1] = Math.max(0, Math.min(255, g));
         px[i+2] = Math.max(0, Math.min(255, b));
@@ -2617,6 +2666,7 @@
     PAD_T = s.padT; PAD_R = s.padR; PAD_B = s.padB; PAD_L = s.padL;
     _printW = s.printW || 4; _printH = s.printH || 6;
     if (typeof _updateCropRatio === 'function') _updateCropRatio();
+    if (typeof refreshStockOverlays === 'function') refreshStockOverlays();
   }
   // Write current CELL_W/... back to a layout's stored settings
   function _storeLayoutSizes(name) {
