@@ -79,10 +79,10 @@
     .btn-ghost {
       flex: 1;
       padding: 18px;
-      background: #fff;
-      border: 2px solid var(--border);
+      background: var(--orange);
+      border: 2px solid var(--orange);
       border-radius: 14px;
-      color: var(--text);
+      color: #fff;
       font-size: 0.95rem;
       font-weight: 600;
       font-family: var(--font-ui);
@@ -90,7 +90,7 @@
       transition: background 0.15s, transform 0.1s;
       -webkit-tap-highlight-color: transparent;
     }
-    .btn-ghost:active { background: var(--surface2); transform: scale(0.97); }
+    .btn-ghost:active { opacity: 0.85; transform: scale(0.97); }
 
     .btn-warm {
       flex: 1;
@@ -807,10 +807,10 @@
     .delay-btn {
       flex: 1;
       padding: 14px 8px;
-      background: #fff;
-      border: 1.5px solid var(--border);
+      background: var(--orange);
+      border: 1.5px solid var(--orange);
       border-radius: 12px;
-      color: var(--muted);
+      color: #fff;
       font-size: 0.82rem;
       font-weight: 700;
       font-family: var(--font-ui);
@@ -821,9 +821,9 @@
       transition: all 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
-    .delay-btn small { display: block; font-size: 0.62rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
-    .delay-btn.active { border-color: var(--orange); color: var(--orange); background: #fff8ef; }
-    .delay-btn.active small { color: rgba(200,131,28,0.7); }
+    .delay-btn small { display: block; font-size: 0.62rem; font-weight: 400; color: rgba(255,255,255,0.8); margin-top: 2px; }
+    .delay-btn.active { background: var(--text); border-color: var(--text); color: #fff; }
+    .delay-btn.active small { color: rgba(255,255,255,0.7); }
     .delay-btn:active { transform: scale(0.96); }
 
     canvas { display: none; }
