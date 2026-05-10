@@ -4295,24 +4295,98 @@
     }
   }
 
-  /* Share GIF from thank-you screen */
+  /* Convert photo frames to MP4 video for sharing (Messenger strips GIF animation) */
+  function _framesToMp4() {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const W = 480, H = 360;
+        const c = document.createElement('canvas');
+        c.width = W; c.height = H;
+        const ctx = c.getContext('2d');
+
+        // Load all photo frames
+        const frames = [];
+        for (const src of photos) {
+          const img = await loadImg(src);
+          frames.push(img);
+        }
+
+        // Set up MediaRecorder
+        const stream = c.captureStream(0); // 0 = manual frame control
+        const mimeTypes = ['video/mp4', 'video/webm;codecs=h264', 'video/webm'];
+        let recMime = '';
+        for (const mt of mimeTypes) {
+          if (MediaRecorder.isTypeSupported(mt)) { recMime = mt; break; }
+        }
+        if (!recMime) { reject(new Error('No video recording support')); return; }
+
+        const recorder = new MediaRecorder(stream, { mimeType: recMime, videoBitsPerSecond: 2000000 });
+        const chunks = [];
+        recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+        recorder.onstop = () => {
+          const ext = recMime.includes('mp4') ? 'mp4' : 'webm';
+          const blob = new Blob(chunks, { type: recMime });
+          resolve({ blob, ext, mime: recMime });
+        };
+        recorder.onerror = e => reject(e.error || new Error('Recording failed'));
+
+        recorder.start();
+
+        // Draw each frame for frameDelay duration, looping 3 times for a nice video
+        const delayMs = frameDelay || 500;
+        const loops = 3;
+        for (let loop = 0; loop < loops; loop++) {
+          for (let i = 0; i < frames.length; i++) {
+            const im = frames[i];
+            const s = Math.max(W / im.naturalWidth, H / im.naturalHeight);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, W, H);
+            ctx.drawImage(im,
+              (W - im.naturalWidth * s) / 2, (H - im.naturalHeight * s) / 2,
+              im.naturalWidth * s, im.naturalHeight * s
+            );
+            applyPixelFilter(ctx, W, H, activeFilter);
+            // Request a frame from captureStream
+            if (stream.getVideoTracks()[0].requestFrame) {
+              stream.getVideoTracks()[0].requestFrame();
+            }
+            await new Promise(r => setTimeout(r, delayMs));
+          }
+        }
+
+        recorder.stop();
+      } catch (e) { reject(e); }
+    });
+  }
+
+  /* Share GIF from thank-you screen — converts to MP4 video for Messenger compatibility */
   async function shareGifFromTY() {
-    if (!gifUrl) { alert('No GIF yet.'); return; }
+    if (!gifUrl && (!photos || photos.length < 2)) { alert('No GIF yet.'); return; }
     try {
-      const res = await fetch(gifUrl);
-      const blob = await res.blob();
-      const ext = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
-      const mime = _gifIsMp4 ? ('video/' + ext) : 'image/gif';
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
-      const downloadFallback = () => saveToDevice(blob, file.name, mime);
-      await _shareFile(file, 'Hando Booth GIF', 'Check out my Hando Booth GIF!', downloadFallback);
+      // Try MP4 conversion first (Messenger plays videos but strips GIF animation)
+      let file, downloadFn;
+      try {
+        const { blob, ext, mime } = await _framesToMp4();
+        const fname = 'hando-booth-' + Date.now() + '.' + ext;
+        file = new File([blob], fname, { type: mime });
+        downloadFn = () => saveToDevice(blob, fname, mime);
+      } catch (mp4Err) {
+        console.warn('[share] MP4 conversion failed, falling back to GIF:', mp4Err.message);
+        // Fall back to raw GIF
+        const res = await fetch(gifUrl);
+        const blob = await res.blob();
+        const fname = 'hando-booth-' + Date.now() + '.gif';
+        file = new File([blob], fname, { type: 'image/gif' });
+        downloadFn = () => saveToDevice(blob, fname, 'image/gif');
+      }
+      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', downloadFn);
     } catch (err) {
       if (err.name !== 'AbortError') {
+        // Last-resort: download the GIF
         try {
           const res = await fetch(gifUrl);
           const blob = await res.blob();
-          const ext = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
-          saveToDevice(blob, 'hando-booth-' + Date.now() + '.' + ext, 'image/gif');
+          saveToDevice(blob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
         } catch {}
       }
     }
