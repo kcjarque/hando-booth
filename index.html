@@ -3219,23 +3219,15 @@
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
       // Make the preview show exactly what gets recorded (vidWidth × vidHeight crop).
-      // Size the video element to the target aspect ratio, scaled up so it fills
-      // the entire screen. Overflow is hidden by #camera. object-fit:cover then
-      // crops the camera feed to fill the target-ratio box.
+      // Size the video element to the target aspect ratio, scaled up to COVER
+      // the entire screen (no black gaps). Overflow is hidden by #camera.
+      // object-fit:cover crops the camera feed to fill the target-ratio box.
       const videoEl = $('video');
       const vpW = window.innerWidth, vpH = window.innerHeight;
       const targetAR = vidWidth / vidHeight;
-      const vpAR = vpW / vpH;
-      let elW, elH;
-      if (targetAR > vpAR) {
-        // Target is wider than screen — match width, extend height past screen
-        elW = vpW;
-        elH = vpW / targetAR;
-      } else {
-        // Target is taller/equal — match height, extend width past screen
-        elH = vpH;
-        elW = vpH * targetAR;
-      }
+      // Cover: element must be at least as wide AND as tall as the viewport
+      const elW = Math.max(vpW, vpH * targetAR);
+      const elH = Math.max(vpH, vpW / targetAR);
       videoEl.style.position = 'absolute';
       videoEl.style.top = '50%';
       videoEl.style.left = '50%';
