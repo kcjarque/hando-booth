@@ -3066,7 +3066,10 @@
     const video = $('video');
     if (!video) return;
     const m = _shouldMirror();
-    video.style.transform = m ? 'scaleX(-1)' : 'none';
+    // In video mode the element is centered with translate(-50%,-50%) — combine transforms
+    const isVid = (layout === 'video');
+    const center = isVid ? 'translate(-50%, -50%) ' : '';
+    video.style.transform = m ? center + 'scaleX(-1)' : (center || 'none');
     // Update label
     const lbl = $('mirror-label');
     const btn = $('mirror-toggle');
@@ -3231,13 +3234,13 @@
       videoEl.style.position = 'absolute';
       videoEl.style.top = '50%';
       videoEl.style.left = '50%';
-      videoEl.style.transform = 'translate(-50%, -50%)';
       videoEl.style.width = elW + 'px';
       videoEl.style.height = elH + 'px';
       videoEl.style.inset = 'auto';
       videoEl.style.objectFit = 'cover';
       videoEl.style.background = '#000';
       videoEl.style.clipPath = '';
+      applyMirror(); // sets transform with translate(-50%,-50%) + optional scaleX(-1)
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
@@ -3249,12 +3252,12 @@
       videoEl.style.inset = '0';
       videoEl.style.top = '';
       videoEl.style.left = '';
-      videoEl.style.transform = '';
       videoEl.style.width = '100%';
       videoEl.style.height = '100%';
       videoEl.style.objectFit = 'cover';
       videoEl.style.background = '';
       videoEl.style.clipPath = '';
+      applyMirror(); // sets transform with optional scaleX(-1), no translate
     }
     showScreen('camera');
   }
