@@ -4355,10 +4355,9 @@
 
         recorder.start();
 
-        // Draw each frame with short delay — just enough for MediaRecorder to capture
-        // Use 150ms per frame (fast recording), loop 2× for a ~1-2s video
-        const delayMs = 150;
-        const loops = 2;
+        // Draw each frame at a natural pace, loop 3× for a nice video
+        const delayMs = 400;
+        const loops = 3;
         const track = stream.getVideoTracks()[0];
         for (let loop = 0; loop < loops; loop++) {
           for (let i = 0; i < frames.length; i++) {
