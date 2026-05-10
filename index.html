@@ -4276,8 +4276,7 @@
     const shareRow = $('ty-share-row');
     let btns = '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="sharePhoto()">↗ Share Photo</button>';
     if (hasGif) {
-      btns += '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="shareGifAsGif()">↗ Share GIF</button>';
-      btns += '<button class="btn-ghost" style="font-size:0.85rem;flex:1" onclick="shareGifAsVideo()">↗ Share as Video</button>';
+      btns += '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="shareGifFromTY()">↗ Share GIF</button>';
     }
     shareRow.innerHTML = btns;
     $('qr-box').style.display = 'none';
@@ -4360,37 +4359,19 @@
     });
   }
 
-  /* Share GIF as actual .gif file (works for Telegram, iMessage, etc.) */
-  async function shareGifAsGif() {
-    if (!gifUrl) { alert('No GIF yet.'); return; }
-    try {
-      const res = await fetch(gifUrl);
-      const blob = await res.blob();
-      const fname = 'hando-booth-' + Date.now() + '.gif';
-      const file = new File([blob], fname, { type: 'image/gif' });
-      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', () => saveToDevice(blob, fname, 'image/gif'));
-    } catch (err) {
-      if (err.name !== 'AbortError') {
-        try {
-          const res = await fetch(gifUrl);
-          const blob = await res.blob();
-          saveToDevice(blob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
-        } catch {}
-      }
-    }
-  }
-
-  /* Share GIF as MP4 video (for Messenger which strips GIF animation) */
-  async function shareGifAsVideo() {
+  /* Share GIF — converts to MP4 video so it animates on all platforms (Messenger, Telegram, etc.)
+     No download fallback — share sheet only, never prompts to save a file. */
+  async function shareGifFromTY() {
     if (!photos || photos.length < 2) { alert('No GIF yet.'); return; }
     try {
       const { blob, ext, mime } = await _framesToMp4();
       const fname = 'hando-booth-' + Date.now() + '.' + ext;
       const file = new File([blob], fname, { type: mime });
-      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', () => saveToDevice(blob, fname, mime));
+      // No download fallback — pass null so it never triggers a save prompt
+      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', null);
     } catch (err) {
       if (err.name !== 'AbortError') {
-        alert('Video conversion failed. Try Share GIF instead.');
+        console.warn('[share] GIF share failed:', err.message);
       }
     }
   }
