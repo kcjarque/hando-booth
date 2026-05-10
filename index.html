@@ -243,7 +243,7 @@
     .start-btn:active { opacity: 0.88; transform: scale(0.98); box-shadow: 0 2px 12px rgba(200,131,28,0.25); }
 
     /* ── CAMERA ────────────────────────────────────── */
-    #camera { background: #000; }
+    #camera { background: #000; overflow: hidden; }
 
     #video {
       position: absolute;
@@ -3218,34 +3218,34 @@
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
-      // Crop camera preview to match admin vidWidth×vidHeight ratio.
-      // Override the default absolute positioning so aspect-ratio can work.
+      // Make the preview show exactly what gets recorded (vidWidth × vidHeight crop).
+      // Size the video element to the target aspect ratio, scaled up so it fills
+      // the entire screen. Overflow is hidden by #camera. object-fit:cover then
+      // crops the camera feed to fill the target-ratio box.
       const videoEl = $('video');
+      const vpW = window.innerWidth, vpH = window.innerHeight;
+      const targetAR = vidWidth / vidHeight;
+      const vpAR = vpW / vpH;
+      let elW, elH;
+      if (targetAR > vpAR) {
+        // Target is wider than screen — match width, extend height past screen
+        elW = vpW;
+        elH = vpW / targetAR;
+      } else {
+        // Target is taller/equal — match height, extend width past screen
+        elH = vpH;
+        elW = vpH * targetAR;
+      }
+      videoEl.style.position = 'absolute';
+      videoEl.style.top = '50%';
+      videoEl.style.left = '50%';
+      videoEl.style.transform = 'translate(-50%, -50%)';
+      videoEl.style.width = elW + 'px';
+      videoEl.style.height = elH + 'px';
+      videoEl.style.inset = 'auto';
       videoEl.style.objectFit = 'cover';
       videoEl.style.background = '#000';
-      videoEl.style.position = 'absolute';
-      videoEl.style.inset = '0';
-      videoEl.style.width = '100%';
-      videoEl.style.height = '100%';
-      // Use clip-path to crop the preview to the admin aspect ratio
-      // This way the video fills the screen but only the correct ratio is visible
-      const vpW = window.innerWidth, vpH = window.innerHeight;
-      const vpAR = vpW / vpH, targetAR = vidWidth / vidHeight;
-      let clipL = 0, clipT = 0, clipR = 0, clipB = 0;
-      if (vpAR > targetAR) {
-        // Viewport is wider than target — crop sides
-        const visibleW = vpH * targetAR;
-        const cropPx = (vpW - visibleW) / 2;
-        clipL = (cropPx / vpW) * 100;
-        clipR = clipL;
-      } else {
-        // Viewport is taller than target — crop top/bottom
-        const visibleH = vpW / targetAR;
-        const cropPx = (vpH - visibleH) / 2;
-        clipT = (cropPx / vpH) * 100;
-        clipB = clipT;
-      }
-      videoEl.style.clipPath = 'inset(' + clipT + '% ' + clipR + '% ' + clipB + '% ' + clipL + '%)';
+      videoEl.style.clipPath = '';
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
@@ -3253,6 +3253,13 @@
       buildThumbs();
       // Photos use cover to fill the preview area — reset any video-mode overrides
       const videoEl = $('video');
+      videoEl.style.position = 'absolute';
+      videoEl.style.inset = '0';
+      videoEl.style.top = '';
+      videoEl.style.left = '';
+      videoEl.style.transform = '';
+      videoEl.style.width = '100%';
+      videoEl.style.height = '100%';
       videoEl.style.objectFit = 'cover';
       videoEl.style.background = '';
       videoEl.style.clipPath = '';
@@ -7118,11 +7125,25 @@
     if (show && _videoOverlayUrl) {
       el.src = _videoOverlayUrl;
       el.style.display = 'block';
-      // Match the same clip-path as the video element so overlay aligns
-      el.style.clipPath = $('video').style.clipPath || '';
+      // Match the video element's size/position so overlay aligns
+      const v = $('video');
+      el.style.position = v.style.position;
+      el.style.top = v.style.top;
+      el.style.left = v.style.left;
+      el.style.transform = v.style.transform;
+      el.style.width = v.style.width;
+      el.style.height = v.style.height;
+      el.style.inset = v.style.inset;
     } else {
       el.style.display = 'none';
-      el.style.clipPath = '';
+      // Reset to default
+      el.style.position = '';
+      el.style.top = '';
+      el.style.left = '';
+      el.style.transform = '';
+      el.style.width = '100%';
+      el.style.height = '100%';
+      el.style.inset = '0';
     }
   }
 
