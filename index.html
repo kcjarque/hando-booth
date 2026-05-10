@@ -1375,6 +1375,27 @@
     <div id="rec-timer">0:00</div>
   </div>
 
+  <!-- Video filter strip (shown only in video mode) -->
+  <div id="vid-filter-strip" style="display:none;position:absolute;bottom:90px;left:0;right:0;z-index:12;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 12px;white-space:nowrap;text-align:center">
+    <button class="fpill vfpill active" data-f="none" onclick="setVideoFilter('none')">None</button>
+    <button class="fpill vfpill" data-f="bw" onclick="setVideoFilter('bw')">B&amp;W</button>
+    <button class="fpill vfpill" data-f="sepia" onclick="setVideoFilter('sepia')">Sepia</button>
+    <button class="fpill vfpill" data-f="warm" onclick="setVideoFilter('warm')">Warm</button>
+    <button class="fpill vfpill" data-f="cool" onclick="setVideoFilter('cool')">Cool</button>
+    <button class="fpill vfpill" data-f="vivid" onclick="setVideoFilter('vivid')">Vivid</button>
+    <button class="fpill vfpill" data-f="faded" onclick="setVideoFilter('faded')">Faded</button>
+    <button class="fpill vfpill" data-f="noir" onclick="setVideoFilter('noir')">Noir</button>
+    <button class="fpill vfpill" data-f="dreamy" onclick="setVideoFilter('dreamy')">Dreamy</button>
+    <button class="fpill vfpill" data-f="rose" onclick="setVideoFilter('rose')">Rose</button>
+    <button class="fpill vfpill" data-f="film" onclick="setVideoFilter('film')">Film</button>
+    <button class="fpill vfpill" data-f="vintage" onclick="setVideoFilter('vintage')">Vintage</button>
+    <button class="fpill vfpill" data-f="glow" onclick="setVideoFilter('glow')">Glow</button>
+    <button class="fpill vfpill" data-f="cold" onclick="setVideoFilter('cold')">Cold</button>
+    <button class="fpill vfpill" data-f="disposable" onclick="setVideoFilter('disposable')">Disposable</button>
+  </div>
+  <!-- Filtered video viewfinder canvas (replaces raw <video> in video mode) -->
+  <canvas id="vid-filter-canvas" style="display:none;position:absolute;background:#000;z-index:1"></canvas>
+
   <div id="countdown">
     <div id="cd-num">3</div>
     <div id="cd-label">Get ready!</div>
@@ -3132,10 +3153,15 @@
     const video = $('video');
     if (!video) return;
     const m = _shouldMirror();
-    // In video mode the preview is centered with translate(-50%,-50%), preserve it
-    const needsCenter = (layout === 'video');
-    const base = needsCenter ? 'translate(-50%,-50%) ' : '';
-    video.style.transform = m ? base + 'scaleX(-1)' : (needsCenter ? base.trim() : 'none');
+    // In video mode the viewfinder canvas is shown instead — update its transform
+    if (layout === 'video') {
+      const fc = $('vid-filter-canvas');
+      if (fc && fc.style.display !== 'none') {
+        const base = 'translate(-50%,-50%)';
+        fc.style.transform = m ? base + ' scaleX(-1)' : base;
+      }
+    }
+    video.style.transform = m ? 'scaleX(-1)' : 'none';
     const lbl = $('mirror-label');
     const btn = $('mirror-toggle');
     if (lbl) lbl.textContent = m ? 'Mirrored' : 'Mirror';
@@ -3286,20 +3312,24 @@
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
-      // Video preview: size the element to exactly match vidWidth×vidHeight aspect ratio
-      // so the preview shows exactly what will be recorded (center-cropped by object-fit:cover).
+      // Show filter strip for video mode
+      $('vid-filter-strip').style.display = '';
+      _videoFilter = 'none';
+      document.querySelectorAll('.vfpill').forEach(p => p.classList.toggle('active', p.dataset.f === 'none'));
+      // Start filtered viewfinder once camera dimensions are known
       const videoEl = $('video');
-      const screenW = window.innerWidth, screenH = window.innerHeight;
-      const vAR = vidWidth / vidHeight, sAR = screenW / screenH;
-      let pw, ph;
-      if (sAR > vAR) { ph = screenH; pw = screenH * vAR; }
-      else            { pw = screenW; ph = screenW / vAR; }
-      videoEl.style.cssText = 'position:absolute;inset:auto;top:50%;left:50%;width:' + Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;object-fit:cover;background:#000';
+      const _waitForDims = () => {
+        if (videoEl.videoWidth > 0) { _startVideoViewfinder(); }
+        else { setTimeout(_waitForDims, 100); }
+      };
+      _waitForDims();
       applyMirror();
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
       showVideoOverlayOnCamera(false);
+      $('vid-filter-strip').style.display = 'none';
+      _stopVideoViewfinder();
       buildThumbs();
       const videoEl = $('video');
       videoEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
@@ -3312,6 +3342,8 @@
     busy = false;
     cdOverlay.classList.remove('show');
     shutter.disabled = false;
+    _stopVideoViewfinder();
+    $('vid-filter-strip').style.display = 'none';
     stopStream();
     photos = [];
     _clearSession();
@@ -3323,9 +3355,74 @@
     busy = false;
     cdOverlay.classList.remove('show');
     shutter.disabled = false;
+    _stopVideoViewfinder();
+    $('vid-filter-strip').style.display = 'none';
     stopStream();
     if (photos.length > 0) showPreviewScreen();
     else showScreen('home');
+  }
+
+  /* ─── Video filter viewfinder ─────────────────────── */
+  let _videoFilter = 'none';
+  let _vidViewfinderAnimId = null;
+
+  function setVideoFilter(name) {
+    _videoFilter = name;
+    document.querySelectorAll('.vfpill').forEach(p => p.classList.toggle('active', p.dataset.f === name));
+  }
+
+  function _startVideoViewfinder() {
+    _stopVideoViewfinder();
+    const vid = $('video');
+    const fc = $('vid-filter-canvas');
+    if (!vid || !fc) return;
+
+    const vw = vid.videoWidth || 1280, vh = vid.videoHeight || 720;
+    const outAR = vidWidth / vidHeight;
+    const camAR = vw / vh;
+    // Source crop rectangle — same center-crop as recording
+    let sx, sy, sw, sh;
+    if (camAR > outAR) { sh = vh; sw = vh * outAR; sx = (vw - sw) / 2; sy = 0; }
+    else               { sw = vw; sh = vw / outAR; sx = 0; sy = (vh - sh) / 2; }
+
+    // Canvas resolution — cap at 480px for performance (filter runs every frame)
+    const scale = Math.min(1, 480 / Math.max(vidWidth, vidHeight));
+    const cw = Math.round(vidWidth * scale), ch = Math.round(vidHeight * scale);
+    fc.width = cw; fc.height = ch;
+
+    // Size & position the canvas element to match where the video was
+    const screenW = window.innerWidth, screenH = window.innerHeight;
+    const sAR = screenW / screenH;
+    let pw, ph;
+    if (sAR > outAR) { ph = screenH; pw = screenH * outAR; }
+    else              { pw = screenW; ph = screenW / outAR; }
+    const mirror = _shouldMirror();
+    fc.style.cssText = 'display:block;position:absolute;inset:auto;top:50%;left:50%;width:' +
+      Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;background:#000;z-index:1;transform:translate(-50%,-50%)' +
+      (mirror ? ' scaleX(-1)' : '');
+
+    const fctx = fc.getContext('2d');
+
+    function drawViewfinder() {
+      fctx.drawImage(vid, sx, sy, sw, sh, 0, 0, cw, ch);
+      if (_videoFilter && _videoFilter !== 'none') {
+        applyPixelFilter(fctx, cw, ch, _videoFilter);
+      }
+      _vidViewfinderAnimId = requestAnimationFrame(drawViewfinder);
+    }
+    drawViewfinder();
+
+    // Hide raw video, show filtered canvas
+    vid.style.display = 'none';
+    fc.style.display = 'block';
+  }
+
+  function _stopVideoViewfinder() {
+    if (_vidViewfinderAnimId) { cancelAnimationFrame(_vidViewfinderAnimId); _vidViewfinderAnimId = null; }
+    const fc = $('vid-filter-canvas');
+    if (fc) fc.style.display = 'none';
+    const vid = $('video');
+    if (vid) vid.style.display = '';
   }
 
   /* ─── Video recording ──────────────────────────────── */
@@ -3389,6 +3486,10 @@
       }
       rctx.drawImage(vid, sx, sy, sw, sh, 0, 0, outW, outH);
       rctx.restore();
+      // Apply video filter (pixel manipulation)
+      if (_videoFilter && _videoFilter !== 'none') {
+        applyPixelFilter(rctx, outW, outH, _videoFilter);
+      }
       if (ovImg && ovImg.complete && ovImg.naturalWidth) {
         rctx.drawImage(ovImg, 0, 0, outW, outH);
       }
@@ -6004,6 +6105,28 @@
       btn.textContent = f.name;
       btn.onclick = () => setFilter('custom-' + f.id);
       container.appendChild(btn);
+    });
+    // Also update video filter strip
+    _renderVideoFilterPills();
+  }
+
+  function _renderVideoFilterPills() {
+    const strip = $('vid-filter-strip');
+    if (!strip) return;
+    // Hide/show built-in pills based on visibility
+    strip.querySelectorAll('.vfpill:not([data-f^="custom-"])').forEach(btn => {
+      btn.style.display = _isFilterVisible(btn.dataset.f) ? '' : 'none';
+    });
+    // Remove old custom pills, add current ones
+    strip.querySelectorAll('.vfpill[data-f^="custom-"]').forEach(p => p.remove());
+    _customFilters.forEach(f => {
+      if (!_isFilterVisible('custom-' + f.id)) return;
+      const btn = document.createElement('button');
+      btn.className = 'fpill vfpill';
+      btn.dataset.f = 'custom-' + f.id;
+      btn.textContent = f.name;
+      btn.onclick = () => setVideoFilter('custom-' + f.id);
+      strip.appendChild(btn);
     });
   }
 
