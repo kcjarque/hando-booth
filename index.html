@@ -3286,11 +3286,15 @@
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
-      // Video preview: match the admin-configured vidWidth×vidHeight aspect ratio
-      // so the preview shows exactly what will be recorded.
+      // Video preview: size the element to exactly match vidWidth×vidHeight aspect ratio
+      // so the preview shows exactly what will be recorded (center-cropped by object-fit:cover).
       const videoEl = $('video');
-      const vAR = vidWidth / vidHeight;
-      videoEl.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:100%;max-height:100%;object-fit:cover;background:#000;aspect-ratio:' + vAR;
+      const screenW = window.innerWidth, screenH = window.innerHeight;
+      const vAR = vidWidth / vidHeight, sAR = screenW / screenH;
+      let pw, ph;
+      if (sAR > vAR) { ph = screenH; pw = screenH * vAR; }
+      else            { pw = screenW; ph = screenW / vAR; }
+      videoEl.style.cssText = 'position:absolute;top:50%;left:50%;width:' + Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;object-fit:cover;background:#000';
       applyMirror();
     } else {
       $('shutter').style.display = '';
