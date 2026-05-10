@@ -4276,7 +4276,8 @@
     const shareRow = $('ty-share-row');
     let btns = '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="sharePhoto()">↗ Share Photo</button>';
     if (hasGif) {
-      btns += '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="shareGifFromTY()">↗ Share GIF</button>';
+      btns += '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="shareGifAsGif()">↗ Share GIF</button>';
+      btns += '<button class="btn-ghost" style="font-size:0.85rem;flex:1" onclick="shareGifAsVideo()">↗ Share as Video</button>';
     }
     shareRow.innerHTML = btns;
     $('qr-box').style.display = 'none';
@@ -4359,35 +4360,37 @@
     });
   }
 
-  /* Share GIF from thank-you screen — converts to MP4 video for Messenger compatibility */
-  async function shareGifFromTY() {
-    if (!gifUrl && (!photos || photos.length < 2)) { alert('No GIF yet.'); return; }
+  /* Share GIF as actual .gif file (works for Telegram, iMessage, etc.) */
+  async function shareGifAsGif() {
+    if (!gifUrl) { alert('No GIF yet.'); return; }
     try {
-      // Try MP4 conversion first (Messenger plays videos but strips GIF animation)
-      let file, downloadFn;
-      try {
-        const { blob, ext, mime } = await _framesToMp4();
-        const fname = 'hando-booth-' + Date.now() + '.' + ext;
-        file = new File([blob], fname, { type: mime });
-        downloadFn = () => saveToDevice(blob, fname, mime);
-      } catch (mp4Err) {
-        console.warn('[share] MP4 conversion failed, falling back to GIF:', mp4Err.message);
-        // Fall back to raw GIF
-        const res = await fetch(gifUrl);
-        const blob = await res.blob();
-        const fname = 'hando-booth-' + Date.now() + '.gif';
-        file = new File([blob], fname, { type: 'image/gif' });
-        downloadFn = () => saveToDevice(blob, fname, 'image/gif');
-      }
-      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', downloadFn);
+      const res = await fetch(gifUrl);
+      const blob = await res.blob();
+      const fname = 'hando-booth-' + Date.now() + '.gif';
+      const file = new File([blob], fname, { type: 'image/gif' });
+      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', () => saveToDevice(blob, fname, 'image/gif'));
     } catch (err) {
       if (err.name !== 'AbortError') {
-        // Last-resort: download the GIF
         try {
           const res = await fetch(gifUrl);
           const blob = await res.blob();
           saveToDevice(blob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
         } catch {}
+      }
+    }
+  }
+
+  /* Share GIF as MP4 video (for Messenger which strips GIF animation) */
+  async function shareGifAsVideo() {
+    if (!photos || photos.length < 2) { alert('No GIF yet.'); return; }
+    try {
+      const { blob, ext, mime } = await _framesToMp4();
+      const fname = 'hando-booth-' + Date.now() + '.' + ext;
+      const file = new File([blob], fname, { type: mime });
+      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', () => saveToDevice(blob, fname, mime));
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        alert('Video conversion failed. Try Share GIF instead.');
       }
     }
   }
