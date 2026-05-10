@@ -65,6 +65,14 @@ If a filter is changed before a previous render completes, both renders run conc
 **Root cause:** `_customShortAudio` (the Audio element used in `_playCustomShort()`) was never created on page load — only `_customAudio` was. On iOS, this meant it was never unlocked by user gesture.
 **Fix applied (v5.4):** Pre-create `_customShortAudio` on page load when restoring saved custom sound. Also create it in `handleSoundUpload()`. Both elements are now unlocked in `unlockAudioOnGesture()`.
 
+### 15. Custom sound played at every countdown tick (FIXED in v5.7)
+**Root cause:** `playCountdownTick()` called `_playCustomShort()` at every non-final tick.
+**Fix applied (v5.7):** Custom sound now only plays on the final tick (`playCountdownFinal`). Non-final ticks play a default beep. The countdown still waits for the full custom sound duration before taking the photo.
+
+### 16. Get Photo button missing from save screen (FIXED in v5.7)
+**Root cause:** v5.6 replaced "Get Photo" button with "Share" on the gif-screen. The old `doGetQR()` was also broken — it called `renderQR()` with null since Telegram returns no public URL.
+**Fix applied (v5.7):** Restored "Get Photo" button calling `doGetQR()`. Rewrote `doGetQR()` to show share buttons (↗ Share Photo / ↗ Share GIF) via native share sheet instead of QR code. Telegram upload happens in background.
+
 ---
 
 ## Architecture
@@ -76,7 +84,8 @@ If a filter is changed before a previous render completes, both renders run conc
 - **GIF:** `gifenc` (v1.0.3) via dynamic `import()` from unpkg CDN. Pure-JS encoder — no Web Workers, no CORS issues, works on ALL browsers including iOS Safari. Replaced `gif.js` in v4.8.
 - **Video:** MediaRecorder from canvas stream + audio tracks. Supports overlay compositing.
 - **Telegram:** Photo/GIF/video uploads sent to a Telegram chat via Bot API. Config stored in localStorage (`hb_tg_bot_token`, `hb_tg_chat_id`). Replaced Supabase in v5.5.
-- **Layout sizes:** Final print size set in inches (4×6 or 2×3) at 300 DPI. Cell sizes auto-computed from final dimensions minus gaps and padding.
+- **Layouts:** single (1), double (2), strip (3), mini (3 at 1.5×4"), strip4 (4), quad (4), video. Mini is a compact 3-strip.
+- **Layout sizes:** Final print size set in inches at 300 DPI. Presets: 4×6, 3×4, 2×6, 1.5×4. Cell sizes auto-computed from final dimensions minus gaps and padding.
 - **Dev server:** Node.js static server at `.claude/serve.js`, port 3003.
 - **Admin:** Triple-tap logo → password `hando2025`. Logo size (`hb_logo_scale`), per-layout sizes (`hb_layout_sizes_v2`), countdown, sounds, overlays, colors, background, camera, features.
 

@@ -1291,6 +1291,16 @@
         <div class="layout-count">3 photos</div>
       </div>
 
+      <div class="layout-card" data-layout="mini" onclick="selectLayout(this,'mini')">
+        <div class="icon-strip">
+          <div class="icon-cell" style="width:30px;height:14px"></div>
+          <div class="icon-cell" style="width:30px;height:14px"></div>
+          <div class="icon-cell" style="width:30px;height:14px"></div>
+        </div>
+        <div class="layout-label">Mini</div>
+        <div class="layout-count">3 photos</div>
+      </div>
+
       <div class="layout-card" data-layout="strip4" onclick="selectLayout(this,'strip4')">
         <div class="icon-strip">
           <div class="icon-cell" style="width:44px;height:14px"></div>
@@ -1335,7 +1345,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.6</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.7</span>
   </div>
 </div>
 
@@ -1495,7 +1505,7 @@
   <!-- Action row: Back + Get Photo (Print is in the top-right of this screen) -->
   <div class="action-row" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
-    <button class="btn-warm"  onclick="sharePhoto()" style="flex:1.4;min-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">↗ Share</button>
+    <button class="btn-warm"  onclick="doGetQR()" style="flex:1.4;min-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📷 Get Photo</button>
   </div>
 
 </div>
@@ -1583,7 +1593,7 @@
   </div>
 
   <div class="prev-section" style="text-align:center">
-    <p class="section-label">Scan to get it on your phone</p>
+    <p class="section-label">Get your photo</p>
     <!-- FIX 2: stable #qr-box wrapper; only #qr-container contents are replaced -->
     <div id="qr-box" style="display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 4px 20px var(--shadow);min-width:164px;min-height:164px">
       <div id="qr-container"></div>
@@ -1756,6 +1766,7 @@
             <label class="layout-toggle-row"><input type="checkbox" data-layout="single" class="toggle-switch" onchange="toggleLayout('single',this.checked)"><span>Single (1 photo)</span></label>
             <label class="layout-toggle-row"><input type="checkbox" data-layout="double" class="toggle-switch" onchange="toggleLayout('double',this.checked)"><span>Double (2 photos)</span></label>
             <label class="layout-toggle-row"><input type="checkbox" data-layout="strip" class="toggle-switch" onchange="toggleLayout('strip',this.checked)"><span>Strip (3 photos)</span></label>
+            <label class="layout-toggle-row"><input type="checkbox" data-layout="mini" class="toggle-switch" onchange="toggleLayout('mini',this.checked)"><span>Mini (3 photos, 1.5×4")</span></label>
             <label class="layout-toggle-row"><input type="checkbox" data-layout="strip4" class="toggle-switch" onchange="toggleLayout('strip4',this.checked)"><span>Strip 4 (4 photos)</span></label>
             <label class="layout-toggle-row"><input type="checkbox" data-layout="quad" class="toggle-switch" onchange="toggleLayout('quad',this.checked)"><span>Quad (4 photos)</span></label>
             <label class="layout-toggle-row"><input type="checkbox" data-layout="video" class="toggle-switch" onchange="toggleLayout('video',this.checked)"><span>Video</span></label>
@@ -1929,6 +1940,7 @@
                 <button class="ls-tab active" onclick="switchLayoutTab('single')" data-ls-tab="single" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Single</button>
                 <button class="ls-tab" onclick="switchLayoutTab('double')" data-ls-tab="double" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Double</button>
                 <button class="ls-tab" onclick="switchLayoutTab('strip')" data-ls-tab="strip" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Strip</button>
+                <button class="ls-tab" onclick="switchLayoutTab('mini')" data-ls-tab="mini" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Mini</button>
                 <button class="ls-tab" onclick="switchLayoutTab('strip4')" data-ls-tab="strip4" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Strip 4</button>
                 <button class="ls-tab" onclick="switchLayoutTab('quad')" data-ls-tab="quad" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Quad</button>
               </div>
@@ -1946,6 +1958,7 @@
               <button onclick="setPrintSize(4,6)" id="ps-4x6" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">4 × 6</button>
               <button onclick="setPrintSize(3,4)" id="ps-3x4" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">3 × 4</button>
               <button onclick="setPrintSize(2,6)" id="ps-2x6" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">2 × 6</button>
+              <button onclick="setPrintSize(1.5,4)" id="ps-1.5x4" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">1.5 × 4</button>
               <button onclick="setPrintSize(0,0)" id="ps-custom" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">Custom</button>
             </div>
             <!-- Custom size inputs (shown when Custom is selected) -->
@@ -2124,7 +2137,7 @@
 
 <script>
   /* ─── Capture state ───────────────────────────────── */
-  const COUNTS = { single: 1, double: 2, strip: 3, strip4: 4, quad: 4 };
+  const COUNTS = { single: 1, double: 2, strip: 3, mini: 3, strip4: 4, quad: 4 };
   let layout     = 'single';
   let facingMode = 'user';
   let stream     = null;
@@ -2571,6 +2584,7 @@
     single: { cols: 1, rows: 1 },
     double: { cols: 1, rows: 2 },
     strip:  { cols: 1, rows: 3 },
+    mini:   { cols: 1, rows: 3 },
     strip4: { cols: 1, rows: 4 },
     quad:   { cols: 2, rows: 2 }
   };
@@ -2579,6 +2593,7 @@
     single: Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 4, printH: 6 }),
     double: Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 3, printH: 4 }),
     strip:  Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 2, printH: 6 }),
+    mini:   Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 1.5, printH: 4 }),
     strip4: Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 2, printH: 6 }),
     quad:   Object.assign({}, LAYOUT_SIZE_DEFAULTS, { printW: 4, printH: 6 })
   };
@@ -2784,8 +2799,8 @@
 
   function playCountdownTick() {
     if (_soundPreset === 'silent') return;
-    // Custom sound plays at EVERY tick (not just final)
-    if (_soundPreset === 'custom' && _playCustomShort()) return;
+    // Custom sound plays ONLY on the final tick — use default beep for non-final ticks
+    if (_soundPreset === 'custom') { playBeep(660, 0.10, 1.0, 'sine'); return; }
     if (_soundPreset === 'classic') { playBeep(800, 0.06, 1.0, 'square'); return; }
     playBeep(660, 0.10, 1.0, 'sine');
   }
@@ -3623,14 +3638,7 @@
           playCountdownTick();
         }
         n--;
-        // When custom sound is active, wait for the sound to finish before next tick
-        if (_soundPreset === 'custom' && _customSoundUrl && _customShortAudio) {
-          _getCustomSoundDuration().then(dur => {
-            setTimeout(tick, Math.max(1000, dur));
-          });
-        } else {
-          setTimeout(tick, 1000);
-        }
+        setTimeout(tick, 1000);
       }
       tick();
     });
@@ -3717,7 +3725,7 @@
       cw: CELL_W+pL+pR, ch: 2*CELL_H+GAP+pT+pB,
       positions: [{x:pL,y:pT}, {x:pL,y:pT+CELL_H+GAP}]
     };
-    if (layout === 'strip') return {
+    if (layout === 'strip' || layout === 'mini') return {
       cw: CELL_W+pL+pR, ch: 3*CELL_H+2*GAP+pT+pB,
       positions: [
         {x:pL,y:pT}, {x:pL,y:pT+CELL_H+GAP}, {x:pL,y:pT+2*(CELL_H+GAP)}
@@ -4255,34 +4263,55 @@
     });
   }
 
-  /* FIX 4 — Get QR: skip intake form, show thank-you immediately then upload */
+  /* Get Photo: show thank-you screen with share buttons for photo + GIF */
   function doGetQR() {
     $('ty-name').textContent = 'Enjoy your photo!';
     $('ty-img').src = compositeDataUrl || '';
-    // Show loading spinner in qr-container (FIX 2 — don't replace #qr-box)
-    $('qr-container').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px"><div class="spin-ring" style="width:28px;height:28px;border-width:3px"></div><span style="font-size:0.72rem;color:var(--muted)">Uploading…</span></div>';
-    $('qr-hint').textContent = 'Uploading your photo…';
+
+    // Build share buttons instead of QR (Telegram doesn't provide public URLs)
+    const hasGif = gifUrl && photos.length > 1;
+    let btns = '<div style="display:flex;flex-direction:column;gap:10px;padding:8px 0;align-items:center">';
+    btns += '<button onclick="sharePhoto()" style="background:var(--orange);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-weight:700;font-size:0.85rem;cursor:pointer;min-width:180px;touch-action:manipulation">↗ Share Photo</button>';
+    if (hasGif) {
+      btns += '<button onclick="shareGifFromTY()" style="background:var(--orange);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-weight:700;font-size:0.85rem;cursor:pointer;min-width:180px;touch-action:manipulation">↗ Share GIF</button>';
+    }
+    btns += '</div>';
+    $('qr-container').innerHTML = btns;
+    $('qr-hint').textContent = 'Tap to share via AirDrop, Messages, or social media';
+
     showScreen('thankyou');
+
+    // Upload to Telegram in background (non-blocking)
     if (_tgConfigured()) {
-      uploadPhotoToSupabase(compositeDataUrl)
-        .then(publicUrl => renderQR(publicUrl))
-        .catch(err => {
-          console.error('Supabase upload failed:', err);
-          // Show offline fallback: download directly + retry button
-          $('qr-container').innerHTML =
-            '<div style="padding:14px;text-align:center">' +
-            '<p style="font-size:0.78rem;color:var(--text);font-weight:600;margin-bottom:8px">Upload failed — network issue</p>' +
-            '<p style="font-size:0.68rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Your photo is saved to this device. Try a different WiFi or mobile data for QR sharing.</p>' +
-            '<button onclick="doGetPhoto()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;font-size:0.8rem;cursor:pointer;margin-right:6px">⬇ Save Photo</button>' +
-            '<button onclick="location.reload()" style="background:#fff;color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:10px 16px;font-weight:700;font-size:0.8rem;cursor:pointer">↻ Retry</button>' +
-            '</div>';
-          $('qr-hint').textContent = '';
-          // Auto-trigger local download so user still has the file
-          if (compositeDataUrl) setTimeout(() => doGetPhoto(), 400);
-        });
-    } else {
-      $('qr-container').innerHTML = '<p style="font-size:0.75rem;color:var(--muted);padding:16px;text-align:center">Cloud sharing<br>not configured.</p>';
-      $('qr-hint').textContent = '';
+      uploadToTelegram(compositeDataUrl, 'image/png', 'png').catch(e => console.warn('[telegram] bg upload:', e.message));
+      if (hasGif) {
+        const gifCT = _gifIsMp4 ? ('video/' + (_gifExt || 'mp4')) : 'image/gif';
+        const gifExt = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
+        uploadToTelegram(gifUrl, gifCT, gifExt).catch(e => console.warn('[telegram] gif bg upload:', e.message));
+      }
+    }
+  }
+
+  /* Share GIF from thank-you screen */
+  async function shareGifFromTY() {
+    if (!gifUrl) { alert('No GIF yet.'); return; }
+    try {
+      const res = await fetch(gifUrl);
+      const blob = await res.blob();
+      const ext = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
+      const mime = _gifIsMp4 ? ('video/' + ext) : 'image/gif';
+      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
+      const downloadFallback = () => saveToDevice(blob, file.name, mime);
+      await _shareFile(file, 'Hando Booth GIF', 'Check out my Hando Booth GIF!', downloadFallback);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        try {
+          const res = await fetch(gifUrl);
+          const blob = await res.blob();
+          const ext = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
+          saveToDevice(blob, 'hando-booth-' + Date.now() + '.' + ext, 'image/gif');
+        } catch {}
+      }
     }
   }
 
@@ -4415,7 +4444,7 @@
     loadOverlays();
     const list = $('admin-ov-list');
     list.innerHTML = '';
-    const LAYOUT_LABELS = { single: 'Single', double: 'Double', strip: 'Strip', strip4: 'Strip 4', quad: 'Quad', logo: 'Logo', video: 'Video', all: 'All' };
+    const LAYOUT_LABELS = { single: 'Single', double: 'Double', strip: 'Strip', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad', logo: 'Logo', video: 'Video', all: 'All' };
 
     function makeRow(ov, isStock) {
       const row = document.createElement('div');
@@ -4502,7 +4531,7 @@
     } else if (layoutName === 'double') {
       cw = CW + 2*P; ch = 2*CH + G + 2*P;
       positions = [{x:P,y:P},{x:P,y:P+CH+G}];
-    } else if (layoutName === 'strip') {
+    } else if (layoutName === 'strip' || layoutName === 'mini') {
       cw = CW + 2*P; ch = 3*CH + 2*G + 2*P;
       positions = [{x:P,y:P},{x:P,y:P+CH+G},{x:P,y:P+2*(CH+G)}];
     } else if (layoutName === 'strip4') {
@@ -5691,7 +5720,7 @@
   }
 
   /* ── Enabled layouts ────────────────────────────── */
-  const ALL_LAYOUTS = ['single','double','strip','strip4','quad','video'];
+  const ALL_LAYOUTS = ['single','double','strip','mini','strip4','quad','video'];
   let _enabledLayouts = null;
   try {
     const raw = localStorage.getItem('hb_enabled_layouts');
@@ -6593,7 +6622,7 @@
 
   function setPrintSize(w, h) {
     // Update preset button states
-    ['4x6','3x4','2x6','custom'].forEach(id => {
+    ['4x6','3x4','2x6','1.5x4','custom'].forEach(id => {
       const btn = $('ps-' + id);
       if (btn) btn.classList.remove('active');
     });
@@ -6610,6 +6639,7 @@
       if (w === 4 && h === 6) $('ps-4x6')?.classList.add('active');
       else if (w === 3 && h === 4) $('ps-3x4')?.classList.add('active');
       else if (w === 2 && h === 6) $('ps-2x6')?.classList.add('active');
+      else if (w === 1.5 && h === 4) $('ps-1.5x4')?.classList.add('active');
       if (customDiv) customDiv.style.display = 'none';
       _printW = w; _printH = h;
       // Sync custom inputs too
@@ -6643,7 +6673,7 @@
 
   // Highlight the correct print size preset button
   function _syncPrintSizeUI() {
-    ['4x6','3x4','2x6','custom'].forEach(id => {
+    ['4x6','3x4','2x6','1.5x4','custom'].forEach(id => {
       const btn = $('ps-' + id);
       if (btn) btn.classList.remove('active');
     });
@@ -6656,6 +6686,9 @@
       if (customDiv) customDiv.style.display = 'none';
     } else if (_printW === 2 && _printH === 6) {
       $('ps-2x6')?.classList.add('active');
+      if (customDiv) customDiv.style.display = 'none';
+    } else if (_printW === 1.5 && _printH === 4) {
+      $('ps-1.5x4')?.classList.add('active');
       if (customDiv) customDiv.style.display = 'none';
     } else {
       $('ps-custom')?.classList.add('active');
@@ -6762,6 +6795,7 @@
       single: { positions: [{x:0,y:0}], cols: 1, rows: 1 },
       double: { positions: [{x:0,y:0},{x:0,y:1}], cols: 1, rows: 2 },
       strip:  { positions: [{x:0,y:0},{x:0,y:1},{x:0,y:2}], cols: 1, rows: 3 },
+      mini:   { positions: [{x:0,y:0},{x:0,y:1},{x:0,y:2}], cols: 1, rows: 3 },
       strip4: { positions: [{x:0,y:0},{x:0,y:1},{x:0,y:2},{x:0,y:3}], cols: 1, rows: 4 },
       quad:   { positions: [{x:0,y:0},{x:1,y:0},{x:0,y:1},{x:1,y:1}], cols: 2, rows: 2 }
     };
