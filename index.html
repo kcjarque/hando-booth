@@ -3270,10 +3270,36 @@
     // can pick 720p / 1080p / square / vertical for IG, etc.
     const vid = $('video');
     const vw = vid.videoWidth || 1280, vh = vid.videoHeight || 720;
+
+    // Match the recording to what the user actually sees on screen.
+    // The camera preview uses object-fit:cover on the viewport, so compute
+    // the visible region and use that same aspect ratio for the recording.
+    const vidRect = vid.getBoundingClientRect();
+    const screenAR = vidRect.width / vidRect.height;
+    const camAR = vw / vh;
+
+    // Visible portion of the camera (what the user sees)
+    let visW = vw, visH = vh;
+    if (camAR > screenAR) {
+      // camera is wider than screen → sides are cropped
+      visW = vh * screenAR;
+    } else if (camAR < screenAR) {
+      // camera is taller than screen → top/bottom cropped
+      visH = vw / screenAR;
+    }
+
+    // Use admin vidWidth/vidHeight if set, but default to the visible area ratio
+    const useCustomSize = (vidWidth !== 1280 || vidHeight !== 720);
     const rc = document.createElement('canvas');
-    rc.width = vidWidth || vw;
-    rc.height = vidHeight || vh;
-    console.log('[rec] output canvas:', rc.width + 'x' + rc.height, 'from raw camera:', vw + 'x' + vh);
+    if (useCustomSize) {
+      rc.width = vidWidth; rc.height = vidHeight;
+    } else {
+      // Match visible area, capped at 1280px for performance
+      const scale = Math.min(1, 1280 / Math.max(visW, visH));
+      rc.width = Math.round(visW * scale);
+      rc.height = Math.round(visH * scale);
+    }
+    console.log('[rec] output canvas:', rc.width + 'x' + rc.height, 'from raw camera:', vw + 'x' + vh, 'visible:', Math.round(visW) + 'x' + Math.round(visH));
     _recCanvas = rc;
     const rctx = rc.getContext('2d');
 
@@ -3285,15 +3311,15 @@
     }
 
     // Draw loop: video (mirror if enabled) + overlay onto canvas
-    // Compute aspect-fit (cover) crop rect from raw video to output canvas
+    // Compute crop rect from raw video to output canvas (same as what's visible on screen)
     const outW = rc.width, outH = rc.height;
-    const inAR = vw / vh, outAR = outW / outH;
+    const outAR = outW / outH;
     let sx = 0, sy = 0, sw = vw, sh = vh;
-    if (inAR > outAR) {
+    if (camAR > outAR) {
       // raw is wider than output → crop sides
       sw = vh * outAR;
       sx = (vw - sw) / 2;
-    } else if (inAR < outAR) {
+    } else if (camAR < outAR) {
       sh = vw / outAR;
       sy = (vh - sh) / 2;
     }
