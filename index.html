@@ -1345,7 +1345,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.9</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.10</span>
   </div>
 </div>
 
@@ -2657,27 +2657,11 @@
       const src = ctx.createBufferSource();
       src.buffer = buf; src.connect(ctx.destination); src.start(0);
     } catch {}
-    // Prime the custom audio elements if they exist (iOS requires gesture to unlock)
-    try {
-      if (_customAudio) {
-        const v = _customAudio.volume; _customAudio.volume = 0;
-        _customAudio.play().then(() => { _customAudio.pause(); _customAudio.currentTime = 0; _customAudio.volume = v; }).catch(() => { _customAudio.volume = v; });
-      }
-    } catch {}
-    // Also unlock _customShortAudio (the one actually used in countdown)
-    try {
-      if (_customShortAudio) {
-        const v2 = _customShortAudio.volume; _customShortAudio.volume = 0;
-        _customShortAudio.play().then(() => { _customShortAudio.pause(); _customShortAudio.currentTime = 0; _customShortAudio.volume = v2; }).catch(() => { _customShortAudio.volume = v2; });
-      } else if (_customSoundUrl) {
-        // Pre-create and unlock it
-        _customShortAudio = new Audio(_customSoundUrl);
-        _customShortAudio._srcUrl = _customSoundUrl;
-        _customShortAudio.preload = 'auto';
-        _customShortAudio.volume = 0;
-        _customShortAudio.play().then(() => { _customShortAudio.pause(); _customShortAudio.currentTime = 0; _customShortAudio.volume = 1.0; }).catch(() => { _customShortAudio.volume = 1.0; });
-      }
-    } catch {}
+    // Decode custom sound into AudioBuffer on first gesture
+    // (Web Audio API only needs AudioContext unlocked once — no per-element unlocking)
+    if (_customSoundUrl && !_customSoundBuffer) {
+      _decodeCustomSound(_customSoundUrl);
+    }
   }
   window.addEventListener('touchstart', unlockAudioOnGesture, { once: true, passive: true });
   window.addEventListener('mousedown', unlockAudioOnGesture, { once: true });
@@ -2752,10 +2736,29 @@
   }
 
   // When custom sound is selected, play the same file for ticks + shutter so
-  // the entire session uses the admin's chosen audio.
-  // FIX: Reuse a SINGLE Audio instance so overlapping calls don't stack.
-  let _customShortAudio = null;
+  // Custom sound playback via Web Audio API (AudioBuffer).
+  // HTMLAudioElement is unreliable on iOS — it needs individual unlock per element
+  // and iOS can revoke it after inactivity. AudioBuffer plays through AudioContext
+  // which only needs one unlock and works from setTimeout chains.
+  let _customShortAudio = null; // kept only for legacy compat; not used for playback
   let _customShortTimer = null;
+  let _customSoundBuffer = null; // AudioBuffer decoded from custom sound
+  let _customSoundSource = null; // currently playing AudioBufferSourceNode
+
+  // Decode custom sound URL (data: or blob:) into an AudioBuffer
+  async function _decodeCustomSound(url) {
+    try {
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') await ctx.resume();
+      const resp = await fetch(url);
+      const arrayBuf = await resp.arrayBuffer();
+      _customSoundBuffer = await ctx.decodeAudioData(arrayBuf);
+      console.log('[sound] custom sound decoded:', Math.round(_customSoundBuffer.duration * 1000) + 'ms');
+    } catch (e) {
+      console.warn('[sound] failed to decode custom sound:', e.message);
+      _customSoundBuffer = null;
+    }
+  }
 
   // Re-prime audio before each countdown — ensures iOS AudioContext hasn't gone to sleep
   function _ensureAudioReady() {
@@ -2773,13 +2776,9 @@
         src.buffer = buf; src.connect(_audioCtx.destination); src.start(0);
       } catch {}
 
-      // Re-prime custom short audio if custom sound is selected
-      if (_soundPreset === 'custom' && _customSoundUrl) {
-        if (!_customShortAudio || _customShortAudio._srcUrl !== _customSoundUrl) {
-          _customShortAudio = new Audio(_customSoundUrl);
-          _customShortAudio._srcUrl = _customSoundUrl;
-          _customShortAudio.preload = 'auto';
-        }
+      // Decode custom sound into AudioBuffer if not done yet
+      if (_soundPreset === 'custom' && _customSoundUrl && !_customSoundBuffer) {
+        _decodeCustomSound(_customSoundUrl);
       }
     } catch {}
   }
@@ -2787,33 +2786,50 @@
   function _playCustomShort() {
     if (!_customSoundUrl) return false;
     try {
-      // Stop any previous playback first
-      if (_customShortAudio) {
-        try { _customShortAudio.pause(); _customShortAudio.currentTime = 0; } catch {}
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      // Stop any previous playback
+      if (_customSoundSource) {
+        try { _customSoundSource.stop(); } catch {}
+        _customSoundSource = null;
       }
-      if (_customShortTimer) { clearTimeout(_customShortTimer); _customShortTimer = null; }
-      // Reuse audio element if URL hasn't changed, otherwise create fresh
-      if (!_customShortAudio || _customShortAudio._srcUrl !== _customSoundUrl) {
-        _customShortAudio = new Audio(_customSoundUrl);
-        _customShortAudio._srcUrl = _customSoundUrl;
-        _customShortAudio.preload = 'auto';
+
+      if (!_customSoundBuffer) {
+        // Buffer not decoded yet — try HTMLAudioElement fallback
+        if (_customShortAudio) {
+          _customShortAudio.currentTime = 0;
+          _customShortAudio.play().catch(() => {});
+        }
+        return true;
       }
-      _customShortAudio.volume = 1.0;
-      _customShortAudio.currentTime = 0;
-      // Let the full sound play — do NOT cut it short
-      _customShortAudio.play().catch(() => {});
+
+      // Play via Web Audio API — works from setTimeout, no gesture needed
+      const source = ctx.createBufferSource();
+      source.buffer = _customSoundBuffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      _customSoundSource = source;
+      source.onended = () => { if (_customSoundSource === source) _customSoundSource = null; };
       return true;
-    } catch { return false; }
+    } catch (e) {
+      console.warn('[sound] custom play failed:', e.message);
+      return false;
+    }
   }
 
   // Get the duration of the custom sound (returns a promise)
   function _getCustomSoundDuration() {
     return new Promise(resolve => {
-      if (!_customShortAudio || !_customShortAudio.duration || isNaN(_customShortAudio.duration)) {
-        resolve(1000); // fallback 1s if unknown
+      if (_customSoundBuffer) {
+        resolve(Math.ceil(_customSoundBuffer.duration * 1000));
         return;
       }
-      resolve(Math.ceil(_customShortAudio.duration * 1000));
+      if (_customShortAudio && _customShortAudio.duration && !isNaN(_customShortAudio.duration)) {
+        resolve(Math.ceil(_customShortAudio.duration * 1000));
+        return;
+      }
+      resolve(1000); // fallback 1s if unknown
     });
   }
 
@@ -5272,14 +5288,10 @@
       _customAudio = new Audio(_customSoundUrl);
       _customAudio.volume = 1.0;
       _customAudio.preload = 'auto';
-      // Also create/update the short audio element used in countdown
-      _customShortAudio = new Audio(_customSoundUrl);
-      _customShortAudio._srcUrl = _customSoundUrl;
-      _customShortAudio.volume = 1.0;
-      _customShortAudio.preload = 'auto';
-      // Pre-warm so iOS doesn't have to download/decode on first play
       _customAudio.load();
-      _customShortAudio.load();
+      // Decode into AudioBuffer for reliable Web Audio API playback
+      _customSoundBuffer = null;
+      _decodeCustomSound(_customSoundUrl);
     };
     reader.onerror = err => { console.warn('[sound] file read failed', err); alert('Could not read audio file'); };
     reader.readAsDataURL(file);
@@ -7194,11 +7206,9 @@
     if (_savedCustomSound) {
       _customSoundUrl = _savedCustomSound;
       _customAudio = new Audio(_savedCustomSound);
-      // Also pre-create the short audio element used in countdown
-      // (will be unlocked on first user gesture via unlockAudioOnGesture)
-      _customShortAudio = new Audio(_savedCustomSound);
-      _customShortAudio._srcUrl = _savedCustomSound;
-      _customShortAudio.preload = 'auto';
+      _customAudio.preload = 'auto';
+      // AudioBuffer will be decoded on first user gesture (unlockAudioOnGesture)
+      // or when _ensureAudioReady() is called before countdown
     }
     // Restore button color
     const _savedBtnColor = localStorage.getItem('hb_btn_color');
