@@ -3489,10 +3489,8 @@
       // Also upload to Telegram in the background (non-blocking)
       if (_tgConfigured()) {
         uploadToTelegram(compositeDataUrl, 'image/png', 'png').catch(e => console.warn('[telegram] bg upload failed:', e.message));
-        if (gifUrl && photos.length > 1) {
-          const gifCT = _gifIsMp4 ? ('video/' + (_gifExt || 'mp4')) : 'image/gif';
-          const gifExt = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
-          uploadToTelegram(gifUrl, gifCT, gifExt).catch(e => console.warn('[telegram] gif bg upload failed:', e.message));
+        if (photos.length > 1) {
+          _uploadGifAsMp4ToTelegram();
         }
       }
     } catch (err) {
@@ -4288,9 +4286,7 @@
     if (_tgConfigured()) {
       uploadToTelegram(compositeDataUrl, 'image/png', 'png').catch(e => console.warn('[telegram] bg upload:', e.message));
       if (hasGif) {
-        const gifCT = _gifIsMp4 ? ('video/' + (_gifExt || 'mp4')) : 'image/gif';
-        const gifExt = _gifIsMp4 ? (_gifExt || 'mp4') : 'gif';
-        uploadToTelegram(gifUrl, gifCT, gifExt).catch(e => console.warn('[telegram] gif bg upload:', e.message));
+        _uploadGifAsMp4ToTelegram();
       }
     }
   }
@@ -4357,6 +4353,16 @@
         recorder.stop();
       } catch (e) { reject(e); }
     });
+  }
+
+  /* Upload GIF as MP4 video to Telegram (background, non-blocking) */
+  function _uploadGifAsMp4ToTelegram() {
+    _framesToMp4().then(({ blob, ext, mime }) => {
+      const url = URL.createObjectURL(blob);
+      uploadToTelegram(url, mime, ext)
+        .then(() => URL.revokeObjectURL(url))
+        .catch(e => { URL.revokeObjectURL(url); console.warn('[telegram] mp4 upload failed:', e.message); });
+    }).catch(e => console.warn('[telegram] mp4 conversion failed:', e.message));
   }
 
   /* Share GIF — converts to MP4 video so it animates on all platforms (Messenger, Telegram, etc.)
