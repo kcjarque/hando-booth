@@ -2082,6 +2082,7 @@
               <option value="single">Single (1 photo)</option>
               <option value="double">Double (2 photos)</option>
               <option value="strip">Strip (3 photos)</option>
+              <option value="mini">Mini (3 photos)</option>
               <option value="strip4">Strip 4 (4 photos)</option>
               <option value="quad">Quad (4 photos)</option>
               <option value="logo">Logo</option>
@@ -2278,6 +2279,10 @@
     ];
     // Restore enabled states
     STOCK_OVERLAYS.forEach(ov => { if (ov.id in prevStates) ov.enabled = prevStates[ov.id]; });
+    // Refresh gallery thumbnails if it exists
+    if (typeof renderOverlayGallery === 'function') {
+      try { renderOverlayGallery(); } catch {}
+    }
   }
   refreshStockOverlays();
 
