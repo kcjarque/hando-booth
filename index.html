@@ -2197,9 +2197,14 @@
   // Stock overlays — SVG dimensions update to match layout via refreshStockOverlays()
   let STOCK_OVERLAYS = [];
   function refreshStockOverlays() {
-    // Get current layout composite dimensions for correct aspect ratio
-    const geo = (typeof layoutGeometry === 'function') ? layoutGeometry() : { cw: 1200, ch: 1800 };
-    const W = geo.cw, H = geo.ch;
+    // Get current layout composite dimensions for correct aspect ratio.
+    // On first call during script init, CELL_W (let) is in temporal dead zone
+    // so layoutGeometry() would throw ReferenceError. Catch and use defaults.
+    let W = 1200, H = 1800;
+    try {
+      const geo = layoutGeometry();
+      W = geo.cw; H = geo.ch;
+    } catch (e) { /* not yet initialized — use defaults */ }
     const mk = (id, label, body) => ({
       id, label, isStock: true, layout: 'all', enabled: true,
       dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
