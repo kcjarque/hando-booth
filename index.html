@@ -1370,28 +1370,30 @@
     </div>
     <div class="cam-bottom">
       <button class="shutter" id="shutter" onclick="startCapture()" aria-label="Take photo"></button>
-      <button class="rec-btn" id="rec-btn" onclick="toggleRecording()" aria-label="Record video" style="display:none"></button>
     </div>
     <div id="rec-timer">0:00</div>
   </div>
 
-  <!-- Video filter strip (shown only in video mode) -->
-  <div id="vid-filter-strip" style="display:none;position:absolute;bottom:90px;left:0;right:0;z-index:12;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 12px;white-space:nowrap;text-align:center">
-    <button class="fpill vfpill active" data-f="none" onclick="setVideoFilter('none')">None</button>
-    <button class="fpill vfpill" data-f="bw" onclick="setVideoFilter('bw')">B&amp;W</button>
-    <button class="fpill vfpill" data-f="sepia" onclick="setVideoFilter('sepia')">Sepia</button>
-    <button class="fpill vfpill" data-f="warm" onclick="setVideoFilter('warm')">Warm</button>
-    <button class="fpill vfpill" data-f="cool" onclick="setVideoFilter('cool')">Cool</button>
-    <button class="fpill vfpill" data-f="vivid" onclick="setVideoFilter('vivid')">Vivid</button>
-    <button class="fpill vfpill" data-f="faded" onclick="setVideoFilter('faded')">Faded</button>
-    <button class="fpill vfpill" data-f="noir" onclick="setVideoFilter('noir')">Noir</button>
-    <button class="fpill vfpill" data-f="dreamy" onclick="setVideoFilter('dreamy')">Dreamy</button>
-    <button class="fpill vfpill" data-f="rose" onclick="setVideoFilter('rose')">Rose</button>
-    <button class="fpill vfpill" data-f="film" onclick="setVideoFilter('film')">Film</button>
-    <button class="fpill vfpill" data-f="vintage" onclick="setVideoFilter('vintage')">Vintage</button>
-    <button class="fpill vfpill" data-f="glow" onclick="setVideoFilter('glow')">Glow</button>
-    <button class="fpill vfpill" data-f="cold" onclick="setVideoFilter('cold')">Cold</button>
-    <button class="fpill vfpill" data-f="disposable" onclick="setVideoFilter('disposable')">Disposable</button>
+  <!-- Video bottom controls: record button + filter strip (shown only in video mode) -->
+  <div id="vid-bottom-controls" style="display:none;position:absolute;bottom:0;left:0;right:0;z-index:12;flex-direction:column;align-items:center;padding-bottom:30px">
+    <div id="vid-filter-strip" style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px 12px;white-space:nowrap;text-align:center;width:100%">
+      <button class="fpill vfpill active" data-f="none" onclick="setVideoFilter('none')">None</button>
+      <button class="fpill vfpill" data-f="bw" onclick="setVideoFilter('bw')">B&amp;W</button>
+      <button class="fpill vfpill" data-f="sepia" onclick="setVideoFilter('sepia')">Sepia</button>
+      <button class="fpill vfpill" data-f="warm" onclick="setVideoFilter('warm')">Warm</button>
+      <button class="fpill vfpill" data-f="cool" onclick="setVideoFilter('cool')">Cool</button>
+      <button class="fpill vfpill" data-f="vivid" onclick="setVideoFilter('vivid')">Vivid</button>
+      <button class="fpill vfpill" data-f="faded" onclick="setVideoFilter('faded')">Faded</button>
+      <button class="fpill vfpill" data-f="noir" onclick="setVideoFilter('noir')">Noir</button>
+      <button class="fpill vfpill" data-f="dreamy" onclick="setVideoFilter('dreamy')">Dreamy</button>
+      <button class="fpill vfpill" data-f="rose" onclick="setVideoFilter('rose')">Rose</button>
+      <button class="fpill vfpill" data-f="film" onclick="setVideoFilter('film')">Film</button>
+      <button class="fpill vfpill" data-f="vintage" onclick="setVideoFilter('vintage')">Vintage</button>
+      <button class="fpill vfpill" data-f="glow" onclick="setVideoFilter('glow')">Glow</button>
+      <button class="fpill vfpill" data-f="cold" onclick="setVideoFilter('cold')">Cold</button>
+      <button class="fpill vfpill" data-f="disposable" onclick="setVideoFilter('disposable')">Disposable</button>
+    </div>
+    <button class="rec-btn" id="rec-btn" onclick="toggleRecording()" aria-label="Record video" style="margin-top:10px"></button>
   </div>
   <!-- Filtered video viewfinder canvas (replaces raw <video> in video mode) -->
   <canvas id="vid-filter-canvas" style="display:none;position:absolute;background:#000;z-index:1"></canvas>
@@ -1809,6 +1811,10 @@
           <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
             <span style="font-size:0.85rem;color:var(--text);font-weight:600">Show Mirror Toggle</span>
             <input type="checkbox" id="feat-mirror-toggle" onchange="toggleFeature('mirrorToggle',this.checked)" class="toggle-switch">
+          </label>
+          <label class="toggle-row" style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border);cursor:pointer">
+            <span style="font-size:0.85rem;color:var(--text);font-weight:600">Video Filters</span>
+            <input type="checkbox" id="feat-video-filters" onchange="toggleVideoFilters(this.checked)" class="toggle-switch">
           </label>
         </div>
         <!-- Home Screen Background -->
@@ -3310,10 +3316,11 @@
     if (isVideo) {
       thumbStrip.innerHTML = '';
       $('shutter').style.display = 'none';
-      $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
-      // Show filter strip for video mode
-      $('vid-filter-strip').style.display = '';
+      // Show video bottom controls (filter strip + record button)
+      $('vid-bottom-controls').style.display = 'flex';
+      // Hide filter strip if disabled in admin
+      $('vid-filter-strip').style.display = _videoFiltersEnabled ? '' : 'none';
       _videoFilter = 'none';
       document.querySelectorAll('.vfpill').forEach(p => p.classList.toggle('active', p.dataset.f === 'none'));
       // Start filtered viewfinder once camera dimensions are known
@@ -3326,9 +3333,8 @@
       applyMirror();
     } else {
       $('shutter').style.display = '';
-      $('rec-btn').style.display = 'none';
       showVideoOverlayOnCamera(false);
-      $('vid-filter-strip').style.display = 'none';
+      $('vid-bottom-controls').style.display = 'none';
       _stopVideoViewfinder();
       buildThumbs();
       const videoEl = $('video');
@@ -3343,7 +3349,7 @@
     cdOverlay.classList.remove('show');
     shutter.disabled = false;
     _stopVideoViewfinder();
-    $('vid-filter-strip').style.display = 'none';
+    $('vid-bottom-controls').style.display = 'none';
     stopStream();
     photos = [];
     _clearSession();
@@ -3356,7 +3362,7 @@
     cdOverlay.classList.remove('show');
     shutter.disabled = false;
     _stopVideoViewfinder();
-    $('vid-filter-strip').style.display = 'none';
+    $('vid-bottom-controls').style.display = 'none';
     stopStream();
     if (photos.length > 0) showPreviewScreen();
     else showScreen('home');
@@ -3385,8 +3391,8 @@
     if (camAR > outAR) { sh = vh; sw = vh * outAR; sx = (vw - sw) / 2; sy = 0; }
     else               { sw = vw; sh = vw / outAR; sx = 0; sy = (vh - sh) / 2; }
 
-    // Canvas resolution — cap at 480px for performance (filter runs every frame)
-    const scale = Math.min(1, 480 / Math.max(vidWidth, vidHeight));
+    // Canvas resolution — cap at 320px for smooth performance (filter runs every frame)
+    const scale = Math.min(1, 320 / Math.max(vidWidth, vidHeight));
     const cw = Math.round(vidWidth * scale), ch = Math.round(vidHeight * scale);
     fc.width = cw; fc.height = ch;
 
@@ -3399,13 +3405,17 @@
     const mirror = _shouldMirror();
     fc.style.cssText = 'display:block;position:absolute;inset:auto;top:50%;left:50%;width:' +
       Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;background:#000;z-index:1;transform:translate(-50%,-50%)' +
-      (mirror ? ' scaleX(-1)' : '');
+      (mirror ? ' scaleX(-1)' : '') + ';image-rendering:auto';
 
-    const fctx = fc.getContext('2d');
+    const fctx = fc.getContext('2d', { willReadFrequently: true });
+    let _frameSkip = 0;
 
     function drawViewfinder() {
+      _frameSkip++;
+      // Draw camera feed every frame for smooth motion
       fctx.drawImage(vid, sx, sy, sw, sh, 0, 0, cw, ch);
-      if (_videoFilter && _videoFilter !== 'none') {
+      // Apply filter every 2nd frame to reduce CPU load
+      if (_videoFilter && _videoFilter !== 'none' && (_frameSkip % 2 === 0)) {
         applyPixelFilter(fctx, cw, ch, _videoFilter);
       }
       _vidViewfinderAnimId = requestAnimationFrame(drawViewfinder);
@@ -3454,7 +3464,7 @@
     rc.height = vidHeight;
     console.log('[rec] output canvas:', rc.width + 'x' + rc.height, 'from raw camera:', vw + 'x' + vh);
     _recCanvas = rc;
-    const rctx = rc.getContext('2d');
+    const rctx = rc.getContext('2d', { willReadFrequently: true });
 
     // Load overlay image if present
     let ovImg = null;
@@ -6189,6 +6199,18 @@
     });
   }
 
+  /* ── Video filters admin toggle ──────────────────── */
+  let _videoFiltersEnabled = true;
+  try {
+    const vf = localStorage.getItem('hb_video_filters');
+    if (vf === 'false') _videoFiltersEnabled = false;
+  } catch {}
+
+  function toggleVideoFilters(on) {
+    _videoFiltersEnabled = on;
+    try { localStorage.setItem('hb_video_filters', String(on)); } catch {}
+  }
+
   /* ── Feature toggles ───────────────────────────── */
   const FEATURE_DEFAULTS = { editBtn: true, userSticker: true, mirrorToggle: true };
   let _features = Object.assign({}, FEATURE_DEFAULTS);
@@ -6233,6 +6255,7 @@
     const eb = $('feat-edit-btn'); if (eb) eb.checked = _features.editBtn;
     const us = $('feat-user-sticker'); if (us) us.checked = _features.userSticker;
     const mt = $('feat-mirror-toggle'); if (mt) mt.checked = _features.mirrorToggle;
+    const vf = $('feat-video-filters'); if (vf) vf.checked = _videoFiltersEnabled;
     // Sync enabled-layouts UI (rendered on demand)
     _syncEnabledLayoutsUI();
   }
