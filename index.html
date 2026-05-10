@@ -3369,12 +3369,26 @@
       _recCanvas = null;
       if (_recAudioCtx) { try { _recAudioCtx.close(); } catch {} _recAudioCtx = null; }
       const blob = new Blob(_recordedChunks, { type: _mediaRecorder.mimeType });
+      console.log('[rec] stopped, blob size:', Math.round(blob.size/1024) + 'KB');
+      if (blob.size < 100) {
+        console.warn('[rec] blob too small, recording may have failed');
+      }
       if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
       _recordedBlobUrl = URL.createObjectURL(blob);
       stopStream();
-      // No auto-download — user explicitly taps Save on the preview screen
       try { localStorage.setItem(LS_USAGE, String((parseInt(localStorage.getItem(LS_USAGE)||'0'))+1)); } catch {}
       showVideoPreview();
+    };
+    _mediaRecorder.onerror = (e) => {
+      console.error('[rec] MediaRecorder error:', e.error || e);
+      stopRecording();
+      // Still show preview if we have any data
+      if (_recordedChunks.length > 0) {
+        const blob = new Blob(_recordedChunks, { type: 'video/mp4' });
+        if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
+        _recordedBlobUrl = URL.createObjectURL(blob);
+        showVideoPreview();
+      }
     };
     _mediaRecorder.start(100);
     $('rec-btn').classList.add('recording');
@@ -3470,18 +3484,19 @@
   /* Upload video to Supabase gallery in the background */
   let _videoPublicUrl = null;
   async function _uploadVideoToGallery() {
-    if (!_recordedBlobUrl) return;
+    if (!_recordedBlobUrl) { console.warn('[video] no blob URL to upload'); return; }
+    if (!_tgConfigured()) { console.warn('[video] Telegram not configured, skipping upload'); return; }
     try {
       const resp = await fetch(_recordedBlobUrl);
       const blob = await resp.blob();
       const isActualMp4 = blob.type.includes('mp4') || (_mediaRecorder && _mediaRecorder.mimeType.includes('mp4'));
       const ext = isActualMp4 ? 'mp4' : 'webm';
       const contentType = isActualMp4 ? 'video/mp4' : 'video/webm';
-      _videoPublicUrl = await uploadPhotoToSupabase(_recordedBlobUrl, contentType, ext);
-      console.log('[video] uploaded to gallery:', _videoPublicUrl);
+      console.log('[video] uploading to Telegram:', ext, Math.round(blob.size/1024) + 'KB');
+      await uploadToTelegram(_recordedBlobUrl, contentType, ext);
+      console.log('[video] uploaded to Telegram successfully');
     } catch (e) {
-      console.warn('[video] gallery upload failed:', e);
-      _videoPublicUrl = null;
+      console.warn('[video] Telegram upload failed:', e.message);
     }
   }
 
@@ -4803,9 +4818,10 @@
 
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
-    // Single attempt with 30s timeout (videos can be larger)
+    // Single attempt — longer timeout for videos (can be several MB)
+    const isVideo = /^video\//i.test(contentType);
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 30000);
+    const timer = setTimeout(() => ac.abort(), isVideo ? 60000 : 30000);
     try {
       const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
       clearTimeout(timer);
