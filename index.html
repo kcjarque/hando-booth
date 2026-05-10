@@ -533,7 +533,7 @@
       font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
     .fpill:active { transform: scale(0.94); }
@@ -555,7 +555,7 @@
       font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
     .ov-add-btn:active { background: var(--surface2); }
@@ -787,7 +787,7 @@
       font-weight: 700;
       font-family: var(--font-ui);
       cursor: pointer;
-      transition: all 0.2s;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
       color: var(--muted);
       background: transparent;
       -webkit-tap-highlight-color: transparent;
@@ -818,7 +818,7 @@
       text-align: center;
       line-height: 1.4;
       box-shadow: 0 1px 4px var(--shadow);
-      transition: all 0.15s;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
       -webkit-tap-highlight-color: transparent;
     }
     .delay-btn small { display: block; font-size: 0.62rem; font-weight: 400; color: rgba(255,255,255,0.8); margin-top: 2px; }
@@ -1118,7 +1118,7 @@
     .cpicker-hex { flex:1; padding:10px 12px; border:1.5px solid var(--border); border-radius:8px; font-family:ui-monospace,monospace; font-size:0.95rem; font-weight:600; text-transform:uppercase; background:var(--surface2); color:var(--text); outline:none; min-width:0; }
     .cpicker-hex:focus { border-color: var(--orange); }
     .cpicker-tabs { display:flex; gap:0; background:var(--surface2); border-radius:10px; padding:3px; margin-bottom:10px; }
-    .cpicker-tab { flex:1; padding:8px 4px; border:none; background:transparent; color:var(--muted); font-weight:700; font-size:0.78rem; cursor:pointer; border-radius:7px; transition:all 0.15s; }
+    .cpicker-tab { flex:1; padding:8px 4px; border:none; background:transparent; color:var(--muted); font-weight:700; font-size:0.78rem; cursor:pointer; border-radius:7px; transition:background 0.15s, color 0.15s; }
     .cpicker-tab.active { background:#fff; color:var(--text); box-shadow:0 1px 3px rgba(0,0,0,0.08); }
     .cpicker-panel { display:none; }
     .cpicker-panel.active { display:block; }
@@ -2745,41 +2745,36 @@
   let _customSoundBuffer = null; // AudioBuffer decoded from custom sound
   let _customSoundSource = null; // currently playing AudioBufferSourceNode
 
+  let _decodingCustomSound = null; // promise to avoid duplicate decodes
+
   // Decode custom sound URL (data: or blob:) into an AudioBuffer
-  async function _decodeCustomSound(url) {
-    try {
-      const ctx = getAudioCtx();
-      if (ctx.state === 'suspended') await ctx.resume();
-      const resp = await fetch(url);
-      const arrayBuf = await resp.arrayBuffer();
-      _customSoundBuffer = await ctx.decodeAudioData(arrayBuf);
-      console.log('[sound] custom sound decoded:', Math.round(_customSoundBuffer.duration * 1000) + 'ms');
-    } catch (e) {
-      console.warn('[sound] failed to decode custom sound:', e.message);
-      _customSoundBuffer = null;
-    }
+  function _decodeCustomSound(url) {
+    if (_decodingCustomSound) return _decodingCustomSound;
+    _decodingCustomSound = (async () => {
+      try {
+        const ctx = getAudioCtx();
+        if (ctx.state === 'suspended') await ctx.resume();
+        const resp = await fetch(url);
+        const arrayBuf = await resp.arrayBuffer();
+        _customSoundBuffer = await ctx.decodeAudioData(arrayBuf);
+        console.log('[sound] custom sound decoded:', Math.round(_customSoundBuffer.duration * 1000) + 'ms');
+      } catch (e) {
+        console.warn('[sound] failed to decode custom sound:', e.message);
+        _customSoundBuffer = null;
+      } finally {
+        _decodingCustomSound = null;
+      }
+    })();
+    return _decodingCustomSound;
   }
 
   // Re-prime audio before each countdown — ensures iOS AudioContext hasn't gone to sleep
   function _ensureAudioReady() {
     try {
-      // Re-create AudioContext if it was closed or doesn't exist
       if (!_audioCtx || _audioCtx.state === 'closed') {
         _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
       if (_audioCtx.state === 'suspended') _audioCtx.resume();
-
-      // Play a silent buffer to keep the context alive (iOS quirk)
-      try {
-        const buf = _audioCtx.createBuffer(1, 1, 22050);
-        const src = _audioCtx.createBufferSource();
-        src.buffer = buf; src.connect(_audioCtx.destination); src.start(0);
-      } catch {}
-
-      // Decode custom sound into AudioBuffer if not done yet
-      if (_soundPreset === 'custom' && _customSoundUrl && !_customSoundBuffer) {
-        _decodeCustomSound(_customSoundUrl);
-      }
     } catch {}
   }
 
@@ -2796,12 +2791,9 @@
       }
 
       if (!_customSoundBuffer) {
-        // Buffer not decoded yet — try HTMLAudioElement fallback
-        if (_customShortAudio) {
-          _customShortAudio.currentTime = 0;
-          _customShortAudio.play().catch(() => {});
-        }
-        return true;
+        // Buffer not ready — shouldn't happen (decoded in startBooth) but log it
+        console.warn('[sound] custom sound buffer not ready, skipping');
+        return false;
       }
 
       // Play via Web Audio API — works from setTimeout, no gesture needed
@@ -2891,19 +2883,25 @@
     if (id !== 'claim-screen') _saveSession(id);
   }
 
+  let _saveSessionTimer = null;
   function _saveSession(screenId) {
-    try {
-      const state = {
-        screen: screenId,
-        layout,
-        photos,
-        activeFilter,
-        activeOverlayId: activeOverlay ? activeOverlay.id : null,
-        compositeDataUrl,
-        gifUrl
-      };
-      sessionStorage.setItem('hb_session', JSON.stringify(state));
-    } catch(e) { /* storage full — ignore */ }
+    // Debounce: serializing photos + composite data URLs can be MB of JSON
+    // which blocks the main thread. Delay saves so rapid screen changes don't lag.
+    clearTimeout(_saveSessionTimer);
+    _saveSessionTimer = setTimeout(() => {
+      try {
+        const state = {
+          screen: screenId,
+          layout,
+          photos,
+          activeFilter,
+          activeOverlayId: activeOverlay ? activeOverlay.id : null,
+          compositeDataUrl,
+          gifUrl
+        };
+        sessionStorage.setItem('hb_session', JSON.stringify(state));
+      } catch(e) { /* storage full — ignore */ }
+    }, 300);
   }
 
   // Save state when user leaves the page (swipe away, switch apps, etc.)
@@ -3202,7 +3200,14 @@
   async function startBooth() {
     nudgeAddressBarHidden();
     // Ensure iOS AudioContext is unlocked so countdown beeps + shutter sound play
-    try { unlockAudioOnGesture(); _ensureAudioReady(); } catch {}
+    try {
+      unlockAudioOnGesture();
+      _ensureAudioReady();
+      // Await custom sound decode so buffer is ready before first countdown
+      if (_soundPreset === 'custom' && _customSoundUrl && !_customSoundBuffer) {
+        await _decodeCustomSound(_customSoundUrl);
+      }
+    } catch {}
     photos = [];
     activeFilter = 'none';
     activeOverlay = null;
