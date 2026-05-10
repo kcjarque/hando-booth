@@ -4153,7 +4153,7 @@
     img.style.opacity = gifUrl ? '0.35' : '0';
     lbl.textContent = 'Generating GIF…';
 
-    const GIF_W = _IS_IOS ? 360 : 480, GIF_H = _IS_IOS ? 270 : 360;
+    const GIF_W = CELL_W, GIF_H = CELL_H;
 
     console.log('[gif] starting gifenc generation', { iOS: _IS_IOS, GIF_W, GIF_H, frames: photos.length });
 
@@ -4322,7 +4322,7 @@
   function _framesToMp4() {
     return new Promise(async (resolve, reject) => {
       try {
-        const W = 480, H = 360;
+        const W = CELL_W, H = CELL_H;
         const c = document.createElement('canvas');
         c.width = W; c.height = H;
         const ctx = c.getContext('2d');
