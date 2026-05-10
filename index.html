@@ -1345,7 +1345,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.7</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.8</span>
   </div>
 </div>
 
@@ -1580,7 +1580,7 @@
     <div style="width:40px"></div>
     <div class="screen-head">
       <h2 id="ty-name">Enjoy your photo!</h2>
-      <p>Your file has been saved to this device</p>
+      <p></p>
     </div>
     <!-- FIX 11: print button on thank-you screen -->
     <button class="home-btn" onclick="printPhoto()" aria-label="Print" title="Print photo">
@@ -1593,7 +1593,7 @@
   </div>
 
   <div class="prev-section" style="text-align:center">
-    <p class="section-label">Get your photo</p>
+    <p class="section-label" style="display:none"></p>
     <!-- FIX 2: stable #qr-box wrapper; only #qr-container contents are replaced -->
     <div id="qr-box" style="display:none;align-items:center;justify-content:center;background:#fff;border-radius:16px;padding:16px;border:1.5px solid var(--border);box-shadow:0 4px 20px var(--shadow);min-width:164px;min-height:164px">
       <div id="qr-container"></div>
@@ -2687,6 +2687,17 @@
   window.addEventListener('touchstart', function() {
     try {
       if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+      // Also keep custom audio element alive by touching it on each gesture
+      if (_customShortAudio && _soundPreset === 'custom') {
+        // Silent play+pause to keep iOS from suspending the element
+        const vol = _customShortAudio.volume;
+        _customShortAudio.volume = 0;
+        _customShortAudio.play().then(() => {
+          _customShortAudio.pause();
+          _customShortAudio.currentTime = 0;
+          _customShortAudio.volume = vol;
+        }).catch(() => { _customShortAudio.volume = vol; });
+      }
     } catch {}
   }, { passive: true });
 
@@ -2780,8 +2791,17 @@
           _customShortAudio._srcUrl = _customSoundUrl;
           _customShortAudio.preload = 'auto';
         }
-        // Warm up the audio element by loading it
-        try { _customShortAudio.load(); } catch {}
+        // Silent play+pause to keep iOS from killing the audio element
+        // Do NOT call .load() — that resets the unlock state on iOS
+        try {
+          const v = _customShortAudio.volume;
+          _customShortAudio.volume = 0;
+          _customShortAudio.play().then(() => {
+            _customShortAudio.pause();
+            _customShortAudio.currentTime = 0;
+            _customShortAudio.volume = v;
+          }).catch(() => { _customShortAudio.volume = v; });
+        } catch {}
       }
     } catch {}
   }
@@ -4153,7 +4173,10 @@
     img.style.opacity = gifUrl ? '0.35' : '0';
     lbl.textContent = 'Generating GIF…';
 
-    const GIF_W = CELL_W, GIF_H = CELL_H;
+    // Cap GIF dimensions to keep encoding fast — scale down proportionally
+    const GIF_MAX = 480;
+    const _gifScale = Math.min(1, GIF_MAX / Math.max(CELL_W, CELL_H));
+    const GIF_W = Math.round(CELL_W * _gifScale), GIF_H = Math.round(CELL_H * _gifScale);
 
     console.log('[gif] starting gifenc generation', { iOS: _IS_IOS, GIF_W, GIF_H, frames: photos.length });
 
@@ -4322,7 +4345,10 @@
   function _framesToMp4() {
     return new Promise(async (resolve, reject) => {
       try {
-        const W = CELL_W, H = CELL_H;
+        // Cap MP4 dimensions to keep recording fast — scale down proportionally
+        const MP4_MAX = 640;
+        const _mp4Scale = Math.min(1, MP4_MAX / Math.max(CELL_W, CELL_H));
+        const W = Math.round(CELL_W * _mp4Scale), H = Math.round(CELL_H * _mp4Scale);
         const c = document.createElement('canvas');
         c.width = W; c.height = H;
         const ctx = c.getContext('2d');
@@ -4765,9 +4791,9 @@
 
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
-    // Single attempt with 20s timeout (uploads run in background, no need for retries)
+    // Single attempt with 30s timeout (videos can be larger)
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 20000);
+    const timer = setTimeout(() => ac.abort(), 30000);
     try {
       const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
       clearTimeout(timer);

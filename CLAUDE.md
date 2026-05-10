@@ -73,6 +73,14 @@ If a filter is changed before a previous render completes, both renders run conc
 **Root cause:** v5.6 replaced "Get Photo" button with "Share" on the gif-screen. The old `doGetQR()` was also broken — it called `renderQR()` with null since Telegram returns no public URL.
 **Fix applied (v5.7):** Restored "Get Photo" button calling `doGetQR()`. Rewrote `doGetQR()` to show share buttons (↗ Share Photo / ↗ Share GIF) via native share sheet instead of QR code. Telegram upload happens in background.
 
+### 17. Custom sound disappears mid-session (FIXED in v5.8)
+**Root cause:** `_ensureAudioReady()` called `.load()` on the custom audio element, which resets the iOS unlock state. Also, the touchstart audio re-prime only resumed AudioContext but didn't re-unlock the HTMLAudio element.
+**Fix applied (v5.8):** Replaced `.load()` with silent play/pause to keep the element alive. Added custom audio re-unlock on every touchstart. `_ensureAudioReady()` now re-creates AudioContext if closed and plays a silent buffer.
+
+### 18. GIF/MP4 too large causing lag and upload failures (FIXED in v5.8)
+**Root cause:** GIF and MP4 used full `CELL_W × CELL_H` (which at 300 DPI can be 1200×1600+). This made GIF encoding and MP4 recording extremely slow, causing timeouts and lag.
+**Fix applied (v5.8):** Capped GIF at 480px max dimension, MP4 at 640px max dimension. Both scale down proportionally from CELL_W/CELL_H. Increased Telegram upload timeout to 30s.
+
 ---
 
 ## Architecture
