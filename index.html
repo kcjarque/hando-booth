@@ -2175,6 +2175,7 @@
   let _mediaRecorder = null;
   let _recordedChunks = [];
   let _recordedBlobUrl = null;
+  let _recordedBlob = null;
   let _recInterval = null;
 
   /* ─── Custom editor state ──────────────────────── */
@@ -3366,13 +3367,12 @@
       if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
       _recCanvas = null;
       if (_recAudioCtx) { try { _recAudioCtx.close(); } catch {} _recAudioCtx = null; }
-      const blob = new Blob(_recordedChunks, { type: _mediaRecorder.mimeType });
-      console.log('[rec] stopped, blob size:', Math.round(blob.size/1024) + 'KB');
-      if (blob.size < 100) {
-        console.warn('[rec] blob too small, recording may have failed');
-      }
+      const mime = _mediaRecorder ? _mediaRecorder.mimeType : 'video/mp4';
+      const blob = new Blob(_recordedChunks, { type: mime });
+      console.log('[rec] stopped, blob size:', Math.round(blob.size/1024) + 'KB, mime:', mime);
       if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
       _recordedBlobUrl = URL.createObjectURL(blob);
+      _recordedBlob = blob; // keep blob reference for direct upload
       stopStream();
       try { localStorage.setItem(LS_USAGE, String((parseInt(localStorage.getItem(LS_USAGE)||'0'))+1)); } catch {}
       showVideoPreview();
@@ -3482,17 +3482,31 @@
   /* Upload video to Supabase gallery in the background */
   let _videoPublicUrl = null;
   async function _uploadVideoToGallery() {
-    if (!_recordedBlobUrl) { console.warn('[video] no blob URL to upload'); return; }
+    const blob = _recordedBlob;
+    if (!blob) { console.warn('[video] no blob to upload'); return; }
     if (!_tgConfigured()) { console.warn('[video] Telegram not configured, skipping upload'); return; }
     try {
-      const resp = await fetch(_recordedBlobUrl);
-      const blob = await resp.blob();
-      const isActualMp4 = blob.type.includes('mp4') || (_mediaRecorder && _mediaRecorder.mimeType.includes('mp4'));
+      const isActualMp4 = blob.type.includes('mp4');
       const ext = isActualMp4 ? 'mp4' : 'webm';
-      const contentType = isActualMp4 ? 'video/mp4' : 'video/webm';
-      console.log('[video] uploading to Telegram:', ext, Math.round(blob.size/1024) + 'KB');
-      await uploadToTelegram(_recordedBlobUrl, contentType, ext);
-      console.log('[video] uploaded to Telegram successfully');
+      const filename = 'booth-' + Date.now() + '.' + ext;
+      console.log('[video] uploading to Telegram:', filename, Math.round(blob.size/1024) + 'KB', 'type:', blob.type);
+
+      const form = new FormData();
+      form.append('chat_id', TELEGRAM_CHAT_ID);
+      form.append('video', blob, filename);
+      form.append('caption', 'Hando Booth — ' + new Date().toLocaleString());
+
+      const apiUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendVideo';
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 60000);
+      const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
+      clearTimeout(timer);
+      const json = await r.json();
+      if (!json.ok) {
+        console.warn('[video] Telegram error:', json.description);
+      } else {
+        console.log('[video] uploaded to Telegram successfully');
+      }
     } catch (e) {
       console.warn('[video] Telegram upload failed:', e.message);
     }
