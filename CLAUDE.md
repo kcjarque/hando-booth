@@ -81,6 +81,14 @@ If a filter is changed before a previous render completes, both renders run conc
 **Root cause:** GIF and MP4 used full `CELL_W × CELL_H` (which at 300 DPI can be 1200×1600+). This made GIF encoding and MP4 recording extremely slow, causing timeouts and lag.
 **Fix applied (v5.8):** Capped GIF at 480px max dimension, MP4 at 640px max dimension. Both scale down proportionally from CELL_W/CELL_H. Increased Telegram upload timeout to 30s.
 
+### 19. Photos and GIFs not uploading to Telegram (FIXED in v5.9)
+**Root cause:** While fixing double-send issue, ALL Telegram upload code was removed from both `doGetQR()` and `sharePhoto()`. Nothing triggered uploads anymore.
+**Fix applied (v5.9):** Telegram uploads now happen automatically in `showGifScreen()` — photo uploads immediately when composite is ready, MP4 (GIF as video) uploads after `generateGif()` completes and MP4 is pre-cached. A `_tgPhotoUploaded` flag prevents re-uploads if user navigates back and forth. Share buttons do NOT trigger uploads (prevents double-send).
+
+### 20. Video recording ignores admin size settings (FIXED in v5.9)
+**Root cause:** `startRecording()` used raw camera resolution instead of admin-configured `vidWidth × vidHeight`. Camera preview used `object-fit: contain` showing full uncropped frame.
+**Fix applied (v5.9):** Recording canvas uses `vidWidth × vidHeight` with center-crop math to fill the target aspect ratio. Camera preview uses `object-fit: cover` with `aspect-ratio` CSS set to `vidWidth/vidHeight`, so preview matches recording output exactly.
+
 ---
 
 ## Architecture
