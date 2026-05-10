@@ -3294,7 +3294,7 @@
       let pw, ph;
       if (sAR > vAR) { ph = screenH; pw = screenH * vAR; }
       else            { pw = screenW; ph = screenW / vAR; }
-      videoEl.style.cssText = 'position:absolute;top:50%;left:50%;width:' + Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;object-fit:cover;background:#000';
+      videoEl.style.cssText = 'position:absolute;inset:auto;top:50%;left:50%;width:' + Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;object-fit:cover;background:#000';
       applyMirror();
     } else {
       $('shutter').style.display = '';
