@@ -3232,11 +3232,11 @@
       const elW = Math.max(vpW, vpH * targetAR);
       const elH = Math.max(vpH, vpW / targetAR);
       videoEl.style.position = 'absolute';
+      videoEl.style.inset = 'auto'; // clear default inset:0 BEFORE setting top/left
       videoEl.style.top = '50%';
       videoEl.style.left = '50%';
       videoEl.style.width = elW + 'px';
       videoEl.style.height = elH + 'px';
-      videoEl.style.inset = 'auto';
       videoEl.style.objectFit = 'cover';
       videoEl.style.background = '#000';
       videoEl.style.clipPath = '';
