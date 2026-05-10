@@ -2683,6 +2683,13 @@
   window.addEventListener('mousedown', unlockAudioOnGesture, { once: true });
   window.addEventListener('keydown', unlockAudioOnGesture, { once: true });
 
+  // iOS suspends AudioContext after inactivity — re-prime on every touch so sound never disappears
+  window.addEventListener('touchstart', function() {
+    try {
+      if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+    } catch {}
+  }, { passive: true });
+
   function getAudioCtx() {
     if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     // iOS Safari: context starts suspended until a user gesture resumes it
@@ -2753,7 +2760,19 @@
   // Re-prime audio before each countdown — ensures iOS AudioContext hasn't gone to sleep
   function _ensureAudioReady() {
     try {
-      if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+      // Re-create AudioContext if it was closed or doesn't exist
+      if (!_audioCtx || _audioCtx.state === 'closed') {
+        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
+
+      // Play a silent buffer to keep the context alive (iOS quirk)
+      try {
+        const buf = _audioCtx.createBuffer(1, 1, 22050);
+        const src = _audioCtx.createBufferSource();
+        src.buffer = buf; src.connect(_audioCtx.destination); src.start(0);
+      } catch {}
+
       // Re-prime custom short audio if custom sound is selected
       if (_soundPreset === 'custom' && _customSoundUrl) {
         if (!_customShortAudio || _customShortAudio._srcUrl !== _customSoundUrl) {
@@ -3169,7 +3188,7 @@
   async function startBooth() {
     nudgeAddressBarHidden();
     // Ensure iOS AudioContext is unlocked so countdown beeps + shutter sound play
-    try { unlockAudioOnGesture(); if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume(); } catch {}
+    try { unlockAudioOnGesture(); _ensureAudioReady(); } catch {}
     photos = [];
     activeFilter = 'none';
     activeOverlay = null;
@@ -4051,9 +4070,10 @@
   // Auto-download removed in v4.6 — user taps download/share button explicitly
   let _gifIsMp4 = false;
   let _gifExt = 'gif';
+  let _cachedMp4Blob = null; // Pre-generated MP4 for instant sharing
   function showGifScreen() {
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
-    _gifIsMp4 = false; _gifExt = 'gif';
+    _gifIsMp4 = false; _gifExt = 'gif'; _cachedMp4Blob = null;
     // Auto-download removed in v4.6
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
@@ -4189,6 +4209,13 @@
       img.src = gifUrl; img.style.opacity = '1';
       _gifIsMp4 = false;
       _gifExt = 'gif';
+
+      // Pre-generate MP4 in background for instant sharing later
+      _cachedMp4Blob = null;
+      _framesToMp4().then(result => {
+        _cachedMp4Blob = result;
+        console.log('[gif] MP4 pre-cached:', Math.round(result.blob.size / 1024) + 'KB');
+      }).catch(e => console.warn('[gif] MP4 pre-cache failed:', e.message));
 
     } catch (err) {
       console.error('[gif] gifenc generation failed:', err);
@@ -4328,9 +4355,11 @@
 
         recorder.start();
 
-        // Draw each frame for frameDelay duration, looping 3 times for a nice video
-        const delayMs = frameDelay || 500;
-        const loops = 3;
+        // Draw each frame with short delay — just enough for MediaRecorder to capture
+        // Use 150ms per frame (fast recording), loop 2× for a ~1-2s video
+        const delayMs = 150;
+        const loops = 2;
+        const track = stream.getVideoTracks()[0];
         for (let loop = 0; loop < loops; loop++) {
           for (let i = 0; i < frames.length; i++) {
             const im = frames[i];
@@ -4342,10 +4371,7 @@
               im.naturalWidth * s, im.naturalHeight * s
             );
             applyPixelFilter(ctx, W, H, activeFilter);
-            // Request a frame from captureStream
-            if (stream.getVideoTracks()[0].requestFrame) {
-              stream.getVideoTracks()[0].requestFrame();
-            }
+            if (track.requestFrame) track.requestFrame();
             await new Promise(r => setTimeout(r, delayMs));
           }
         }
@@ -4355,9 +4381,15 @@
     });
   }
 
+  /* Get or wait for the cached MP4 blob */
+  async function _getMp4() {
+    if (_cachedMp4Blob) return _cachedMp4Blob;
+    return await _framesToMp4();
+  }
+
   /* Upload GIF as MP4 video to Telegram (background, non-blocking) */
   function _uploadGifAsMp4ToTelegram() {
-    _framesToMp4().then(({ blob, ext, mime }) => {
+    _getMp4().then(({ blob, ext, mime }) => {
       const url = URL.createObjectURL(blob);
       uploadToTelegram(url, mime, ext)
         .then(() => URL.revokeObjectURL(url))
@@ -4365,15 +4397,14 @@
     }).catch(e => console.warn('[telegram] mp4 conversion failed:', e.message));
   }
 
-  /* Share GIF — converts to MP4 video so it animates on all platforms (Messenger, Telegram, etc.)
+  /* Share GIF — uses pre-cached MP4 video for instant sharing on all platforms.
      No download fallback — share sheet only, never prompts to save a file. */
   async function shareGifFromTY() {
     if (!photos || photos.length < 2) { alert('No GIF yet.'); return; }
     try {
-      const { blob, ext, mime } = await _framesToMp4();
+      const { blob, ext, mime } = await _getMp4();
       const fname = 'hando-booth-' + Date.now() + '.' + ext;
       const file = new File([blob], fname, { type: mime });
-      // No download fallback — pass null so it never triggers a save prompt
       await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', null);
     } catch (err) {
       if (err.name !== 'AbortError') {
