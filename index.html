@@ -2526,6 +2526,23 @@
         r += cf.tintR || 0;
         g += cf.tintG || 0;
         b += cf.tintB || 0;
+        // Color Cast — overlay a hue-based tint across the image
+        if (cf.castAmount && cf.castAmount > 0) {
+          const ca = cf.castAmount / 100;
+          const ch = ((cf.castHue || 0) % 360 + 360) % 360;
+          const cC = 1, cX = 1 - Math.abs((ch / 60) % 2 - 1);
+          let cr = 0, cg = 0, cb = 0;
+          if (ch < 60)       { cr = cC; cg = cX; }
+          else if (ch < 120) { cr = cX; cg = cC; }
+          else if (ch < 180) { cg = cC; cb = cX; }
+          else if (ch < 240) { cg = cX; cb = cC; }
+          else if (ch < 300) { cr = cX; cb = cC; }
+          else               { cr = cC; cb = cX; }
+          // Blend: mix pixel toward the cast color (scaled to pixel luminance)
+          r = r * (1 - ca) + r * (0.5 + 0.5 * cr) * ca + 40 * cr * ca;
+          g = g * (1 - ca) + g * (0.5 + 0.5 * cg) * ca + 40 * cg * ca;
+          b = b * (1 - ca) + b * (0.5 + 0.5 * cb) * ca + 40 * cb * ca;
+        }
         // Fade (lift blacks toward a soft haze)
         if (fade > 0) {
           r = r + (210 - r) * fade * 0.35;
@@ -5516,6 +5533,8 @@
     { key: 'saturation', label: 'Saturation', min: -100, max: 100, step: 1 },
     { key: 'temp',       label: 'Temperature', hint: '← cool · warm →', min: -60, max: 60, step: 1 },
     { key: 'hue',        label: 'Tint',        hint: '±180° hue shift', min: -180, max: 180, step: 1 },
+    { key: 'castHue',    label: 'Color Cast', hint: '0=red 60=yellow 120=green 180=cyan 240=blue 300=purple', min: 0, max: 360, step: 1 },
+    { key: 'castAmount', label: 'Cast Intensity', min: 0, max: 80, step: 1 },
     { key: 'highlights', label: 'Highlights', min: -50, max: 50, step: 1 },
     { key: 'shadows',    label: 'Shadows',    min: -50, max: 50, step: 1 },
     { key: 'whites',     label: 'Whites',     min: -50, max: 50, step: 1 },
