@@ -3323,13 +3323,15 @@
       $('vid-filter-strip').style.display = _videoFiltersEnabled ? '' : 'none';
       _videoFilter = 'none';
       document.querySelectorAll('.vfpill').forEach(p => p.classList.toggle('active', p.dataset.f === 'none'));
-      // Start filtered viewfinder once camera dimensions are known
+      // Show raw video at correct aspect ratio (high quality, no canvas)
+      // Viewfinder canvas only starts when user picks a filter
       const videoEl = $('video');
-      const _waitForDims = () => {
-        if (videoEl.videoWidth > 0) { _startVideoViewfinder(); }
-        else { setTimeout(_waitForDims, 100); }
-      };
-      _waitForDims();
+      const screenW = window.innerWidth, screenH = window.innerHeight;
+      const vAR = vidWidth / vidHeight, sAR = screenW / screenH;
+      let pw, ph;
+      if (sAR > vAR) { ph = screenH; pw = screenH * vAR; }
+      else            { pw = screenW; ph = screenW / vAR; }
+      videoEl.style.cssText = 'position:absolute;inset:auto;top:50%;left:50%;width:' + Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;object-fit:cover;background:#000';
       applyMirror();
     } else {
       $('shutter').style.display = '';
@@ -3375,6 +3377,25 @@
   function setVideoFilter(name) {
     _videoFilter = name;
     document.querySelectorAll('.vfpill').forEach(p => p.classList.toggle('active', p.dataset.f === name));
+    // Switch between raw video (no filter) and canvas viewfinder (with filter)
+    const vid = $('video');
+    const fc = $('vid-filter-canvas');
+    if (name === 'none') {
+      // Show high-quality raw video, stop canvas loop
+      _stopVideoViewfinder();
+      if (vid) {
+        const screenW = window.innerWidth, screenH = window.innerHeight;
+        const outAR = vidWidth / vidHeight, sAR = screenW / screenH;
+        let pw, ph;
+        if (sAR > outAR) { ph = screenH; pw = screenH * outAR; }
+        else              { pw = screenW; ph = screenW / outAR; }
+        vid.style.cssText = 'position:absolute;inset:auto;top:50%;left:50%;width:' + Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;object-fit:cover;background:#000';
+        applyMirror();
+      }
+    } else if (!_vidViewfinderAnimId) {
+      // Filter selected — start viewfinder canvas
+      _startVideoViewfinder();
+    }
   }
 
   function _startVideoViewfinder() {
@@ -3391,12 +3412,12 @@
     if (camAR > outAR) { sh = vh; sw = vh * outAR; sx = (vw - sw) / 2; sy = 0; }
     else               { sw = vw; sh = vw / outAR; sx = 0; sy = (vh - sh) / 2; }
 
-    // Canvas resolution — cap at 320px for smooth performance (filter runs every frame)
-    const scale = Math.min(1, 320 / Math.max(vidWidth, vidHeight));
-    const cw = Math.round(vidWidth * scale), ch = Math.round(vidHeight * scale);
+    // Canvas resolution — use camera native resolution (capped at 640px) for quality
+    const scale = Math.min(1, 640 / Math.max(vw, vh));
+    const cw = Math.round(sw * scale), ch = Math.round(sh * scale);
     fc.width = cw; fc.height = ch;
 
-    // Size & position the canvas element to match where the video was
+    // Size & position the canvas element to fill screen at correct aspect ratio
     const screenW = window.innerWidth, screenH = window.innerHeight;
     const sAR = screenW / screenH;
     let pw, ph;
@@ -3405,17 +3426,13 @@
     const mirror = _shouldMirror();
     fc.style.cssText = 'display:block;position:absolute;inset:auto;top:50%;left:50%;width:' +
       Math.round(pw) + 'px;height:' + Math.round(ph) + 'px;background:#000;z-index:1;transform:translate(-50%,-50%)' +
-      (mirror ? ' scaleX(-1)' : '') + ';image-rendering:auto';
+      (mirror ? ' scaleX(-1)' : '');
 
     const fctx = fc.getContext('2d', { willReadFrequently: true });
-    let _frameSkip = 0;
 
     function drawViewfinder() {
-      _frameSkip++;
-      // Draw camera feed every frame for smooth motion
       fctx.drawImage(vid, sx, sy, sw, sh, 0, 0, cw, ch);
-      // Apply filter every 2nd frame to reduce CPU load
-      if (_videoFilter && _videoFilter !== 'none' && (_frameSkip % 2 === 0)) {
+      if (_videoFilter && _videoFilter !== 'none') {
         applyPixelFilter(fctx, cw, ch, _videoFilter);
       }
       _vidViewfinderAnimId = requestAnimationFrame(drawViewfinder);
