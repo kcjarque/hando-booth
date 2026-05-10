@@ -3197,29 +3197,44 @@
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
-      // Crop camera preview to match admin vidWidth×vidHeight ratio
-      // Use object-fit:cover so camera fills the box, then constrain the
-      // box itself to the target aspect ratio so user sees exactly what gets recorded.
+      // Crop camera preview to match admin vidWidth×vidHeight ratio.
+      // Override the default absolute positioning so aspect-ratio can work.
       const videoEl = $('video');
       videoEl.style.objectFit = 'cover';
       videoEl.style.background = '#000';
-      videoEl.style.aspectRatio = vidWidth + '/' + vidHeight;
-      videoEl.style.maxHeight = '100%';
-      videoEl.style.maxWidth = '100%';
-      videoEl.style.margin = 'auto';
+      videoEl.style.position = 'absolute';
+      videoEl.style.inset = '0';
+      videoEl.style.width = '100%';
+      videoEl.style.height = '100%';
+      // Use clip-path to crop the preview to the admin aspect ratio
+      // This way the video fills the screen but only the correct ratio is visible
+      const vpW = window.innerWidth, vpH = window.innerHeight;
+      const vpAR = vpW / vpH, targetAR = vidWidth / vidHeight;
+      let clipL = 0, clipT = 0, clipR = 0, clipB = 0;
+      if (vpAR > targetAR) {
+        // Viewport is wider than target — crop sides
+        const visibleW = vpH * targetAR;
+        const cropPx = (vpW - visibleW) / 2;
+        clipL = (cropPx / vpW) * 100;
+        clipR = clipL;
+      } else {
+        // Viewport is taller than target — crop top/bottom
+        const visibleH = vpW / targetAR;
+        const cropPx = (vpH - visibleH) / 2;
+        clipT = (cropPx / vpH) * 100;
+        clipB = clipT;
+      }
+      videoEl.style.clipPath = 'inset(' + clipT + '% ' + clipR + '% ' + clipB + '% ' + clipL + '%)';
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
       showVideoOverlayOnCamera(false);
       buildThumbs();
-      // Photos use cover to fill the preview area
+      // Photos use cover to fill the preview area — reset any video-mode overrides
       const videoEl = $('video');
       videoEl.style.objectFit = 'cover';
       videoEl.style.background = '';
-      videoEl.style.aspectRatio = '';
-      videoEl.style.maxHeight = '';
-      videoEl.style.maxWidth = '';
-      videoEl.style.margin = '';
+      videoEl.style.clipPath = '';
     }
     showScreen('camera');
   }
@@ -7086,8 +7101,11 @@
     if (show && _videoOverlayUrl) {
       el.src = _videoOverlayUrl;
       el.style.display = 'block';
+      // Match the same clip-path as the video element so overlay aligns
+      el.style.clipPath = $('video').style.clipPath || '';
     } else {
       el.style.display = 'none';
+      el.style.clipPath = '';
     }
   }
 
