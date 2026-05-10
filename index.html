@@ -3066,11 +3066,7 @@
     const video = $('video');
     if (!video) return;
     const m = _shouldMirror();
-    // In video mode the element is centered with translate(-50%,-50%) — combine transforms
-    const isVid = (layout === 'video');
-    const center = isVid ? 'translate(-50%, -50%) ' : '';
-    video.style.transform = m ? center + 'scaleX(-1)' : (center || 'none');
-    // Update label
+    video.style.transform = m ? 'scaleX(-1)' : 'none';
     const lbl = $('mirror-label');
     const btn = $('mirror-toggle');
     if (lbl) lbl.textContent = m ? 'Mirrored' : 'Mirror';
@@ -3221,43 +3217,20 @@
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
       showVideoOverlayOnCamera(true);
-      // Make the preview show exactly what gets recorded (vidWidth × vidHeight crop).
-      // Size the video element to the target aspect ratio, scaled up to COVER
-      // the entire screen (no black gaps). Overflow is hidden by #camera.
-      // object-fit:cover crops the camera feed to fill the target-ratio box.
+      // Video preview: fill the entire screen with the camera feed.
+      // The recording in startRecording() handles its own crop to vidWidth×vidHeight.
+      // Just use the same full-screen cover as photo mode — no special sizing needed.
       const videoEl = $('video');
-      const vpW = window.innerWidth, vpH = window.innerHeight;
-      const targetAR = vidWidth / vidHeight;
-      // Cover: element must be at least as wide AND as tall as the viewport
-      const elW = Math.max(vpW, vpH * targetAR);
-      const elH = Math.max(vpH, vpW / targetAR);
-      videoEl.style.position = 'absolute';
-      videoEl.style.inset = 'auto'; // clear default inset:0 BEFORE setting top/left
-      videoEl.style.top = '50%';
-      videoEl.style.left = '50%';
-      videoEl.style.width = elW + 'px';
-      videoEl.style.height = elH + 'px';
-      videoEl.style.objectFit = 'cover';
-      videoEl.style.background = '#000';
-      videoEl.style.clipPath = '';
-      applyMirror(); // sets transform with translate(-50%,-50%) + optional scaleX(-1)
+      videoEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000';
+      applyMirror();
     } else {
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
       showVideoOverlayOnCamera(false);
       buildThumbs();
-      // Photos use cover to fill the preview area — reset any video-mode overrides
       const videoEl = $('video');
-      videoEl.style.position = 'absolute';
-      videoEl.style.inset = '0';
-      videoEl.style.top = '';
-      videoEl.style.left = '';
-      videoEl.style.width = '100%';
-      videoEl.style.height = '100%';
-      videoEl.style.objectFit = 'cover';
-      videoEl.style.background = '';
-      videoEl.style.clipPath = '';
-      applyMirror(); // sets transform with optional scaleX(-1), no translate
+      videoEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
+      applyMirror();
     }
     showScreen('camera');
   }
@@ -7120,25 +7093,8 @@
     if (show && _videoOverlayUrl) {
       el.src = _videoOverlayUrl;
       el.style.display = 'block';
-      // Match the video element's size/position so overlay aligns
-      const v = $('video');
-      el.style.position = v.style.position;
-      el.style.top = v.style.top;
-      el.style.left = v.style.left;
-      el.style.transform = v.style.transform;
-      el.style.width = v.style.width;
-      el.style.height = v.style.height;
-      el.style.inset = v.style.inset;
     } else {
       el.style.display = 'none';
-      // Reset to default
-      el.style.position = '';
-      el.style.top = '';
-      el.style.left = '';
-      el.style.transform = '';
-      el.style.width = '100%';
-      el.style.height = '100%';
-      el.style.inset = '0';
     }
   }
 
