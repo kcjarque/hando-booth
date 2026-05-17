@@ -1878,6 +1878,16 @@
           <p style="font-size:0.68rem;color:var(--muted);margin-bottom:10px;line-height:1.4">To find the Chat ID: add <strong>@raw_data_bot</strong> to your group, it will reply with the chat ID. Remove it after.</p>
           <button onclick="testTelegramConnection()" class="delay-btn" style="width:100%">Test Connection</button>
         </div>
+        <!-- Google Drive -->
+        <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
+          <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:6px">Google Drive</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Auto-upload photos and videos to Google Drive. A new folder is created for each day. See <strong>google-drive-upload.gs</strong> for setup.</p>
+          <label style="font-size:0.75rem;color:var(--text);font-weight:600;display:block;margin-bottom:4px">Web App URL</label>
+          <input type="text" id="gdrive-url" placeholder="https://script.google.com/macros/s/..." oninput="saveGDriveConfig()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;margin-bottom:10px;background:#fff;color:var(--text);box-sizing:border-box">
+          <label style="font-size:0.75rem;color:var(--text);font-weight:600;display:block;margin-bottom:4px">Secret Token</label>
+          <input type="text" id="gdrive-token" placeholder="hando-booth-2025-secret" oninput="saveGDriveConfig()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;margin-bottom:10px;background:#fff;color:var(--text);box-sizing:border-box">
+          <button onclick="testGDriveConnection()" class="delay-btn" style="width:100%">Test Upload</button>
+        </div>
         <!-- Photo Gallery -->
         <div style="background:var(--surface2);border-radius:14px;padding:14px 18px;margin-bottom:20px">
           <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);font-weight:700;margin-bottom:6px">Photo Gallery</div>
@@ -3595,6 +3605,18 @@
     } catch (e) {
       console.warn('[video] Telegram upload failed:', e.message);
     }
+    // Also upload to Google Drive
+    if (_gdriveConfigured() && _recordedBlob) {
+      try {
+        const blobUrl = URL.createObjectURL(_recordedBlob);
+        const ext = _recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        await uploadToGDrive(blobUrl, _recordedBlob.type, `hando-Video-${ts}.${ext}`, `Hando Booth Video — ${new Date().toLocaleString()}`);
+        URL.revokeObjectURL(blobUrl);
+      } catch (e) {
+        console.warn('[gdrive] video upload failed:', e.message);
+      }
+    }
   }
 
   /* Get Video QR — upload video (or reuse), show QR on thank-you screen */
@@ -4245,12 +4267,18 @@
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
 
-    // Upload photo to Telegram ONCE (in background)
+    // Upload photo to Telegram + Google Drive ONCE (in background)
     if (compositeDataUrl && !_tgPhotoUploaded) {
       _tgPhotoUploaded = true;
+      const LAYOUT_LABELS_UP = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad' };
+      const layoutDesc = LAYOUT_LABELS_UP[layout] || layout;
       uploadToTelegram(compositeDataUrl, 'image/png', 'png')
         .then(() => console.log('[telegram] photo uploaded'))
         .catch(e => console.warn('[telegram] photo upload failed:', e.message));
+      // Google Drive upload
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      uploadToGDrive(compositeDataUrl, 'image/png', `hando-${layoutDesc}-${ts}.png`, `Hando Booth ${layoutDesc} — ${new Date().toLocaleString()}`)
+        .catch(e => console.warn('[gdrive] photo upload failed:', e.message));
     }
   }
 
@@ -5034,6 +5062,106 @@
   /* ═══════════════════════════════════════════════════
      SHARE FLOW — INTAKE MODAL
   ═══════════════════════════════════════════════════ */
+
+  /* ─── Google Drive Upload ───────��────────────────── */
+  let GDRIVE_URL = localStorage.getItem('hb_gdrive_url') || '';
+  let GDRIVE_TOKEN = localStorage.getItem('hb_gdrive_token') || '';
+
+  function _gdriveConfigured() { return !!(GDRIVE_URL && GDRIVE_TOKEN); }
+
+  function saveGDriveConfig() {
+    GDRIVE_URL = ($('gdrive-url')?.value || '').trim();
+    GDRIVE_TOKEN = ($('gdrive-token')?.value || '').trim();
+    try {
+      if (GDRIVE_URL) localStorage.setItem('hb_gdrive_url', GDRIVE_URL);
+      else localStorage.removeItem('hb_gdrive_url');
+      if (GDRIVE_TOKEN) localStorage.setItem('hb_gdrive_token', GDRIVE_TOKEN);
+      else localStorage.removeItem('hb_gdrive_token');
+    } catch {}
+  }
+
+  function _restoreGDriveConfig() {
+    GDRIVE_URL = localStorage.getItem('hb_gdrive_url') || '';
+    GDRIVE_TOKEN = localStorage.getItem('hb_gdrive_token') || '';
+    const urlEl = $('gdrive-url');
+    const tokEl = $('gdrive-token');
+    if (urlEl) urlEl.value = GDRIVE_URL;
+    if (tokEl) tokEl.value = GDRIVE_TOKEN;
+  }
+
+  async function uploadToGDrive(dataUrl, mimeType, filename, description) {
+    if (!_gdriveConfigured()) return;
+    try {
+      // Convert data URL to base64 string (strip the prefix)
+      let base64;
+      if (dataUrl.startsWith('data:')) {
+        base64 = dataUrl.split(',')[1];
+      } else {
+        // Blob URL — fetch and convert
+        const resp = await fetch(dataUrl);
+        const buf = await resp.arrayBuffer();
+        base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      }
+
+      const payload = {
+        token: GDRIVE_TOKEN,
+        fileData: base64,
+        mimeType: mimeType,
+        filename: filename,
+        description: description || ''
+      };
+
+      const resp = await fetch(GDRIVE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        console.log('[gdrive] uploaded:', result.fileName, 'to folder:', result.folder);
+      } else {
+        console.warn('[gdrive] upload failed:', result.error);
+      }
+      return result;
+    } catch (e) {
+      console.warn('[gdrive] upload error:', e.message);
+    }
+  }
+
+  async function testGDriveConnection() {
+    if (!_gdriveConfigured()) {
+      alert('Please enter both the Web App URL and Secret Token first.');
+      return;
+    }
+    try {
+      // Send a tiny test image
+      const canvas = document.createElement('canvas');
+      canvas.width = 10; canvas.height = 10;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#c8831c'; ctx.fillRect(0, 0, 10, 10);
+      const testData = canvas.toDataURL('image/png').split(',')[1];
+
+      const resp = await fetch(GDRIVE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: GDRIVE_TOKEN,
+          fileData: testData,
+          mimeType: 'image/png',
+          filename: 'test-connection.png',
+          description: 'Hando Booth connection test'
+        })
+      });
+      const result = await resp.json();
+      if (result.ok) {
+        alert('Connected! Test file saved to Google Drive folder: ' + result.folder);
+      } else {
+        alert('Failed: ' + (result.error || 'Unknown error'));
+      }
+    } catch (e) {
+      alert('Connection error: ' + e.message + '\n\nMake sure the Web App URL is correct and the script is deployed.');
+    }
+  }
 
   /* Claim screen — guest fills form after scanning QR */
   function submitClaim(e) {
@@ -7387,8 +7515,9 @@
     }
     // Restore layout sizes
     _restoreLayoutSizes();
-    // Restore Telegram config
+    // Restore Telegram + Google Drive config
     _restoreTelegramConfig();
+    _restoreGDriveConfig();
     updateTemplateDimLabels();
     drawLayoutPreviews();
     // Add custom filter pills to preview screen
