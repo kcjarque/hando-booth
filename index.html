@@ -203,8 +203,8 @@
     .layout-card:active { transform: scale(0.96); }
     .layout-card.selected {
       border-color: var(--orange);
-      background: #fff8ef;
-      box-shadow: 0 2px 16px rgba(200,131,28,0.2);
+      background: #ffe8c8;
+      box-shadow: 0 2px 16px rgba(200,131,28,0.35);
     }
 
     .icon-single, .icon-double, .icon-strip, .icon-quad { display: flex; flex-direction: column; gap: 3px; }
@@ -1269,7 +1269,7 @@
           <div class="icon-cell" style="width:44px;height:34px"></div>
         </div>
         <div class="layout-label">Solo</div>
-        <div class="layout-count">1 photo</div>
+        <div class="layout-count">1 pose 2 copies</div>
       </div>
 
       <div class="layout-card" data-layout="double" onclick="selectLayout(this,'double')">
@@ -1278,7 +1278,7 @@
           <div class="icon-cell" style="width:44px;height:24px"></div>
         </div>
         <div class="layout-label">Double</div>
-        <div class="layout-count">2 photos</div>
+        <div class="layout-count">2 poses 2 copies</div>
       </div>
 
       <div class="layout-card" data-layout="strip" onclick="selectLayout(this,'strip')">
@@ -1288,7 +1288,7 @@
           <div class="icon-cell" style="width:44px;height:18px"></div>
         </div>
         <div class="layout-label">Strip 3</div>
-        <div class="layout-count">3 photos</div>
+        <div class="layout-count">3 poses 2 copies</div>
       </div>
 
       <div class="layout-card" data-layout="mini" onclick="selectLayout(this,'mini')">
@@ -1298,7 +1298,7 @@
           <div class="icon-cell" style="width:30px;height:14px"></div>
         </div>
         <div class="layout-label">Mini</div>
-        <div class="layout-count">3 photos</div>
+        <div class="layout-count">3 poses 4 copies</div>
       </div>
 
       <div class="layout-card" data-layout="strip4" onclick="selectLayout(this,'strip4')">
@@ -1309,7 +1309,7 @@
           <div class="icon-cell" style="width:44px;height:14px"></div>
         </div>
         <div class="layout-label">Strip 4</div>
-        <div class="layout-count">4 photos</div>
+        <div class="layout-count">4 poses 2 copies</div>
       </div>
 
       <div class="layout-card" data-layout="quad" onclick="selectLayout(this,'quad')">
@@ -1324,7 +1324,7 @@
           </div>
         </div>
         <div class="layout-label">Quad</div>
-        <div class="layout-count">4 photos</div>
+        <div class="layout-count">4 poses 1 copy</div>
       </div>
 
       <div class="layout-card" data-layout="video" onclick="selectLayout(this,'video')">
@@ -1939,12 +1939,12 @@
           <div id="ls-preview-area" style="background:var(--surface2);border-radius:12px;padding:16px 12px 10px;margin-bottom:16px">
             <div style="display:flex;justify-content:center;margin-bottom:10px">
               <div style="display:flex;gap:6px;background:var(--surface2);border-radius:8px;padding:3px">
-                <button class="ls-tab active" onclick="switchLayoutTab('single')" data-ls-tab="single" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Single</button>
-                <button class="ls-tab" onclick="switchLayoutTab('double')" data-ls-tab="double" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Double</button>
-                <button class="ls-tab" onclick="switchLayoutTab('strip')" data-ls-tab="strip" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Strip</button>
-                <button class="ls-tab" onclick="switchLayoutTab('mini')" data-ls-tab="mini" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Mini</button>
-                <button class="ls-tab" onclick="switchLayoutTab('strip4')" data-ls-tab="strip4" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Strip 4</button>
-                <button class="ls-tab" onclick="switchLayoutTab('quad')" data-ls-tab="quad" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.2s">Quad</button>
+                <button class="ls-tab active" onclick="switchLayoutTab('single')" data-ls-tab="single" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s">Single</button>
+                <button class="ls-tab" onclick="switchLayoutTab('double')" data-ls-tab="double" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s">Double</button>
+                <button class="ls-tab" onclick="switchLayoutTab('strip')" data-ls-tab="strip" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s">Strip</button>
+                <button class="ls-tab" onclick="switchLayoutTab('mini')" data-ls-tab="mini" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s">Mini</button>
+                <button class="ls-tab" onclick="switchLayoutTab('strip4')" data-ls-tab="strip4" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s">Strip 4</button>
+                <button class="ls-tab" onclick="switchLayoutTab('quad')" data-ls-tab="quad" style="padding:6px 14px;border:none;border-radius:6px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s">Quad</button>
               </div>
             </div>
             <div style="display:flex;justify-content:center;align-items:center;min-height:180px">
@@ -1960,6 +1960,7 @@
               <button onclick="setPrintSize(4,6)" id="ps-4x6" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">4 × 6</button>
               <button onclick="setPrintSize(3,4)" id="ps-3x4" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">3 × 4</button>
               <button onclick="setPrintSize(2,6)" id="ps-2x6" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">2 × 6</button>
+              <button onclick="setPrintSize(2,4)" id="ps-2x4" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">2 × 4</button>
               <button onclick="setPrintSize(1.5,4)" id="ps-1.5x4" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">1.5 × 4</button>
               <button onclick="setPrintSize(0,0)" id="ps-custom" class="delay-btn" style="flex:1;min-width:70px;font-weight:700">Custom</button>
             </div>
@@ -1967,9 +1968,9 @@
             <div id="ls-custom-size" style="display:none">
               <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
                 <label style="font-size:0.75rem;color:var(--text);font-weight:600;white-space:nowrap">Width (in)</label>
-                <input type="number" id="ls-width-in" value="4" min="1" max="20" step="0.5" oninput="applyCustomPrintSize()" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
+                <input type="number" id="ls-width-in" value="4" min="0.5" max="20" step="0.1" oninput="applyCustomPrintSize()" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
                 <label style="font-size:0.75rem;color:var(--text);font-weight:600;white-space:nowrap">Height (in)</label>
-                <input type="number" id="ls-height-in" value="6" min="1" max="20" step="0.5" oninput="applyCustomPrintSize()" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
+                <input type="number" id="ls-height-in" value="6" min="0.5" max="20" step="0.1" oninput="applyCustomPrintSize()" onchange="applyCustomPrintSize()" style="width:70px;text-align:center;border:1.5px solid var(--border);border-radius:8px;padding:8px;font-size:0.85rem;font-weight:700">
               </div>
             </div>
           </div>
@@ -2956,31 +2957,41 @@
     clearTimeout(_saveSessionTimer);
     _saveSessionTimer = setTimeout(() => {
       try {
+        // Only save lightweight state on screen transitions — skip photo data
+        // to avoid blocking the main thread with multi-MB JSON serialization.
         const state = {
           screen: screenId,
           layout,
-          photos,
           activeFilter,
-          activeOverlayId: activeOverlay ? activeOverlay.id : null,
-          compositeDataUrl,
-          gifUrl
+          activeOverlayId: activeOverlay ? activeOverlay.id : null
         };
-        sessionStorage.setItem('hb_session', JSON.stringify(state));
-      } catch(e) { /* storage full — ignore */ }
-    }, 300);
+        sessionStorage.setItem('hb_session_lite', JSON.stringify(state));
+      } catch(e) {}
+    }, 500);
+  }
+  // Full state save (including photos) only on page hide — runs off-thread
+  function _saveSessionFull() {
+    try {
+      const active = document.querySelector('.screen.active');
+      const screenId = active ? active.id : 'home';
+      const state = {
+        screen: screenId,
+        layout,
+        photos,
+        activeFilter,
+        activeOverlayId: activeOverlay ? activeOverlay.id : null,
+        compositeDataUrl,
+        gifUrl
+      };
+      sessionStorage.setItem('hb_session', JSON.stringify(state));
+    } catch(e) {}
   }
 
-  // Save state when user leaves the page (swipe away, switch apps, etc.)
+  // Save full state (with photos) only when user leaves the page
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
-      const active = document.querySelector('.screen.active');
-      if (active && active.id !== 'home') _saveSession(active.id);
-    }
+    if (document.visibilityState === 'hidden') _saveSessionFull();
   });
-  window.addEventListener('pagehide', () => {
-    const active = document.querySelector('.screen.active');
-    if (active && active.id !== 'home') _saveSession(active.id);
-  });
+  window.addEventListener('pagehide', () => _saveSessionFull());
 
   function _restoreSession() {
     try {
@@ -3568,7 +3579,7 @@
       const form = new FormData();
       form.append('chat_id', TELEGRAM_CHAT_ID);
       form.append('video', blob, filename);
-      form.append('caption', 'Hando Booth — ' + new Date().toLocaleString());
+      form.append('caption', 'Hando Booth — Video — ' + new Date().toLocaleString());
 
       const apiUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendVideo';
       const ac = new AbortController();
@@ -4091,7 +4102,12 @@
   function buildRetakeStrip() {
     const strip = $('retake-strip');
     strip.innerHTML = '';
-    if (photos.length <= 1) { strip.style.display = 'none'; return; }
+    if (photos.length <= 1) {
+      strip.style.display = 'none';
+      const oldHint = document.getElementById('retake-hint');
+      if (oldHint) oldHint.remove();
+      return;
+    }
     strip.style.display = 'flex';
     photos.forEach((src, i) => {
       const wrap = document.createElement('div');
@@ -4944,7 +4960,9 @@
     const form = new FormData();
     form.append('chat_id', TELEGRAM_CHAT_ID);
     form.append(fieldName, blob, filename);
-    form.append('caption', 'Hando Booth — ' + new Date().toLocaleString());
+    const LAYOUT_LABELS_TG = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad', video: 'Video' };
+    const layoutLabel = LAYOUT_LABELS_TG[layout] || layout;
+    form.append('caption', 'Hando Booth — ' + layoutLabel + ' — ' + new Date().toLocaleString());
 
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
@@ -5939,7 +5957,8 @@
     { id: 'film',    name: 'Film' },
     { id: 'vintage', name: 'Vintage' },
     { id: 'glow',    name: 'Glow' },
-    { id: 'cold',    name: 'Cold' }
+    { id: 'cold',    name: 'Cold' },
+    { id: 'disposable', name: 'Disposable' }
   ];
   let _filterVisibility = null;
   try { _filterVisibility = JSON.parse(localStorage.getItem('hb_filter_visibility') || 'null'); } catch {}
@@ -6910,7 +6929,7 @@
 
   function setPrintSize(w, h) {
     // Update preset button states
-    ['4x6','3x4','2x6','1.5x4','custom'].forEach(id => {
+    ['4x6','3x4','2x6','2x4','1.5x4','custom'].forEach(id => {
       const btn = $('ps-' + id);
       if (btn) btn.classList.remove('active');
     });
@@ -6927,6 +6946,7 @@
       if (w === 4 && h === 6) $('ps-4x6')?.classList.add('active');
       else if (w === 3 && h === 4) $('ps-3x4')?.classList.add('active');
       else if (w === 2 && h === 6) $('ps-2x6')?.classList.add('active');
+      else if (w === 2 && h === 4) $('ps-2x4')?.classList.add('active');
       else if (w === 1.5 && h === 4) $('ps-1.5x4')?.classList.add('active');
       if (customDiv) customDiv.style.display = 'none';
       _printW = w; _printH = h;
@@ -6961,7 +6981,7 @@
 
   // Highlight the correct print size preset button
   function _syncPrintSizeUI() {
-    ['4x6','3x4','2x6','1.5x4','custom'].forEach(id => {
+    ['4x6','3x4','2x6','2x4','1.5x4','custom'].forEach(id => {
       const btn = $('ps-' + id);
       if (btn) btn.classList.remove('active');
     });
@@ -6974,6 +6994,9 @@
       if (customDiv) customDiv.style.display = 'none';
     } else if (_printW === 2 && _printH === 6) {
       $('ps-2x6')?.classList.add('active');
+      if (customDiv) customDiv.style.display = 'none';
+    } else if (_printW === 2 && _printH === 4) {
+      $('ps-2x4')?.classList.add('active');
       if (customDiv) customDiv.style.display = 'none';
     } else if (_printW === 1.5 && _printH === 4) {
       $('ps-1.5x4')?.classList.add('active');
