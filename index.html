@@ -1526,12 +1526,15 @@
   <div class="img-panel" style="background:#000;border-radius:14px;overflow:hidden">
     <video id="vid-playback" class="panel-img" style="object-fit:contain;background:#000" playsinline loop controls></video>
   </div>
-  <div class="action-row" style="max-width:380px;width:100%;flex-wrap:nowrap;gap:8px;display:flex;justify-content:center">
-    <button class="btn-ghost" onclick="retakeVideo()" style="flex:0 0 auto;width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;text-align:center;line-height:1.2;font-size:0.85rem">↩<br>Retake</button>
-    <button class="btn-warm" onclick="shareVideo()" id="share-video-btn" style="flex:0 0 auto;width:100px;height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px;text-align:center;line-height:1.2;font-size:0.85rem">↗<br>Share</button>
+  <!-- Inline QR for downloading the recorded video on a phone -->
+  <div id="video-qr-area" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:380px;padding-top:8px;flex-shrink:0">
+    <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">Video</div>
+    <div id="video-qr" style="width:220px;height:220px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
+    <div style="font-size:1.1rem;font-weight:700;color:var(--text);text-align:center">Scan to download</div>
   </div>
-  <p style="font-size:0.7rem;color:var(--muted);text-align:center;margin-top:6px;max-width:380px;line-height:1.4">
-  </p>
+  <div class="action-row" style="max-width:380px;width:100%;flex-wrap:nowrap;gap:8px;display:flex;justify-content:center">
+    <button class="btn-ghost" onclick="retakeVideo()" style="flex:0 0 auto;min-width:160px;padding:14px 20px;font-size:1rem">↩&ensp;Retake</button>
+  </div>
 </div>
 
 <!-- ════════════ CUSTOM EDITOR ════════════ -->
@@ -3182,10 +3185,9 @@
     const needsCenter = (layout === 'video');
     const base = needsCenter ? 'translate(-50%,-50%) ' : '';
     video.style.transform = m ? base + 'scaleX(-1)' : (needsCenter ? base.trim() : 'none');
-    const lbl = $('mirror-label');
-    const btn = $('mirror-toggle');
-    if (lbl) lbl.textContent = m ? 'Mirrored' : 'Mirror';
-    if (btn) btn.style.background = m ? 'rgba(200,131,28,0.7)' : 'rgba(0,0,0,0.45)';
+    // Note: removed dead code that updated #mirror-label / #mirror-toggle
+    // — those IDs never existed in the markup. The actual preview-screen
+    // mirror UI is updated in togglePreviewMirror().
   }
 
   function toggleMirror() {
@@ -3550,13 +3552,84 @@
       vid.play().catch(() => {});
     }
     showScreen('video-preview');
-    // Auto-upload video to gallery in the background
+    // Reset QR slot to a spinner and start the upload → render the QR.
+    const slot = $('video-qr');
+    if (slot) slot.innerHTML = '<span class="spin-ring"></span>';
     if (_tgConfigured() && _recordedBlobUrl) {
-      _uploadVideoToGallery();
+      _renderVideoQR();
+    } else if (slot) {
+      slot.innerHTML = '';
+      slot.textContent = 'Configure Telegram in Admin';
+      slot.style.fontSize = '0.78rem';
+      slot.style.color = 'var(--muted)';
+      slot.style.textAlign = 'center';
+    }
+  }
+
+  /* Upload the recorded video to Telegram + Google Drive (background),
+     cache result, render a QR code that points to the Telegram-hosted file
+     so guests can scan and download on their phone. */
+  let _tgVideoResult = null;
+  async function _renderVideoQR() {
+    const slot = $('video-qr');
+    if (!slot) return;
+    try {
+      let res = _tgVideoResult;
+      if (!res) {
+        res = await _uploadVideoToTelegram();
+        _tgVideoResult = res;
+      }
+      const url = await _telegramFileUrl(res);
+      slot.innerHTML = '';
+      if (url) _renderQRInto(slot, url);
+      else { slot.textContent = 'No URL'; slot.style.fontSize = '0.78rem'; }
+    } catch (e) {
+      slot.innerHTML = '';
+      slot.textContent = 'Upload failed';
+      slot.style.fontSize = '0.78rem';
+      slot.style.color = 'var(--muted)';
+      console.warn('[qr] video upload failed:', e.message, e);
+    }
+  }
+
+  /* Upload the recorded video blob to Telegram via uploadToTelegram so we
+     get retries + a cacheable result. For MP4 we use the auto-detected
+     sendVideo (Telegram normalises for streaming + gives a wide-format MP4
+     on download). For WebM we fall back to sendDocument since sendVideo
+     doesn't accept WebM. */
+  async function _uploadVideoToTelegram() {
+    if (!_recordedBlob) throw new Error('No video blob to upload');
+    const isMp4 = (_recordedBlob.type || '').includes('mp4');
+    const ext = isMp4 ? 'mp4' : 'webm';
+    const mime = isMp4 ? 'video/mp4' : 'video/webm';
+    const blobUrl = URL.createObjectURL(_recordedBlob);
+    try {
+      const opts = isMp4 ? {} : { method: 'sendDocument' };
+      const res = await uploadToTelegram(blobUrl, mime, ext, opts);
+      // Best-effort Google Drive archive in parallel (don't block QR on this).
+      if (_gdriveConfigured()) {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        uploadToGDrive(blobUrl, mime, `hando-Video-${ts}.${ext}`,
+          `Hando Booth Video — ${new Date().toLocaleString()}`)
+          .catch(e => console.warn('[gdrive] video upload failed:', e.message))
+          .finally(() => URL.revokeObjectURL(blobUrl));
+      } else {
+        URL.revokeObjectURL(blobUrl);
+      }
+      return res;
+    } catch (e) {
+      URL.revokeObjectURL(blobUrl);
+      throw e;
     }
   }
 
   function retakeVideo() {
+    // Clear the previous upload's cached result and blob URL so the next
+    // showVideoPreview() uploads fresh and shows a new QR.
+    try { if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl); } catch {}
+    _recordedBlobUrl = null;
+    _recordedBlob = null;
+    _tgVideoResult = null;
     layout = 'video';
     startBooth();
   }
@@ -3755,7 +3828,7 @@
 
   function setVideoDuration(val) {
     videoDuration = parseInt(val);
-    localStorage.setItem('hb_vid_dur', val);
+    _safeSetItem('hb_vid_dur', val);
     $('vid-dur-label').textContent = val + 's';
   }
 
@@ -4447,7 +4520,7 @@
       // Upload the GIF to Telegram immediately (background) so the QR is
       // ready by the time the user taps Get Photo. Telegram re-encodes the
       // GIF to a universally-shareable MP4 server-side.
-      _uploadGifAsMp4ToTelegram();
+      _uploadGifToTelegram();
 
       // Pre-generate MP4 in background for the (still-defined) share-file
       // paths used elsewhere. Independent of the Telegram QR flow above.
@@ -4747,7 +4820,7 @@
      MP4 due to its moov-at-end layout). We feed Telegram the GIF, not
      our MP4, because sendAnimation strictly validates MP4 input and
      rejects iPad-recorded files. */
-  function _uploadGifAsMp4ToTelegram() {
+  function _uploadGifToTelegram() {
     if (_tgMp4Result) return; // already uploaded
     if (!gifUrl) { console.warn('[telegram] no gifUrl yet, skipping upload'); return; }
     uploadToTelegram(gifUrl, 'image/gif', 'gif')
@@ -4973,7 +5046,7 @@
 
   function resetUsage() {
     if (confirm('Reset session counter to 0?')) {
-      localStorage.setItem(LS_USAGE, '0');
+      _safeSetItem(LS_USAGE, '0');
       $('admin-usage').textContent = '0';
     }
   }
@@ -5764,6 +5837,18 @@
   }
 
   function startOver() {
+    // FIX (memory leak): explicitly revoke blob URLs from this session before
+    // dropping references. Without this, every back-to-back session leaks a
+    // few MB of off-heap memory and contributes to long-session lag on iPad.
+    try { if (gifUrl) URL.revokeObjectURL(gifUrl); } catch {}
+    try { if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl); } catch {}
+    if (typeof _cachedMp4Blob === 'object' && _cachedMp4Blob) _cachedMp4Blob = null;
+    _recordedBlobUrl = null;
+    _recordedBlob = null;
+    _tgPhotoResult = null;
+    _tgMp4Result = null;
+    _tgVideoResult = null;
+    _tgPhotoUploaded = false;
     photos = []; compositeDataUrl = null; gifUrl = null;
     activeFilter = 'none'; activeOverlay = null; exportMode = 'photo';
     _clearSession();
@@ -5833,7 +5918,7 @@
   }
   function applyButtonColor(hex) {
     if (hex) {
-      localStorage.setItem('hb_btn_color', hex);
+      _safeSetItem('hb_btn_color', hex);
       $('hbtn-default').classList.remove('active');
     }
     const color = hex || '';
@@ -6822,8 +6907,8 @@
     }
   }
   function applyHomeBgColor(hex) {
-    localStorage.setItem('hb_home_bg_type', 'color');
-    localStorage.setItem('hb_home_bg_value', hex);
+    _safeSetItem('hb_home_bg_type', 'color');
+    _safeSetItem('hb_home_bg_value', hex);
     $('home-bg').style.background = hex;
   }
   function handleHomeBgImage(input) {
@@ -6832,8 +6917,11 @@
     const reader = new FileReader();
     reader.onload = e => {
       const url = e.target.result;
-      localStorage.setItem('hb_home_bg_type', 'image');
-      localStorage.setItem('hb_home_bg_value', url);
+      // _safeSetItem surfaces a clear alert if storage is full so the user knows
+      // the upload didn't actually persist (the visible side-effect still works
+      // for the current session).
+      _safeSetItem('hb_home_bg_type', 'image');
+      _safeSetItem('hb_home_bg_value', url);
       $('home-bg').style.background = `url(${url}) center/cover no-repeat`;
     };
     reader.readAsDataURL(file);
@@ -6856,7 +6944,7 @@
     if (!file || file.size > 3*1024*1024) { if(file) alert('Logo too large (max 3 MB)'); return; }
     const reader = new FileReader();
     reader.onload = e => {
-      localStorage.setItem('hb_home_logo', e.target.result);
+      _safeSetItem('hb_home_logo', e.target.result);
       applyHomeLogo(e.target.result);
     };
     reader.readAsDataURL(file);
@@ -7242,7 +7330,7 @@
     const reader = new FileReader();
     reader.onload = () => {
       _videoOverlayUrl = reader.result;
-      localStorage.setItem('hb_video_overlay', _videoOverlayUrl);
+      _safeSetItem('hb_video_overlay', _videoOverlayUrl);
       renderVideoOverlayPreview();
     };
     reader.readAsDataURL(file);
