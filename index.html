@@ -4440,14 +4440,17 @@
       _gifIsMp4 = false;
       _gifExt = 'gif';
 
-      // Pre-generate MP4 in background for instant sharing later
-      // Also upload GIF as MP4 to Telegram (once)
+      // Upload the GIF to Telegram immediately (background) so the QR is
+      // ready by the time the user taps Get Photo. Telegram re-encodes the
+      // GIF to a universally-shareable MP4 server-side.
+      _uploadGifAsMp4ToTelegram();
+
+      // Pre-generate MP4 in background for the (still-defined) share-file
+      // paths used elsewhere. Independent of the Telegram QR flow above.
       _cachedMp4Blob = null;
       _framesToMp4().then(result => {
         _cachedMp4Blob = result;
         console.log('[gif] MP4 pre-cached:', Math.round(result.blob.size / 1024) + 'KB');
-        // Upload MP4 to Telegram (gif as video)
-        _uploadGifAsMp4ToTelegram();
       }).catch(e => console.warn('[gif] MP4 pre-cache failed:', e.message));
 
     } catch (err) {
@@ -4537,34 +4540,38 @@
     $('ty-img').src = compositeDataUrl || '';
 
     // Share buttons removed — QR codes are the primary share path now.
-    const hasGif = (gifUrl && photos.length > 1) || (photos.length > 1);
+    const hasGif = photos.length > 1;
     const shareRow = $('ty-share-row');
     if (shareRow) shareRow.innerHTML = '';
 
-    // QR box — bigger codes, generous spacing, container made wider to fit.
+    // QR area — no surrounding rectangle, large codes, generous spacing.
     const QR_PX = 220;
     const qrBox = $('qr-box');
     qrBox.style.display = 'flex';
     qrBox.style.flexDirection = 'column';
-    qrBox.style.gap = '20px';
-    qrBox.style.padding = '22px';
+    qrBox.style.alignItems = 'center';
+    qrBox.style.justifyContent = 'center';
+    qrBox.style.gap = '24px';
+    qrBox.style.padding = '0';
+    qrBox.style.background = 'transparent';
+    qrBox.style.border = 'none';
+    qrBox.style.boxShadow = 'none';
     qrBox.style.maxWidth = 'none';
     qrBox.style.minWidth = '0';
     qrBox.style.width = 'auto';
     qrBox.innerHTML = `
-      <div style="display:flex;gap:44px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
-        <div id="qr-slot-photo" style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:${QR_PX}px">
-          <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">Photo</div>
+      <div style="display:flex;gap:90px;flex-wrap:wrap;justify-content:center;align-items:flex-start;padding:8px">
+        <div id="qr-slot-photo" style="display:flex;flex-direction:column;align-items:center;gap:12px;min-width:${QR_PX}px">
+          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">Photo</div>
           <div id="qr-photo" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
         </div>
         ${hasGif ? `
-        <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:${QR_PX}px">
-          <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">GIF (Video)</div>
+        <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:12px;min-width:${QR_PX}px">
+          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">GIF (Video)</div>
           <div id="qr-gif" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
         </div>` : ''}
       </div>
     `;
-    // Stash desired QR pixel size for _renderQRInto.
     qrBox.dataset.qrPx = String(QR_PX);
     $('qr-hint').textContent = _tgConfigured()
       ? 'Scan to open on your phone, then long-press → Save or Share.'
@@ -4572,14 +4579,12 @@
 
     showScreen('thankyou');
 
-    // Stop here if Telegram isn't configured.
     if (!_tgConfigured()) {
       qrBox.style.display = 'none';
       return;
     }
 
-    // Upload photo & MP4 in parallel, render QR as each finishes. Reuse any
-    // upload that already happened in showGifScreen / background MP4 cache.
+    // Photo upload (auto-detected as sendPhoto from PNG content-type).
     (async () => {
       try {
         let photoRes = _tgPhotoResult;
@@ -4589,45 +4594,47 @@
         }
         const photoUrl = await _telegramFileUrl(photoRes);
         const slot = $('qr-photo');
-        if (slot) {
-          slot.innerHTML = '';
-          if (photoUrl) _renderQRInto(slot, photoUrl);
-          else slot.textContent = 'No URL';
-        }
+        if (!slot) return;
+        slot.innerHTML = '';
+        if (photoUrl) _renderQRInto(slot, photoUrl);
+        else slot.textContent = 'No URL';
       } catch (e) {
         const slot = $('qr-photo');
         if (slot) slot.textContent = 'Upload failed';
-        console.warn('[qr] photo upload failed:', e.message);
+        console.warn('[qr] photo upload failed:', e.message, e);
       }
     })();
 
     if (hasGif) {
       (async () => {
         try {
-          let mp4Res = _tgMp4Result;
-          if (!mp4Res) {
-            const { blob, ext, mime } = await _getMp4();
-            const blobUrl = URL.createObjectURL(blob);
-            try {
-              // sendAnimation: Telegram re-muxes to a universally-shareable MP4
-              // (fixes Android Messenger / Instagram rejecting iPad-recorded MP4).
-              mp4Res = await uploadToTelegram(blobUrl, mime, ext, { method: 'sendAnimation' });
-              _tgMp4Result = mp4Res;
-            } finally {
-              URL.revokeObjectURL(blobUrl);
-            }
+          // Wait for the GIF to finish encoding if it isn't ready yet.
+          // (User can tap Get Photo before the GIF spinner finishes.)
+          const start = Date.now();
+          while (!gifUrl && Date.now() - start < 20000) {
+            await new Promise(r => setTimeout(r, 200));
           }
-          const mp4Url = await _telegramFileUrl(mp4Res);
+          if (!gifUrl) throw new Error('GIF not ready yet');
+
+          let gifRes = _tgMp4Result;
+          if (!gifRes) {
+            // Upload the actual GIF — Telegram's sendAnimation accepts it
+            // and re-encodes server-side to a universally-shareable MP4.
+            // Crucial: don't feed Telegram our iPad-recorded MP4 here; it
+            // gets rejected by sendAnimation's strict validator.
+            gifRes = await uploadToTelegram(gifUrl, 'image/gif', 'gif');
+            _tgMp4Result = gifRes;
+          }
+          const gifQrUrl = await _telegramFileUrl(gifRes);
           const slot = $('qr-gif');
-          if (slot) {
-            slot.innerHTML = '';
-            if (mp4Url) _renderQRInto(slot, mp4Url);
-            else slot.textContent = 'No URL';
-          }
+          if (!slot) return;
+          slot.innerHTML = '';
+          if (gifQrUrl) _renderQRInto(slot, gifQrUrl);
+          else slot.textContent = 'No URL';
         } catch (e) {
           const slot = $('qr-gif');
           if (slot) slot.textContent = 'Upload failed';
-          console.warn('[qr] mp4 upload failed:', e.message);
+          console.warn('[qr] GIF upload failed:', e.message, e);
         }
       })();
     }
@@ -4723,19 +4730,19 @@
     return await _framesToMp4();
   }
 
-  /* Upload GIF-as-MP4 to Telegram (background, non-blocking).
-     Uses sendAnimation so Telegram re-encodes to a baseline-profile faststart
-     MP4 — the iPad MediaRecorder output is technically valid but Android
-     Messenger/Instagram reject it when shared from the gallery. Animations are
-     re-muxed by Telegram and the result downloads as a universally-shareable mp4. */
+  /* Upload the GIF (gifenc output) to Telegram via sendAnimation.
+     Telegram converts GIF → MP4 server-side using a baseline-profile,
+     faststart container — the resulting MP4 is universally shareable on
+     Android Messenger / Instagram (which reject the iPad MediaRecorder
+     MP4 due to its moov-at-end layout). We feed Telegram the GIF, not
+     our MP4, because sendAnimation strictly validates MP4 input and
+     rejects iPad-recorded files. */
   function _uploadGifAsMp4ToTelegram() {
     if (_tgMp4Result) return; // already uploaded
-    _getMp4().then(({ blob, ext, mime }) => {
-      const url = URL.createObjectURL(blob);
-      uploadToTelegram(url, mime, ext, { method: 'sendAnimation' })
-        .then(res => { _tgMp4Result = res; URL.revokeObjectURL(url); })
-        .catch(e => { URL.revokeObjectURL(url); console.warn('[telegram] mp4 upload failed:', e.message); });
-    }).catch(e => console.warn('[telegram] mp4 conversion failed:', e.message));
+    if (!gifUrl) { console.warn('[telegram] no gifUrl yet, skipping upload'); return; }
+    uploadToTelegram(gifUrl, 'image/gif', 'gif')
+      .then(res => { _tgMp4Result = res; console.log('[telegram] GIF uploaded → Telegram MP4'); })
+      .catch(e => console.warn('[telegram] GIF upload failed:', e.message));
   }
 
   /* Share GIF — uses pre-cached MP4 video for instant sharing on all platforms.
