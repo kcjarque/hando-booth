@@ -4319,8 +4319,10 @@
       _tgPhotoUploaded = true;
       const LAYOUT_LABELS_UP = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad' };
       const layoutDesc = LAYOUT_LABELS_UP[layout] || layout;
-      uploadToTelegram(compositeDataUrl, 'image/png', 'png')
-        .then(res => { _tgPhotoResult = res; console.log('[telegram] photo uploaded'); })
+      // sendDocument preserves full print resolution. sendPhoto would
+      // server-side downscale the image to ~1280px, destroying print quality.
+      uploadToTelegram(compositeDataUrl, 'image/png', 'png', { method: 'sendDocument' })
+        .then(res => { _tgPhotoResult = res; console.log('[telegram] photo uploaded (HD doc)'); })
         .catch(e => { _tgPhotoUploaded = false; console.warn('[telegram] photo upload failed:', e.message); });
       // Google Drive upload
       const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -4596,7 +4598,8 @@
       try {
         let photoRes = _tgPhotoResult;
         if (!photoRes) {
-          photoRes = await uploadToTelegram(compositeDataUrl, 'image/png', 'png');
+          // sendDocument: preserves full print resolution (sendPhoto downscales).
+          photoRes = await uploadToTelegram(compositeDataUrl, 'image/png', 'png', { method: 'sendDocument' });
           _tgPhotoResult = photoRes;
         }
         const photoUrl = await _telegramFileUrl(photoRes);
@@ -5242,25 +5245,24 @@
     }
   }
 
-  // FIX (upload-speed): Compress AND downscale image for faster Telegram upload.
-  // Print-resolution composites are ~2000–2400px (4×6 @ 300dpi); guests download
-  // from QR on a phone — 1500px on the long edge is more than enough for crisp
-  // viewing and dramatically reduces upload time (~5× smaller file).
+  // FIX (HD + fast): preserve FULL print resolution (no downscale) but convert
+  // PNG → high-quality JPEG. A 1200×1800 (4×6 @ 300dpi) PNG is 2–5 MB; the same
+  // image as JPEG @ 0.92 is ~500KB–1MB — visually indistinguishable for printing
+  // but 3–5× faster to upload.
+  // The caller MUST use sendDocument (not sendPhoto), or Telegram downscales the
+  // image server-side to ~1280px and discards the print-quality detail.
   function _compressForTelegram(blob) {
     return new Promise(resolve => {
       const url = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => {
-        const MAX_LONG_EDGE = 1500;
-        const scale = Math.min(1, MAX_LONG_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
-        const w = Math.round(img.naturalWidth * scale);
-        const h = Math.round(img.naturalHeight * scale);
+        const w = img.naturalWidth, h = img.naturalHeight;
         const c = document.createElement('canvas');
         c.width = w; c.height = h;
         const ctx = c.getContext('2d');
         ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b); }, 'image/jpeg', 0.82);
+        ctx.drawImage(img, 0, 0);
+        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b); }, 'image/jpeg', 0.92);
       };
       img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
       img.src = url;
