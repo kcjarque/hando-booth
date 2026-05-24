@@ -4536,41 +4536,43 @@
     $('ty-name').textContent = 'Enjoy your photo!';
     $('ty-img').src = compositeDataUrl || '';
 
-    // Free-floating share row also stays available (works great on Apple).
+    // Share buttons removed — QR codes are the primary share path now.
     const hasGif = (gifUrl && photos.length > 1) || (photos.length > 1);
     const shareRow = $('ty-share-row');
-    let btns = '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="sharePhoto()">↗ Share Photo</button>';
-    if (hasGif) {
-      btns += '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="shareGifFromTY()">↗ Share GIF</button>';
-    }
-    shareRow.innerHTML = btns;
+    if (shareRow) shareRow.innerHTML = '';
 
-    // Set up the QR box with two slots: photo + GIF
+    // QR box — bigger codes, generous spacing, container made wider to fit.
+    const QR_PX = 220;
     const qrBox = $('qr-box');
     qrBox.style.display = 'flex';
     qrBox.style.flexDirection = 'column';
-    qrBox.style.gap = '14px';
-    qrBox.style.padding = '14px';
+    qrBox.style.gap = '20px';
+    qrBox.style.padding = '22px';
+    qrBox.style.maxWidth = 'none';
+    qrBox.style.minWidth = '0';
+    qrBox.style.width = 'auto';
     qrBox.innerHTML = `
-      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
-        <div id="qr-slot-photo" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:140px">
-          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:var(--muted)">Photo</div>
-          <div id="qr-photo" style="min-width:140px;min-height:140px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
+      <div style="display:flex;gap:44px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+        <div id="qr-slot-photo" style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:${QR_PX}px">
+          <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">Photo</div>
+          <div id="qr-photo" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
         </div>
         ${hasGif ? `
-        <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:140px">
-          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:var(--muted)">GIF (Video)</div>
-          <div id="qr-gif" style="min-width:140px;min-height:140px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
+        <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:10px;min-width:${QR_PX}px">
+          <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">GIF (Video)</div>
+          <div id="qr-gif" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
         </div>` : ''}
       </div>
     `;
+    // Stash desired QR pixel size for _renderQRInto.
+    qrBox.dataset.qrPx = String(QR_PX);
     $('qr-hint').textContent = _tgConfigured()
       ? 'Scan to open on your phone, then long-press → Save or Share.'
       : 'Connect Telegram in Admin to enable QR sharing.';
 
     showScreen('thankyou');
 
-    // Stop here if Telegram isn't configured — show the share buttons only.
+    // Stop here if Telegram isn't configured.
     if (!_tgConfigured()) {
       qrBox.style.display = 'none';
       return;
@@ -4607,7 +4609,9 @@
             const { blob, ext, mime } = await _getMp4();
             const blobUrl = URL.createObjectURL(blob);
             try {
-              mp4Res = await uploadToTelegram(blobUrl, mime, ext);
+              // sendAnimation: Telegram re-muxes to a universally-shareable MP4
+              // (fixes Android Messenger / Instagram rejecting iPad-recorded MP4).
+              mp4Res = await uploadToTelegram(blobUrl, mime, ext, { method: 'sendAnimation' });
               _tgMp4Result = mp4Res;
             } finally {
               URL.revokeObjectURL(blobUrl);
@@ -4629,13 +4633,16 @@
     }
   }
 
-  /* Render a QR code into a target element. Uses qrcodejs (already loaded). */
+  /* Render a QR code into a target element. Uses qrcodejs (already loaded).
+     Reads the desired pixel size from the parent qr-box's data-qr-px, fallback 220. */
   function _renderQRInto(el, url) {
     el.innerHTML = '';
     try {
+      const qrBox = document.getElementById('qr-box');
+      const px = parseInt((qrBox && qrBox.dataset && qrBox.dataset.qrPx) || '220', 10) || 220;
       // qrcodejs constructor renders into the element
       // eslint-disable-next-line no-new
-      new QRCode(el, { text: url, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+      new QRCode(el, { text: url, width: px, height: px, correctLevel: QRCode.CorrectLevel.M });
       // qrcodejs injects both <canvas> and <img>; hide the img so we don't double-display
       const dupImg = el.querySelector('img');
       if (dupImg) dupImg.style.display = 'none';
@@ -4716,13 +4723,16 @@
     return await _framesToMp4();
   }
 
-  /* Upload GIF as MP4 video to Telegram (background, non-blocking).
-     Caches the result in _tgMp4Result for reuse by doGetQR. */
+  /* Upload GIF-as-MP4 to Telegram (background, non-blocking).
+     Uses sendAnimation so Telegram re-encodes to a baseline-profile faststart
+     MP4 — the iPad MediaRecorder output is technically valid but Android
+     Messenger/Instagram reject it when shared from the gallery. Animations are
+     re-muxed by Telegram and the result downloads as a universally-shareable mp4. */
   function _uploadGifAsMp4ToTelegram() {
     if (_tgMp4Result) return; // already uploaded
     _getMp4().then(({ blob, ext, mime }) => {
       const url = URL.createObjectURL(blob);
-      uploadToTelegram(url, mime, ext)
+      uploadToTelegram(url, mime, ext, { method: 'sendAnimation' })
         .then(res => { _tgMp4Result = res; URL.revokeObjectURL(url); })
         .catch(e => { URL.revokeObjectURL(url); console.warn('[telegram] mp4 upload failed:', e.message); });
     }).catch(e => console.warn('[telegram] mp4 conversion failed:', e.message));
@@ -5103,7 +5113,11 @@
    * Upload a file (photo/GIF/video) to a Telegram chat.
    * Returns a public download URL for the file (via Telegram's getFile API).
    */
-  async function uploadToTelegram(dataUrl, contentType = 'image/png', ext = 'png') {
+  // opts.method may be 'sendPhoto' | 'sendAnimation' | 'sendVideo' | 'sendDocument'
+  // to override the auto-detected Telegram API method. Used when we want our
+  // GIF-as-MP4 to be re-encoded by Telegram into a universally-shareable
+  // baseline-profile faststart MP4 (sendAnimation does this; sendVideo passes through).
+  async function uploadToTelegram(dataUrl, contentType = 'image/png', ext = 'png', opts = {}) {
     if (!_tgConfigured()) throw new Error('Telegram not configured');
 
     // Convert dataUrl or blobUrl to a Blob
@@ -5123,7 +5137,7 @@
       } catch {}
     }
 
-    // Pick the right Telegram API method based on content type
+    // Pick the right Telegram API method based on content type, unless overridden.
     let method = 'sendDocument'; // fallback
     let fieldName = 'document';
     if (/^image\/png|^image\/jpe?g/i.test(contentType)) {
@@ -5132,6 +5146,15 @@
       method = 'sendAnimation'; fieldName = 'animation';
     } else if (/^video\//i.test(contentType)) {
       method = 'sendVideo'; fieldName = 'video';
+    }
+    if (opts.method) {
+      method = opts.method;
+      fieldName = (
+        method === 'sendPhoto' ? 'photo' :
+        method === 'sendAnimation' ? 'animation' :
+        method === 'sendVideo' ? 'video' :
+        'document'
+      );
     }
 
     const form = new FormData();
