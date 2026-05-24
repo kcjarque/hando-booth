@@ -7515,13 +7515,60 @@
   // Keep old name as alias for any existing callers
   function drawLayoutPreviews() { drawLayoutPreview(); }
 
-  function _saveLayoutSizes() {
+  /* FIX (storage-full): _saveLayoutSizes silently swallowed QuotaExceededError,
+     so when custom sounds / overlays / stickers filled localStorage the user's
+     latest layout edits never persisted and disappeared on reload.
+     Now: detect quota failures, free up reclaimable keys (legacy v1 layout
+     sizes + sessionStorage backups), retry, and show a one-time clear alert
+     telling the user what to delete in admin if it still fails. */
+  let _storageAlertShown = false;
+  function _isQuotaError(e) {
+    return !!e && (
+      e.name === 'QuotaExceededError' ||
+      e.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+      e.code === 22 || e.code === 1014
+    );
+  }
+  function _safeSetItem(key, value) {
     try {
-      // Store the CURRENT slider values back into the layout being edited
-      _storeLayoutSizes(_activeLayoutTab || layout);
-      localStorage.setItem('hb_layout_sizes_v2', JSON.stringify(LAYOUT_SIZES));
-      if (typeof refreshOverlayTemplateButtons === 'function') refreshOverlayTemplateButtons();
-    } catch {}
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      if (!_isQuotaError(e)) { console.warn('[storage] setItem failed:', e); return false; }
+      // Try to free up space, then retry once.
+      try { localStorage.removeItem('hb_layout_sizes'); } catch {}  // unused legacy v1 key
+      try { sessionStorage.removeItem('hb_session'); } catch {}     // regenerable
+      try { sessionStorage.removeItem('hb_session_lite'); } catch {}
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e2) {
+        console.warn('[storage] quota exceeded, save failed for', key);
+        if (!_storageAlertShown) {
+          _storageAlertShown = true;
+          // Defer the alert so it doesn't block the admin UI mid-edit
+          setTimeout(() => {
+            alert(
+              'Storage is full — your latest changes (layout sizes, etc.) won\'t be saved.\n\n' +
+              'To fix: open Admin and remove what you don\'t need:\n' +
+              ' • Custom Sound (set back to Default)\n' +
+              ' • Custom Background Image\n' +
+              ' • Unused Custom Stickers / Overlays\n' +
+              ' • Custom Logo\n\n' +
+              'After clearing space, re-do your latest changes and they will save.'
+            );
+          }, 100);
+        }
+        return false;
+      }
+    }
+  }
+
+  function _saveLayoutSizes() {
+    // Store the CURRENT slider values back into the layout being edited
+    _storeLayoutSizes(_activeLayoutTab || layout);
+    _safeSetItem('hb_layout_sizes_v2', JSON.stringify(LAYOUT_SIZES));
+    if (typeof refreshOverlayTemplateButtons === 'function') refreshOverlayTemplateButtons();
   }
 
   function _restoreLayoutSizes() {
@@ -7543,6 +7590,9 @@
           });
         }
       }
+      // Clean up the legacy v1 key once we've established a working dataset
+      // (frees a small amount of localStorage; relevant when storage is tight).
+      try { localStorage.removeItem('hb_layout_sizes'); } catch {}
       // Apply current layout's settings
       _applyActiveLayoutSizes(layout);
       // Recompute cells from print size for all layouts that have print dimensions
