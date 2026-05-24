@@ -2745,17 +2745,42 @@
   window.addEventListener('keydown', unlockAudioOnGesture, { once: true });
 
   // iOS suspends AudioContext after inactivity — re-prime on every touch so sound never disappears
-  window.addEventListener('touchstart', function() {
+  // FIX (long-session): handle 'interrupted' and 'closed' states too, not just 'suspended'.
+  // iOS Safari moves AudioContext to 'interrupted' after phone calls / screen lock, and
+  // resume() does NOT recover it. The only fix is to create a fresh AudioContext.
+  function _ensureLiveAudioCtx() {
     try {
-      if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume();
+      if (!_audioCtx || _audioCtx.state === 'closed') {
+        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Re-decode the custom sound for the new context
+        if (_customSoundUrl) {
+          _customSoundBuffer = null;
+          _decodeCustomSound(_customSoundUrl);
+        }
+        return _audioCtx;
+      }
+      if (_audioCtx.state === 'suspended' || _audioCtx.state === 'interrupted') {
+        _audioCtx.resume().catch(() => {
+          // Resume failed — context is permanently broken; replace it.
+          try { _audioCtx.close(); } catch {}
+          _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (_customSoundUrl) {
+            _customSoundBuffer = null;
+            _decodeCustomSound(_customSoundUrl);
+          }
+        });
+      }
     } catch {}
-  }, { passive: true });
+    return _audioCtx;
+  }
+  window.addEventListener('touchstart', _ensureLiveAudioCtx, { passive: true });
+  // Re-prime on visibility change (returning from background, unlocking screen)
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) _ensureLiveAudioCtx();
+  });
 
   function getAudioCtx() {
-    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // iOS Safari: context starts suspended until a user gesture resumes it
-    if (_audioCtx.state === 'suspended') { try { _audioCtx.resume(); } catch {} }
-    return _audioCtx;
+    return _ensureLiveAudioCtx();
   }
 
   function playBeep(freq = 880, dur = 0.08, vol = 0.4, type = 'sine') {
@@ -3557,7 +3582,7 @@
       // Try native share — always attempt with file first
       if (navigator.share) {
         try {
-          await navigator.share({ files: [file], title: 'Hando Booth Video', text: 'Check out my Hando Booth video!' });
+          await navigator.share({ files: [file], title: 'PNG Booth Video', text: 'Check out my PNG Booth video!' });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
@@ -3589,7 +3614,7 @@
       const form = new FormData();
       form.append('chat_id', TELEGRAM_CHAT_ID);
       form.append('video', blob, filename);
-      form.append('caption', 'Hando Booth — Video — ' + new Date().toLocaleString());
+      form.append('caption', 'PNG Booth — Video — ' + new Date().toLocaleString());
 
       const apiUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendVideo';
       const ac = new AbortController();
@@ -3669,7 +3694,7 @@
       const blob = await _dataUrlToJpeg(compositeDataUrl);
       const file = new File([blob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
       const downloadFallback = () => saveToDevice(blob, file.name, 'image/jpeg');
-      await _shareFile(file, 'Hando Booth Photo', 'Check out my Hando Booth photo!', downloadFallback);
+      await _shareFile(file, 'PNG Booth Photo', 'Check out my PNG Booth photo!', downloadFallback);
       // Telegram upload already happens in doGetQR() — don't upload again
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -3940,7 +3965,11 @@
     });
   }
 
-  async function buildComposite() {
+  // FIX (lag): buildComposite accepts an optional generation token. When a
+  // newer render starts, older ones abort at the next yield instead of running
+  // to completion — this prevents 4× pixel-filter work piling up on the main
+  // thread when the user taps filters quickly.
+  async function buildComposite(gen) {
     const { cw, ch, positions } = layoutGeometry();
     const comp = document.createElement('canvas');
     comp.width = cw; comp.height = ch;
@@ -3949,7 +3978,13 @@
     c.fillStyle = '#fdf0de';
     c.fillRect(0, 0, cw, ch);
 
+    // Yield to the event loop — lets the browser process touch/scroll events
+    // between heavy pixel-filter steps so the UI doesn't appear frozen.
+    const yieldUI = () => new Promise(r => setTimeout(r, 0));
+    const isObsolete = () => (gen != null && gen !== _renderGen);
+
     for (let i = 0; i < photos.length && i < positions.length; i++) {
+      if (isObsolete()) return null;
       const img = await loadImg(photos[i]);
       const { x, y } = positions[i];
 
@@ -3963,7 +3998,11 @@
         (CELL_H - img.naturalHeight * s) / 2,
         img.naturalWidth * s, img.naturalHeight * s
       );
+      await yieldUI();
+      if (isObsolete()) return null;
       applyPixelFilter(cc, CELL_W, CELL_H, activeFilter);
+      await yieldUI();
+      if (isObsolete()) return null;
 
       // Stamp filtered cell onto composite (sharp corners)
       c.drawImage(cell, x, y);
@@ -3972,6 +4011,7 @@
     if (activeOverlay && activeOverlay.dataUrl) {
       try {
         const ov = await loadImg(activeOverlay.dataUrl);
+        if (isObsolete()) return null;
         c.drawImage(ov, 0, 0, cw, ch);
       } catch (e) { console.warn('Overlay load failed:', e); }
     }
@@ -3984,8 +4024,8 @@
     const spinner = $('composite-spinner'), img = $('composite-img');
     spinner.classList.remove('hidden');
     img.style.opacity = compositeDataUrl ? '0.4' : '0';
-    const result = await buildComposite();
-    if (gen !== _renderGen) return; // a newer render started; discard this one
+    const result = await buildComposite(gen);
+    if (gen !== _renderGen || result == null) return; // a newer render started; discard
     compositeDataUrl = result;
     img.src = compositeDataUrl;
     img.style.opacity = '1';
@@ -4236,11 +4276,17 @@
   let _gifExt = 'gif';
   let _cachedMp4Blob = null; // Pre-generated MP4 for instant sharing
   let _tgPhotoUploaded = false; // prevent double Telegram uploads
+  // FIX (qr cache): keep the Telegram upload result so doGetQR can reuse it
+  // instead of double-uploading the same media.
+  let _tgPhotoResult = null;
+  let _tgMp4Result = null;
 
   function showGifScreen() {
     exportMode = 'photo'; gifUrl = null; gifWorking = false;
     _gifIsMp4 = false; _gifExt = 'gif'; _cachedMp4Blob = null;
     _tgPhotoUploaded = false; // reset for new session
+    _tgPhotoResult = null;
+    _tgMp4Result = null;
     // Auto-download removed in v4.6
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
@@ -4267,14 +4313,15 @@
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
 
-    // Upload photo to Telegram + Google Drive ONCE (in background)
+    // Upload photo to Telegram + Google Drive ONCE (in background).
+    // Cache the Telegram result so doGetQR can reuse it for the QR code without re-uploading.
     if (compositeDataUrl && !_tgPhotoUploaded) {
       _tgPhotoUploaded = true;
       const LAYOUT_LABELS_UP = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad' };
       const layoutDesc = LAYOUT_LABELS_UP[layout] || layout;
       uploadToTelegram(compositeDataUrl, 'image/png', 'png')
-        .then(() => console.log('[telegram] photo uploaded'))
-        .catch(e => console.warn('[telegram] photo upload failed:', e.message));
+        .then(res => { _tgPhotoResult = res; console.log('[telegram] photo uploaded'); })
+        .catch(e => { _tgPhotoUploaded = false; console.warn('[telegram] photo upload failed:', e.message); });
       // Google Drive upload
       const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       uploadToGDrive(compositeDataUrl, 'image/png', `hando-${layoutDesc}-${ts}.png`, `Hando Booth ${layoutDesc} — ${new Date().toLocaleString()}`)
@@ -4477,25 +4524,125 @@
     });
   }
 
-  /* Get Photo: show thank-you screen with share buttons for photo + GIF */
-  function doGetQR() {
+  /* FIX #1 + #6 — Get Photo: upload photo + (GIF-as-MP4) to Telegram,
+     show a QR for each. Scanning the QR opens the photo/MP4 directly on the
+     guest's phone, where they can long-press → Save → Share via Messenger / IG
+     without the .gif → unsupported-format issue on Android.
+
+     QR URLs contain the Telegram bot token. This is acceptable because the
+     QR is visible only briefly to the guest at the booth, not posted publicly.
+     If you regenerate the bot token in @BotFather, old QRs stop working. */
+  async function doGetQR() {
     $('ty-name').textContent = 'Enjoy your photo!';
     $('ty-img').src = compositeDataUrl || '';
 
-    // Build share buttons in the free-floating row (not inside the QR box)
-    const hasGif = gifUrl && photos.length > 1;
+    // Free-floating share row also stays available (works great on Apple).
+    const hasGif = (gifUrl && photos.length > 1) || (photos.length > 1);
     const shareRow = $('ty-share-row');
     let btns = '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="sharePhoto()">↗ Share Photo</button>';
     if (hasGif) {
       btns += '<button class="btn-warm" style="font-size:1rem;flex:1" onclick="shareGifFromTY()">↗ Share GIF</button>';
     }
     shareRow.innerHTML = btns;
-    $('qr-box').style.display = 'none';
-    $('qr-hint').textContent = '';
+
+    // Set up the QR box with two slots: photo + GIF
+    const qrBox = $('qr-box');
+    qrBox.style.display = 'flex';
+    qrBox.style.flexDirection = 'column';
+    qrBox.style.gap = '14px';
+    qrBox.style.padding = '14px';
+    qrBox.innerHTML = `
+      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+        <div id="qr-slot-photo" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:140px">
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:var(--muted)">Photo</div>
+          <div id="qr-photo" style="min-width:140px;min-height:140px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
+        </div>
+        ${hasGif ? `
+        <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:140px">
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:var(--muted)">GIF (Video)</div>
+          <div id="qr-gif" style="min-width:140px;min-height:140px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
+        </div>` : ''}
+      </div>
+    `;
+    $('qr-hint').textContent = _tgConfigured()
+      ? 'Scan to open on your phone, then long-press → Save or Share.'
+      : 'Connect Telegram in Admin to enable QR sharing.';
 
     showScreen('thankyou');
-    // Telegram upload removed — user shares manually via share buttons.
-    // No auto-upload to avoid double-sending.
+
+    // Stop here if Telegram isn't configured — show the share buttons only.
+    if (!_tgConfigured()) {
+      qrBox.style.display = 'none';
+      return;
+    }
+
+    // Upload photo & MP4 in parallel, render QR as each finishes. Reuse any
+    // upload that already happened in showGifScreen / background MP4 cache.
+    (async () => {
+      try {
+        let photoRes = _tgPhotoResult;
+        if (!photoRes) {
+          photoRes = await uploadToTelegram(compositeDataUrl, 'image/png', 'png');
+          _tgPhotoResult = photoRes;
+        }
+        const photoUrl = await _telegramFileUrl(photoRes);
+        const slot = $('qr-photo');
+        if (slot) {
+          slot.innerHTML = '';
+          if (photoUrl) _renderQRInto(slot, photoUrl);
+          else slot.textContent = 'No URL';
+        }
+      } catch (e) {
+        const slot = $('qr-photo');
+        if (slot) slot.textContent = 'Upload failed';
+        console.warn('[qr] photo upload failed:', e.message);
+      }
+    })();
+
+    if (hasGif) {
+      (async () => {
+        try {
+          let mp4Res = _tgMp4Result;
+          if (!mp4Res) {
+            const { blob, ext, mime } = await _getMp4();
+            const blobUrl = URL.createObjectURL(blob);
+            try {
+              mp4Res = await uploadToTelegram(blobUrl, mime, ext);
+              _tgMp4Result = mp4Res;
+            } finally {
+              URL.revokeObjectURL(blobUrl);
+            }
+          }
+          const mp4Url = await _telegramFileUrl(mp4Res);
+          const slot = $('qr-gif');
+          if (slot) {
+            slot.innerHTML = '';
+            if (mp4Url) _renderQRInto(slot, mp4Url);
+            else slot.textContent = 'No URL';
+          }
+        } catch (e) {
+          const slot = $('qr-gif');
+          if (slot) slot.textContent = 'Upload failed';
+          console.warn('[qr] mp4 upload failed:', e.message);
+        }
+      })();
+    }
+  }
+
+  /* Render a QR code into a target element. Uses qrcodejs (already loaded). */
+  function _renderQRInto(el, url) {
+    el.innerHTML = '';
+    try {
+      // qrcodejs constructor renders into the element
+      // eslint-disable-next-line no-new
+      new QRCode(el, { text: url, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+      // qrcodejs injects both <canvas> and <img>; hide the img so we don't double-display
+      const dupImg = el.querySelector('img');
+      if (dupImg) dupImg.style.display = 'none';
+    } catch (e) {
+      console.warn('[qr] render failed:', e.message);
+      el.textContent = 'QR error';
+    }
   }
 
   /* Convert photo frames to MP4 video for sharing (Messenger strips GIF animation) */
@@ -4569,12 +4716,14 @@
     return await _framesToMp4();
   }
 
-  /* Upload GIF as MP4 video to Telegram (background, non-blocking) */
+  /* Upload GIF as MP4 video to Telegram (background, non-blocking).
+     Caches the result in _tgMp4Result for reuse by doGetQR. */
   function _uploadGifAsMp4ToTelegram() {
+    if (_tgMp4Result) return; // already uploaded
     _getMp4().then(({ blob, ext, mime }) => {
       const url = URL.createObjectURL(blob);
       uploadToTelegram(url, mime, ext)
-        .then(() => URL.revokeObjectURL(url))
+        .then(res => { _tgMp4Result = res; URL.revokeObjectURL(url); })
         .catch(e => { URL.revokeObjectURL(url); console.warn('[telegram] mp4 upload failed:', e.message); });
     }).catch(e => console.warn('[telegram] mp4 conversion failed:', e.message));
   }
@@ -4587,7 +4736,7 @@
       const { blob, ext, mime } = await _getMp4();
       const fname = 'hando-booth-' + Date.now() + '.' + ext;
       const file = new File([blob], fname, { type: mime });
-      await _shareFile(file, 'Hando Booth', 'Check out my Hando Booth photo!', null);
+      await _shareFile(file, 'PNG Booth', 'Check out my PNG Booth photo!', null);
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.warn('[share] GIF share failed:', err.message);
@@ -4990,27 +5139,67 @@
     form.append(fieldName, blob, filename);
     const LAYOUT_LABELS_TG = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad', video: 'Video' };
     const layoutLabel = LAYOUT_LABELS_TG[layout] || layout;
-    form.append('caption', 'Hando Booth — ' + layoutLabel + ' — ' + new Date().toLocaleString());
+    form.append('caption', 'PNG Booth — ' + layoutLabel + ' — ' + new Date().toLocaleString());
 
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
-    // Single attempt — longer timeout for videos (can be several MB)
+    // FIX (telegram-retry): retry up to 3 times with backoff. The previous
+    // single-attempt path failed silently on flaky wifi — the user thought
+    // photos "sometimes don't send". Now: 3 attempts, exponential backoff,
+    // return the Telegram result object so callers can extract file_id.
     const isVideo = /^video\//i.test(contentType);
-    const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), isVideo ? 60000 : 30000);
-    try {
-      const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
-      clearTimeout(timer);
-      const json = await r.json();
-      if (!json.ok) {
-        throw new Error(`Telegram ${method} failed: ${json.description || r.status}`);
+    const timeoutMs = isVideo ? 60000 : 30000;
+    const maxAttempts = 3;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), timeoutMs);
+      try {
+        const r = await fetch(apiUrl, { method: 'POST', body: form, signal: ac.signal });
+        clearTimeout(timer);
+        const json = await r.json();
+        if (!json.ok) throw new Error(`Telegram ${method} failed: ${json.description || r.status}`);
+        console.log('[telegram] uploaded:', filename, Math.round(blob.size/1024) + 'KB',
+          attempt > 1 ? `(attempt ${attempt})` : '');
+        // Return the result so callers (e.g. doGetQR) can pull file_id for getFile.
+        return { ok: true, result: json.result, method, fieldName, filename };
+      } catch (err) {
+        clearTimeout(timer);
+        lastErr = err;
+        console.warn(`[telegram] upload attempt ${attempt}/${maxAttempts} failed:`, err.message);
+        if (attempt < maxAttempts) {
+          // Backoff: 1s, then 2s
+          await new Promise(r => setTimeout(r, attempt * 1000));
+        }
       }
-      console.log('[telegram] uploaded:', filename, Math.round(blob.size/1024) + 'KB');
-      return null; // No URL needed — sharing handled via native share sheet
-    } catch (err) {
-      clearTimeout(timer);
-      console.warn('[telegram] upload failed:', err.message);
-      throw err;
+    }
+    throw lastErr || new Error('Telegram upload failed after retries');
+  }
+
+  /* FIX (qr): call Telegram getFile to turn an upload result into a public download URL.
+     The URL contains the bot token — only acceptable because the QR is shown briefly to
+     the guest standing at the booth, not posted publicly. */
+  async function _telegramFileUrl(uploadResult) {
+    if (!uploadResult || !uploadResult.ok) return null;
+    const r = uploadResult.result;
+    // Pick file_id depending on the method used
+    let fileId = null;
+    if (r.photo && r.photo.length) {
+      fileId = r.photo[r.photo.length - 1].file_id; // largest size
+    } else if (r.video) fileId = r.video.file_id;
+    else if (r.animation) fileId = r.animation.file_id;
+    else if (r.document) fileId = r.document.file_id;
+    if (!fileId) return null;
+
+    const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${encodeURIComponent(fileId)}`;
+    try {
+      const resp = await fetch(apiUrl);
+      const json = await resp.json();
+      if (!json.ok || !json.result || !json.result.file_path) return null;
+      return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${json.result.file_path}`;
+    } catch (e) {
+      console.warn('[telegram] getFile failed:', e.message);
+      return null;
     }
   }
 
@@ -5032,9 +5221,14 @@
     });
   }
 
-  // Backward-compatible alias so existing call-sites work
+  // Backward-compatible alias — returns a public download URL (via Telegram getFile)
+  // so older call sites (submitIntake / claim flow) can embed it in QR or share links.
+  // NOTE: the URL contains the bot token; only use for QR shown briefly at the booth.
   async function uploadPhotoToSupabase(dataUrl, contentType, ext) {
-    return uploadToTelegram(dataUrl, contentType, ext);
+    const res = await uploadToTelegram(dataUrl, contentType, ext);
+    const url = await _telegramFileUrl(res);
+    if (!url) throw new Error('Telegram upload succeeded but no public URL available');
+    return url;
   }
 
   function saveTelegramConfig() {
@@ -5328,7 +5522,7 @@
       // Always try share with file first (skip canShare check — it's unreliable on iOS)
       if (navigator.share) {
         try {
-          await navigator.share({ files: [file], title: 'Hando Booth Photo', text: 'Check out my Hando Booth photo!' });
+          await navigator.share({ files: [file], title: 'PNG Booth Photo', text: 'Check out my PNG Booth photo!' });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
@@ -5373,22 +5567,22 @@
       } catch {
         // CORS blocked — try sharing URL directly
         if (navigator.share) {
-          await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
+          await navigator.share({ title: 'PNG Booth GIF', text: 'Check out my PNG Booth GIF!', url });
           return;
         }
         window.open(url, '_blank'); return;
       }
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.gif', { type: 'image/gif' });
+      const file = new File([blob], 'png-booth-' + Date.now() + '.gif', { type: 'image/gif' });
       // Try share with file first
       if (navigator.share) {
         try {
-          await navigator.share({ files: [file], title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!' });
+          await navigator.share({ files: [file], title: 'PNG Booth GIF', text: 'Check out my PNG Booth GIF!' });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
           // File share failed — try URL share
           try {
-            await navigator.share({ title: 'Hando Booth GIF', text: 'Check out my Hando Booth GIF!', url });
+            await navigator.share({ title: 'PNG Booth GIF', text: 'Check out my PNG Booth GIF!', url });
             return;
           } catch (e2) { if (e2.name === 'AbortError') return; }
         }
@@ -5475,7 +5669,7 @@
               to_name: name,
               to_email: email,
               photo_url: publicUrl,
-              from_name: 'Hando Booth'
+              from_name: 'PNG Booth'
             }).catch(e => console.warn('Email failed:', e));
           }
         })
@@ -6043,7 +6237,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: TELEGRAM_CHAT_ID,
-          text: '📸 *Hando Booth connected\\!*\n\nPhotos, GIFs, and videos from the booth will be sent here\\.',
+          text: '📸 *PNG Booth connected\\!*\n\nPhotos, GIFs, and videos from the booth will be sent here\\.',
           parse_mode: 'MarkdownV2'
         })
       });
