@@ -4381,7 +4381,9 @@
     lbl.textContent = 'Generating GIF…';
 
     // Cap GIF dimensions to keep encoding fast — scale down proportionally
-    const GIF_MAX = 480;
+    // FIX (upload-speed): 360px long edge is enough for phone-screen playback
+    // and roughly halves the GIF file size vs 480px — much faster Telegram upload.
+    const GIF_MAX = 360;
     const _gifScale = Math.min(1, GIF_MAX / Math.max(CELL_W, CELL_H));
     const GIF_W = Math.round(CELL_W * _gifScale), GIF_H = Math.round(CELL_H * _gifScale);
 
@@ -4559,23 +4561,28 @@
     qrBox.style.maxWidth = 'none';
     qrBox.style.minWidth = '0';
     qrBox.style.width = 'auto';
+    // Each QR gets a small label above (Photo / GIF) so the guest knows which is which,
+    // and a bigger "Scan to download" caption below.
+    const captionStyle = 'font-size:1.1rem;font-weight:700;color:var(--text);text-align:center';
+    const tagStyle = 'font-size:0.82rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)';
     qrBox.innerHTML = `
       <div style="display:flex;gap:90px;flex-wrap:wrap;justify-content:center;align-items:flex-start;padding:8px">
         <div id="qr-slot-photo" style="display:flex;flex-direction:column;align-items:center;gap:12px;min-width:${QR_PX}px">
-          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">Photo</div>
+          <div style="${tagStyle}">Photo</div>
           <div id="qr-photo" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
+          <div style="${captionStyle}">Scan to download</div>
         </div>
         ${hasGif ? `
         <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:12px;min-width:${QR_PX}px">
-          <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.14em;font-weight:700;color:var(--muted)">GIF (Video)</div>
+          <div style="${tagStyle}">GIF (Video)</div>
           <div id="qr-gif" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
+          <div style="${captionStyle}">Scan to download</div>
         </div>` : ''}
       </div>
     `;
     qrBox.dataset.qrPx = String(QR_PX);
-    $('qr-hint').textContent = _tgConfigured()
-      ? 'Scan to open on your phone, then long-press → Save or Share.'
-      : 'Connect Telegram in Admin to enable QR sharing.';
+    // The captions live under each QR now; the bottom hint just signals admin config issues.
+    $('qr-hint').textContent = _tgConfigured() ? '' : 'Connect Telegram in Admin to enable QR sharing.';
 
     showScreen('thankyou');
 
@@ -5132,8 +5139,10 @@
     let blob = await res.blob();
     let filename = `booth-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
 
-    // For photos: compress to JPEG for much faster upload (PNG can be 5MB+, JPEG ~300KB)
-    if (/^image\/(png|jpe?g)/i.test(contentType) && blob.size > 500000) {
+    // For photos: ALWAYS compress + downscale to JPEG. PNGs can be 2–5MB,
+    // and even sub-500KB images upload faster after downscale. The compressor
+    // is a noop if the image is already small enough.
+    if (/^image\/(png|jpe?g)/i.test(contentType) && blob.size > 100000) {
       try {
         const jpegBlob = await _compressForTelegram(blob);
         if (jpegBlob && jpegBlob.size < blob.size) {
@@ -5233,18 +5242,25 @@
     }
   }
 
-  // Compress image to JPEG for faster Telegram upload
+  // FIX (upload-speed): Compress AND downscale image for faster Telegram upload.
+  // Print-resolution composites are ~2000–2400px (4×6 @ 300dpi); guests download
+  // from QR on a phone — 1500px on the long edge is more than enough for crisp
+  // viewing and dramatically reduces upload time (~5× smaller file).
   function _compressForTelegram(blob) {
     return new Promise(resolve => {
       const url = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => {
+        const MAX_LONG_EDGE = 1500;
+        const scale = Math.min(1, MAX_LONG_EDGE / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
         const c = document.createElement('canvas');
-        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.width = w; c.height = h;
         const ctx = c.getContext('2d');
-        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
-        ctx.drawImage(img, 0, 0);
-        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b); }, 'image/jpeg', 0.85);
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        c.toBlob(b => { URL.revokeObjectURL(url); resolve(b); }, 'image/jpeg', 0.82);
       };
       img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
       img.src = url;
