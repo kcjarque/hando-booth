@@ -3469,10 +3469,15 @@
     }
     console.log('[rec] audio tracks on recording stream:', canvasStream.getAudioTracks().length);
 
-    // Prefer codecs that EXPLICITLY include an audio codec so audio is recorded.
-    // Bare "video/mp4" or "video/webm;codecs=vp9" without audio codec may drop audio.
-    const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac') ? 'video/mp4;codecs=h264,aac'
-                   : MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2') ? 'video/mp4;codecs=avc1.42E01E,mp4a.40.2'
+    // FIX (Android Messenger compat): prefer H.264 BASELINE profile
+    // (avc1.42E01E) over the generic h264 hint. The generic hint lets the
+    // browser pick Main or High profile — those produce MP4s that Android
+    // Messenger silently rejects when shared from the gallery. Baseline
+    // profile (avc1.42E01E = baseline 3.0) is universally supported by
+    // every Android social app. AAC audio (mp4a.40.2) included so audio
+    // is recorded too.
+    const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E,mp4a.40.2') ? 'video/mp4;codecs=avc1.42E01E,mp4a.40.2'
+                   : MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac') ? 'video/mp4;codecs=h264,aac'
                    : MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus'
                    : MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus'
                    : MediaRecorder.isTypeSupported('video/webm;codecs=h264,opus') ? 'video/webm;codecs=h264,opus'
@@ -3593,16 +3598,12 @@
     }
   }
 
-  /* Upload the recorded video to Telegram via sendAnimation so Telegram
-     re-encodes it to a baseline-profile, faststart MP4 — the only format
-     that's reliably shareable from Android Messenger / Instagram (the
-     iPad MediaRecorder MP4 with moov-at-end gets rejected by those apps
-     when shared from the gallery).
-     Tradeoff: sendAnimation strips audio. Photobooth recordings keep the
-     visual moment universally shareable at the cost of voice/laughter
-     audio. If a user wants the original WITH audio, they can grab it from
-     the Telegram chat archive (admin's full upload was via the GDrive
-     path below, also preserving audio). */
+  /* Upload the recorded video to Telegram preserving audio.
+     Recording now uses baseline-profile H.264 (set in the MediaRecorder
+     mimeType selection) so the MP4 is widely compatible — that lets us
+     keep sendVideo (preserves audio) instead of sendAnimation (strips it).
+     For WebM (Android fallback) we use sendDocument so it's preserved
+     as-is. */
   async function _uploadVideoToTelegram() {
     if (!_recordedBlob) throw new Error('No video blob to upload');
     const isMp4 = (_recordedBlob.type || '').includes('mp4');
@@ -3610,10 +3611,10 @@
     const mime = isMp4 ? 'video/mp4' : 'video/webm';
     const blobUrl = URL.createObjectURL(_recordedBlob);
     try {
-      // sendAnimation for both MP4 and WebM — Telegram converts both to a
-      // universally-shareable silent MP4. (sendVideo would pass through the
-      // iPad's incompatible MP4; sendDocument wouldn't transcode at all.)
-      const res = await uploadToTelegram(blobUrl, mime, ext, { method: 'sendAnimation' });
+      // MP4 → sendVideo (audio + faststart preserved). WebM → sendDocument
+      // (sendVideo doesn't accept WebM; passthrough is the safest fallback).
+      const opts = isMp4 ? { method: 'sendVideo' } : { method: 'sendDocument' };
+      const res = await uploadToTelegram(blobUrl, mime, ext, opts);
       // Best-effort Google Drive archive in parallel (don't block QR on this).
       if (_gdriveConfigured()) {
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -4042,7 +4043,17 @@
 
   function loadImg(src) {
     return new Promise((res, rej) => {
-      const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = src;
+      const img = new Image();
+      img.onload = () => {
+        // FIX (Issue 1): wait for full image decode, not just the load event.
+        // Without this, drawing the image to canvas immediately can yield a
+        // blank or partial pixel buffer on iOS Safari under memory pressure
+        // — which is how frames go missing in 4-photo GIFs.
+        if (img.decode) img.decode().then(() => res(img)).catch(() => res(img));
+        else res(img);
+      };
+      img.onerror = rej;
+      img.src = src;
     });
   }
 
@@ -4532,17 +4543,20 @@
 
       const gif = GIFEncoder();
 
-      // FIX (Issue 2): pre-load all photos in parallel. Previously a single
-      // image decode failure aborted the whole GIF; now we log the failure
-      // and continue with whatever loaded, so the GIF still includes every
-      // photo that was successfully captured.
-      const loadedResults = await Promise.allSettled(photos.map(loadImg));
+      // FIX (Issue 1 — strip4/quad missing 4th frame): load photos
+      // SEQUENTIALLY, not in parallel. Parallel loading of 4 large data
+      // URLs trips iPad Safari memory pressure → one image silently
+      // returns blank/partial pixels even though onload fires → that
+      // frame is rendered black and the user perceives it as "missing".
+      // Sequential load avoids the memory spike. loadImg() now waits for
+      // img.decode() so we never draw a partially-decoded image.
       const loadedFrames = [];
-      for (let i = 0; i < loadedResults.length; i++) {
-        if (loadedResults[i].status === 'fulfilled') {
-          loadedFrames.push(loadedResults[i].value);
-        } else {
-          console.warn('[gif] photo', i, 'failed to load — skipping. Reason:', loadedResults[i].reason);
+      for (let i = 0; i < photos.length; i++) {
+        try {
+          const img = await loadImg(photos[i]);
+          loadedFrames.push(img);
+        } catch (e) {
+          console.warn('[gif] photo', i, 'failed to load — skipping. Reason:', e);
         }
       }
       console.log('[gif] encoding', loadedFrames.length, 'of', photos.length, 'photos');
@@ -4575,7 +4589,14 @@
         const index = applyPalette(imageData.data, palette);
         await yieldUI();
 
-        gif.writeFrame(index, GIF_W, GIF_H, { palette, delay: frameDelay });
+        // Explicit repeat=0 on the FIRST frame ensures gifenc writes the
+        // Netscape loop-extension block (infinite loop). Without this, some
+        // viewers play the animation only once and stop on the last frame,
+        // which a user could perceive as "missing frames" on certain browsers.
+        const frameOpts = { palette, delay: frameDelay };
+        if (i === 0) frameOpts.repeat = 0;
+        gif.writeFrame(index, GIF_W, GIF_H, frameOpts);
+        console.log('[gif] wrote frame', i + 1, 'of', loadedFrames.length);
       }
 
       gif.finish();
