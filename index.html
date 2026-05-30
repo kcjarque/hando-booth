@@ -3593,11 +3593,16 @@
     }
   }
 
-  /* Upload the recorded video blob to Telegram via uploadToTelegram so we
-     get retries + a cacheable result. For MP4 we use the auto-detected
-     sendVideo (Telegram normalises for streaming + gives a wide-format MP4
-     on download). For WebM we fall back to sendDocument since sendVideo
-     doesn't accept WebM. */
+  /* Upload the recorded video to Telegram via sendAnimation so Telegram
+     re-encodes it to a baseline-profile, faststart MP4 — the only format
+     that's reliably shareable from Android Messenger / Instagram (the
+     iPad MediaRecorder MP4 with moov-at-end gets rejected by those apps
+     when shared from the gallery).
+     Tradeoff: sendAnimation strips audio. Photobooth recordings keep the
+     visual moment universally shareable at the cost of voice/laughter
+     audio. If a user wants the original WITH audio, they can grab it from
+     the Telegram chat archive (admin's full upload was via the GDrive
+     path below, also preserving audio). */
   async function _uploadVideoToTelegram() {
     if (!_recordedBlob) throw new Error('No video blob to upload');
     const isMp4 = (_recordedBlob.type || '').includes('mp4');
@@ -3605,8 +3610,10 @@
     const mime = isMp4 ? 'video/mp4' : 'video/webm';
     const blobUrl = URL.createObjectURL(_recordedBlob);
     try {
-      const opts = isMp4 ? {} : { method: 'sendDocument' };
-      const res = await uploadToTelegram(blobUrl, mime, ext, opts);
+      // sendAnimation for both MP4 and WebM — Telegram converts both to a
+      // universally-shareable silent MP4. (sendVideo would pass through the
+      // iPad's incompatible MP4; sendDocument wouldn't transcode at all.)
+      const res = await uploadToTelegram(blobUrl, mime, ext, { method: 'sendAnimation' });
       // Best-effort Google Drive archive in parallel (don't block QR on this).
       if (_gdriveConfigured()) {
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -4039,12 +4046,36 @@
     });
   }
 
-  // FIX (lag): buildComposite accepts an optional generation token. When a
-  // newer render starts, older ones abort at the next yield instead of running
-  // to completion — this prevents 4× pixel-filter work piling up on the main
-  // thread when the user taps filters quickly.
-  async function buildComposite(gen) {
-    const { cw, ch, positions } = layoutGeometry();
+  // FIX (Issue 3 — lag/scroll): buildComposite accepts:
+  //   gen — generation token; renders abort early when a newer one supersedes.
+  //   opts.maxLongEdge — scales cells/gap/pad to fit this pixel cap. Used for
+  //     the fast preview render. Omitted means full HD (print-resolution).
+  // Yielding uses requestAnimationFrame which aligns with the browser's
+  // rendering pipeline — iOS Safari can process scroll/touch in those gaps.
+  async function buildComposite(gen, opts = {}) {
+    // Compute per-render scale so we can render a smaller preview cheaply.
+    const baseLongEdge = Math.max(CELL_W, CELL_H);
+    const scale = (opts.maxLongEdge && baseLongEdge > opts.maxLongEdge)
+      ? (opts.maxLongEdge / baseLongEdge) : 1;
+    const sCW = Math.round(CELL_W * scale);
+    const sCH = Math.round(CELL_H * scale);
+    const sGAP = Math.round(GAP * scale);
+    const sPT = Math.round(_padT() * scale);
+    const sPR = Math.round(_padR() * scale);
+    const sPB = Math.round(_padB() * scale);
+    const sPL = Math.round(_padL() * scale);
+
+    // Replicate layoutGeometry math at the scaled dimensions
+    const g = LAYOUT_GRID[layout] || { cols: 1, rows: 1 };
+    const cw = sPL + g.cols * sCW + (g.cols - 1) * sGAP + sPR;
+    const ch = sPT + g.rows * sCH + (g.rows - 1) * sGAP + sPB;
+    const positions = [];
+    for (let r = 0; r < g.rows; r++) {
+      for (let c0 = 0; c0 < g.cols; c0++) {
+        positions.push({ x: sPL + c0 * (sCW + sGAP), y: sPT + r * (sCH + sGAP) });
+      }
+    }
+
     const comp = document.createElement('canvas');
     comp.width = cw; comp.height = ch;
     const c = comp.getContext('2d');
@@ -4052,33 +4083,31 @@
     c.fillStyle = '#fdf0de';
     c.fillRect(0, 0, cw, ch);
 
-    // Yield to the event loop — lets the browser process touch/scroll events
-    // between heavy pixel-filter steps so the UI doesn't appear frozen.
-    const yieldUI = () => new Promise(r => setTimeout(r, 0));
+    const yieldUI = () => new Promise(r => requestAnimationFrame(r));
     const isObsolete = () => (gen != null && gen !== _renderGen);
 
     for (let i = 0; i < photos.length && i < positions.length; i++) {
       if (isObsolete()) return null;
-      const img = await loadImg(photos[i]);
+      let img;
+      try { img = await loadImg(photos[i]); }
+      catch (e) { console.warn('[composite] photo', i, 'failed to load:', e); continue; }
       const { x, y } = positions[i];
 
-      // Draw photo into a cell-sized temp canvas, apply pixel filter there
       const cell = document.createElement('canvas');
-      cell.width = CELL_W; cell.height = CELL_H;
+      cell.width = sCW; cell.height = sCH;
       const cc = cell.getContext('2d', { willReadFrequently: true });
-      const s = Math.max(CELL_W / img.naturalWidth, CELL_H / img.naturalHeight);
+      const s = Math.max(sCW / img.naturalWidth, sCH / img.naturalHeight);
       cc.drawImage(img,
-        (CELL_W - img.naturalWidth * s) / 2,
-        (CELL_H - img.naturalHeight * s) / 2,
+        (sCW - img.naturalWidth * s) / 2,
+        (sCH - img.naturalHeight * s) / 2,
         img.naturalWidth * s, img.naturalHeight * s
       );
       await yieldUI();
       if (isObsolete()) return null;
-      applyPixelFilter(cc, CELL_W, CELL_H, activeFilter);
+      applyPixelFilter(cc, sCW, sCH, activeFilter);
       await yieldUI();
       if (isObsolete()) return null;
 
-      // Stamp filtered cell onto composite (sharp corners)
       c.drawImage(cell, x, y);
     }
 
@@ -4092,18 +4121,42 @@
     return comp.toDataURL('image/png');
   }
 
+  // Two-tier render: a fast preview (small cells, <100ms) shown immediately,
+  // then an HD render in the background that replaces compositeDataUrl when
+  // ready. _hdRenderPromise lets callers (showGifScreen, printPhoto, doGetQR)
+  // await the HD version before uploading / printing.
   let _renderGen = 0;
+  let _hdRenderPromise = null;
   async function reRenderComposite() {
     const gen = ++_renderGen;
     const spinner = $('composite-spinner'), img = $('composite-img');
     spinner.classList.remove('hidden');
     img.style.opacity = compositeDataUrl ? '0.4' : '0';
-    const result = await buildComposite(gen);
-    if (gen !== _renderGen || result == null) return; // a newer render started; discard
-    compositeDataUrl = result;
+
+    // Phase 1: fast low-res preview for the UI.
+    const preview = await buildComposite(gen, { maxLongEdge: 600 });
+    if (gen !== _renderGen || preview == null) return;
+    compositeDataUrl = preview;
     img.src = compositeDataUrl;
     img.style.opacity = '1';
     spinner.classList.add('hidden');
+
+    // Phase 2: HD render in background. compositeDataUrl will be replaced
+    // by the HD version when ready, so downstream uploads/print get print
+    // resolution. Stored as a promise so callers can `await _hdRenderPromise`
+    // when they're about to use compositeDataUrl for HD-sensitive work.
+    _hdRenderPromise = buildComposite(gen).then(hd => {
+      if (gen === _renderGen && hd != null) compositeDataUrl = hd;
+      return hd;
+    }).catch(e => { console.warn('[render] HD render failed:', e); return null; });
+  }
+
+  // Await the in-flight HD render (if any) so the caller is using the
+  // full-resolution composite, not the fast preview.
+  async function _ensureHDComposite() {
+    if (_hdRenderPromise) {
+      try { await _hdRenderPromise; } catch {}
+    }
   }
 
   /* ─── Filters ─────────────────────────────────────── */
@@ -4369,39 +4422,40 @@
     frameDelay = 500;
 
     const gifScreenHead = document.querySelector('#gif-screen .screen-head p');
-    if (layout === 'single') {
-      if (gifScreenHead) gifScreenHead.textContent = 'Save your photo';
-      $('gif-panel').style.display = 'none';
-    } else {
-      if (gifScreenHead) gifScreenHead.textContent = 'Save your photo & GIF';
-      // Show GIF panel and auto-generate
-      $('gif-panel').style.display = '';
-      $('gif-panel').style.position = 'relative';
-      $('gif-img').src = ''; $('gif-img').style.opacity = '0';
-      $('gif-spinner').classList.remove('hidden');
-      generateGif();
-    }
+    // FIX (Issue 2): generate a GIF for ALL shot counts, including single
+    // (1 photo). A 1-frame GIF is still a valid sharable animated file and
+    // matches the user's "Include all photos if it's 4, 3, 2, 1 shots" ask.
+    if (gifScreenHead) gifScreenHead.textContent = 'Save your photo & GIF';
+    $('gif-panel').style.display = '';
+    $('gif-panel').style.position = 'relative';
+    $('gif-img').src = ''; $('gif-img').style.opacity = '0';
+    $('gif-spinner').classList.remove('hidden');
+    generateGif();
     showScreen('gif-screen');
     // Scroll to top so "Save your moment" header is visible
     const gs = $('gif-screen');
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
 
-    // Upload photo to Telegram + Google Drive ONCE (in background).
-    // Cache the Telegram result so doGetQR can reuse it for the QR code without re-uploading.
+    // Wait for the HD render (kicked off after the preview on the previous
+    // screen) before uploading — otherwise the upload would carry the small
+    // preview and the print quality would be lost.
     if (compositeDataUrl && !_tgPhotoUploaded) {
       _tgPhotoUploaded = true;
       const LAYOUT_LABELS_UP = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad' };
       const layoutDesc = LAYOUT_LABELS_UP[layout] || layout;
-      // sendDocument preserves full print resolution. sendPhoto would
-      // server-side downscale the image to ~1280px, destroying print quality.
-      uploadToTelegram(compositeDataUrl, 'image/png', 'png', { method: 'sendDocument' })
-        .then(res => { _tgPhotoResult = res; console.log('[telegram] photo uploaded (HD doc)'); })
-        .catch(e => { _tgPhotoUploaded = false; console.warn('[telegram] photo upload failed:', e.message); });
-      // Google Drive upload
-      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      uploadToGDrive(compositeDataUrl, 'image/png', `hando-${layoutDesc}-${ts}.png`, `Hando Booth ${layoutDesc} — ${new Date().toLocaleString()}`)
-        .catch(e => console.warn('[gdrive] photo upload failed:', e.message));
+      (async () => {
+        await _ensureHDComposite();
+        // sendDocument preserves full print resolution. sendPhoto would
+        // server-side downscale the image to ~1280px, destroying print quality.
+        uploadToTelegram(compositeDataUrl, 'image/png', 'png', { method: 'sendDocument' })
+          .then(res => { _tgPhotoResult = res; console.log('[telegram] photo uploaded (HD doc)'); })
+          .catch(e => { _tgPhotoUploaded = false; console.warn('[telegram] photo upload failed:', e.message); });
+        // Google Drive upload
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        uploadToGDrive(compositeDataUrl, 'image/png', `hando-${layoutDesc}-${ts}.png`, `Hando Booth ${layoutDesc} — ${new Date().toLocaleString()}`)
+          .catch(e => console.warn('[gdrive] photo upload failed:', e.message));
+      })();
     }
   }
 
@@ -4478,12 +4532,31 @@
 
       const gif = GIFEncoder();
 
-      for (let i = 0; i < photos.length; i++) {
-        lbl.textContent = `Generating GIF… ${Math.round((i / photos.length) * 100)}%`;
-        // Yield to UI so progress label updates and screen doesn't freeze
-        await new Promise(r => setTimeout(r, 0));
+      // FIX (Issue 2): pre-load all photos in parallel. Previously a single
+      // image decode failure aborted the whole GIF; now we log the failure
+      // and continue with whatever loaded, so the GIF still includes every
+      // photo that was successfully captured.
+      const loadedResults = await Promise.allSettled(photos.map(loadImg));
+      const loadedFrames = [];
+      for (let i = 0; i < loadedResults.length; i++) {
+        if (loadedResults[i].status === 'fulfilled') {
+          loadedFrames.push(loadedResults[i].value);
+        } else {
+          console.warn('[gif] photo', i, 'failed to load — skipping. Reason:', loadedResults[i].reason);
+        }
+      }
+      console.log('[gif] encoding', loadedFrames.length, 'of', photos.length, 'photos');
 
-        const im = await loadImg(photos[i]);
+      // FIX (Issue 3 — lag): use requestAnimationFrame instead of setTimeout(0)
+      // and yield between each major step within a frame so the iOS main
+      // thread can service scroll/touch between heavy steps.
+      const yieldUI = () => new Promise(r => requestAnimationFrame(r));
+
+      for (let i = 0; i < loadedFrames.length; i++) {
+        lbl.textContent = `Generating GIF… ${Math.round((i / loadedFrames.length) * 100)}%`;
+        await yieldUI();
+
+        const im = loadedFrames[i];
         const fc = document.createElement('canvas');
         fc.width = GIF_W; fc.height = GIF_H;
         const fctx = fc.getContext('2d', { willReadFrequently: true });
@@ -4492,11 +4565,15 @@
           (GIF_W - im.naturalWidth * s) / 2, (GIF_H - im.naturalHeight * s) / 2,
           im.naturalWidth * s, im.naturalHeight * s
         );
+        await yieldUI();
         applyPixelFilter(fctx, GIF_W, GIF_H, activeFilter);
+        await yieldUI();
 
         const imageData = fctx.getImageData(0, 0, GIF_W, GIF_H);
         const palette = quantize(imageData.data, 256);
+        await yieldUI();
         const index = applyPalette(imageData.data, palette);
+        await yieldUI();
 
         gif.writeFrame(index, GIF_W, GIF_H, { palette, delay: frameDelay });
       }
@@ -4670,6 +4747,8 @@
     // Photo upload (auto-detected as sendPhoto from PNG content-type).
     (async () => {
       try {
+        // Ensure HD composite is ready (preview-tier render may still be active).
+        await _ensureHDComposite();
         let photoRes = _tgPhotoResult;
         if (!photoRes) {
           // sendDocument: preserves full print resolution (sendPhoto downscales).
@@ -4848,8 +4927,11 @@
   /* ═══════════════════════════════════════════════════
      PRINT
   ═══════════════════════════════════════════════════ */
-  function printPhoto() {
+  async function printPhoto() {
     // FIX 11 — always print composite (works from gif-screen and thank-you screen)
+    // Wait for the HD render to land before printing, otherwise we'd print
+    // the small preview version instead of the full print-resolution version.
+    await _ensureHDComposite();
     const url = compositeDataUrl || '';
     if (!url) { alert('Nothing to print yet.'); return; }
     $('print-target-img').src = url;
