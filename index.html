@@ -1345,7 +1345,7 @@
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.20</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.21</span>
   </div>
 </div>
 
@@ -3535,6 +3535,14 @@
 
   function stopRecording() {
     if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+      // FIX (Issue 2 — incomplete video on Android download): force the
+      // recorder to flush its pending buffer BEFORE we call stop(). Without
+      // requestData(), MediaRecorder on iOS Safari can hold the last ~200ms
+      // of recorded data in an internal buffer that isn't flushed until the
+      // next chunk request. We saw "the recording cuts off early" symptoms
+      // because of this. requestData() emits the pending buffer as a final
+      // dataavailable event, then stop() emits whatever's left.
+      try { _mediaRecorder.requestData(); } catch (e) { /* not all browsers support this */ }
       _mediaRecorder.stop();
     }
     if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
@@ -4589,14 +4597,22 @@
         const index = applyPalette(imageData.data, palette);
         await yieldUI();
 
-        // Explicit repeat=0 on the FIRST frame ensures gifenc writes the
-        // Netscape loop-extension block (infinite loop). Without this, some
-        // viewers play the animation only once and stop on the last frame,
-        // which a user could perceive as "missing frames" on certain browsers.
+        // Explicit repeat=0 on the FIRST frame ensures the Netscape
+        // loop-extension block (infinite loop) is written.
         const frameOpts = { palette, delay: frameDelay };
         if (i === 0) frameOpts.repeat = 0;
         gif.writeFrame(index, GIF_W, GIF_H, frameOpts);
         console.log('[gif] wrote frame', i + 1, 'of', loadedFrames.length);
+
+        // FIX (Issue 1 — Telegram drops the last GIF frame during GIF→MP4
+        // conversion): write a SECOND copy of the last frame as a "hold"
+        // duplicate. The original animation is unchanged visually (same
+        // photo, same delay) but Telegram's MP4 converter now treats the
+        // last photo as having a held duration and includes it in the MP4.
+        if (i === loadedFrames.length - 1) {
+          gif.writeFrame(index, GIF_W, GIF_H, { palette, delay: frameDelay });
+          console.log('[gif] wrote hold-duplicate of frame', i + 1);
+        }
       }
 
       gif.finish();
