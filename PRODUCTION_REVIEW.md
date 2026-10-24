@@ -3,11 +3,10 @@ Date: 2026-10-24 · Reviewer: Claude · Scope: launch gate, every feature, score
 Baseline: v5.20 (commit b217585) → v6.0 (uncommitted working tree)
 
 ## Verdict
-**NOT CLEARED, three steps from CLEARED.** All code-level blockers are fixed and covered by a 27-check regression suite (the original v5.20 code passes 2 of the 18 bug checks; v6.0 passes all 27). Guest links are live on Supabase and verified end to end (2026-10-24). Three steps remain, and none of them can be done in code:
+**NOT CLEARED, two steps from CLEARED.** All code-level blockers are fixed and covered by a 27-check regression suite (the original v5.20 code passes 2 of the 18 bug checks; v6.0 passes all 27). Guest links are live on Supabase and verified end to end (2026-10-24). Two steps remain, and neither can be done in code:
 
-1. **Lock down the old `photos` bucket** (B4 below). It holds 273 guest photos from April–May that anyone with the old public key (in this repo's history) can list and download.
-2. **Rotate the Telegram bot token** in @BotFather. Every QR shown so far contained it, so anyone who scanned one can still use it.
-3. **Pick a new admin password.** `hando2025` is readable in the public repo.
+1. **Rotate the Telegram bot token** in @BotFather. Every QR shown so far contained it, so anyone who scanned one can still use it.
+2. **Pick a new admin password.** `hando2025` is readable in the public repo.
 
 ## Executive summary (plain language)
 The booth works, but it had about a dozen bugs that made it feel unreliable. Leaving a recording didn't really stop it. Retake All sometimes kept old blank slots. Going back and forth uploaded the same photo three times. Refreshing brought back the previous guest. Videos never reached Google Drive. On an iPad held sideways, the Start button was off the screen. All of these are fixed and each has an automated test. The bigger problem was privacy: every QR code contained the key to your Telegram chat and stopped working after an hour. QR codes now point to permanent, keyless links in Supabase Storage. That needs one setup step from you before it goes live.
@@ -37,7 +36,7 @@ UI dimensions (ui-ux-ultra): Function 4 → 9 · Persuasion 6 → 7 · Craft 6 �
 
 ## Blockers (open)
 - [B1] ~~Supabase project not created~~ **Done 2026-10-24.** Restored the paused `hando-booth` project (HandoCrafted org, Tokyo, free plan). Applied `supabase/booth-storage.sql`. Wired the URL and public key into `index.html`. Live rule test passed 8/8: guest upload allowed and its link opens; wrong path, HTML, list, overwrite and delete all refused; keep-alive answers. A live end-to-end photo and video session gave 3 QR links, each opening with status 200 and the right file type.
-- [B4] **Old `photos` bucket exposed (new, open).** It is public, has no size/type limits, and holds 273 objects (366 MB, 2026-04-05 to 05-03). Anon policies allow listing everything and uploading anything. The old anon key is in commit `7c0a86c`, so anyone can enumerate and download every guest photo. Restoring the project made this reachable again. Fix (needs your choice): at minimum drop the anon list + upload policies. Better: also make the bucket private, or delete the photos if they're no longer needed (old guest links would stop working).
+- [B4] ~~Old `photos` bucket exposed~~ **Locked down 2026-10-24.** Dropped its anon list and anon upload policies. Verified with the public key: listing returns `[]`, uploads are refused (403), and an old guest link still opens (200). All 273 photos are kept. Residual: the bucket is still public, so anyone holding an exact old link can open that one file. Before the fix: It is public, has no size/type limits, and holds 273 objects (366 MB, 2026-04-05 to 05-03). Anon policies allow listing everything and uploading anything. The old anon key is in commit `7c0a86c`, so anyone can enumerate and download every guest photo. Restoring the project made this reachable again. Fix (needs your choice): at minimum drop the anon list + upload policies. Better: also make the bucket private, or delete the photos if they're no longer needed (old guest links would stop working).
 - [B2] Telegram bot token exposed. It was embedded in every QR from v5.x. Fix: @BotFather → /revoke, then paste the new token in Admin on each iPad.
 - [B3] Admin password `hando2025` in public source (`index.html`, `CLAUDE.md`). Fix (needs your choice): a new password stored only as a SHA-256 hash, or make the repo private (GitHub Pages on a private repo needs a paid plan).
 
