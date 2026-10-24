@@ -89,6 +89,18 @@ If a filter is changed before a previous render completes, both renders run conc
 **Root cause:** `startRecording()` used raw camera resolution instead of admin-configured `vidWidth × vidHeight`. Camera preview used `object-fit: contain` showing full uncropped frame.
 **Fix applied (v5.9):** Recording canvas uses `vidWidth × vidHeight` with center-crop math to fill the target aspect ratio. Camera preview uses `object-fit: cover` with `aspect-ratio` CSS set to `vidWidth/vidHeight`, so preview matches recording output exactly.
 
+### 21–30. v6.0 production pass (2026-10-24) — see PRODUCTION_REVIEW.md
+- **Guest QR links → Supabase Storage** (`_sbUpload`, `_sbPhotoLink/_sbGifLink/_sbVideoLink`). Telegram file URLs carried the bot token and expired after ~1h. Do NOT point QR codes at Telegram again. Telegram + Drive = operator archive only.
+- **Cancel token** `_sessionId` / `_cancelSession()`: X, Home, Start Over, new session bump it; capture, countdown and recorder check it after every await. `#countdown` is `pointer-events:none` so X is tappable mid-countdown.
+- **Record double-tap**: `_recStopping` blocks taps until `onstop`. `onerror` only calls stopRecording — `onstop` finalizes.
+- **Uploads once per version**: `_compositeVersion` (bumped on every re-render/edit) and `_gifKey` (photos+filter+delay). Never reset upload flags on screen entry.
+- **No session restore on reload** — a kiosk refresh must give a clean guest.
+- **Video frame guide** uses `vidWidth/vidHeight` in video mode (`--crop-ratio`), photo cell ratio otherwise.
+- **Drive base64**: FileReader + slice after `base64,` (recorder MIME types contain commas; spreading bytes into fromCharCode overflows the stack).
+- **Home layout**: no `justify-content:center` on the scrolling #home (top overflow is unreachable); 4 columns when 7 layouts are on; landscape caps card height.
+- **Brand**: `BRAND` / `FILE_PREFIX` constants — guest-facing name is PNG Booth.
+- **Regression suite**: `python3 tests/regression.py` (serve on :3003 first). Run it before every push.
+
 ---
 
 ## Architecture
@@ -99,7 +111,8 @@ If a filter is changed before a previous render completes, both renders run conc
 - **Composite:** `buildComposite()` draws each photo into a cell canvas, applies pixel filter, stamps onto main canvas with sharp corners (no rounding).
 - **GIF:** `gifenc` (v1.0.3) via dynamic `import()` from unpkg CDN. Pure-JS encoder — no Web Workers, no CORS issues, works on ALL browsers including iOS Safari. Replaced `gif.js` in v4.8.
 - **Video:** MediaRecorder from canvas stream + audio tracks. Supports overlay compositing.
-- **Telegram:** Photo/GIF/video uploads sent to a Telegram chat via Bot API. Config stored in localStorage (`hb_tg_bot_token`, `hb_tg_chat_id`). Replaced Supabase in v5.5.
+- **Guest links:** Supabase Storage bucket `booth` (public read, anon insert-only, see `supabase/booth-storage.sql`). `SUPABASE_URL` / `SUPABASE_ANON_KEY` constants in index.html.
+- **Telegram:** Operator archive of photos/GIFs/videos via Bot API. Config stored in localStorage (`hb_tg_bot_token`, `hb_tg_chat_id`). Not used for guest links since v6.0.
 - **Layouts:** single (1), double (2), strip (3), mini (3 at 1.5×4"), strip4 (4), quad (4), video. Mini is a compact 3-strip.
 - **Layout sizes:** Final print size set in inches at 300 DPI. Presets: 4×6, 3×4, 2×6, 1.5×4. Cell sizes auto-computed from final dimensions minus gaps and padding.
 - **Dev server:** Node.js static server at `.claude/serve.js`, port 3003.

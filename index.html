@@ -10,9 +10,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Hando Booth">
+  <meta name="apple-mobile-web-app-title" content="PNG Booth">
   <meta name="theme-color" content="#fdf6ee">
-  <title>Hando Booth</title>
+  <title>PNG Booth</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
   <!-- gifenc loaded via dynamic import() in generateGif — no script tag needed -->
@@ -112,17 +114,21 @@
     #home {
       display: flex;
       flex-direction: column;
-      /* Use the full viewport height — center content vertically on tall screens */
-      justify-content: center;
+      /* Center vertically via auto margins on the first/last items (below), not
+         justify-content:center — that pushes the logo above the scroll origin
+         when the content is taller than the screen (iPad landscape). */
+      justify-content: flex-start;
       align-items: center;
       text-align: center;
-      gap: clamp(14px, 3vh, 36px);
+      gap: clamp(12px, 2.4vh, 32px);
       padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
     /* All direct children of #home are centered as flex items */
     #home > * { margin-left: auto; margin-right: auto; flex-shrink: 0; }
+    #home > .logo-wrap { margin-top: auto; }
+    #home > .home-foot { margin-bottom: auto; }
     #home-bg {
       position: fixed;
       inset: 0;
@@ -312,26 +318,28 @@
 
     .cam-bottom { display: flex; justify-content: center; align-items: center; }
 
+    /* Shutter sits on the white off-frame area — solid brand disc inside a
+       brand ring so the one action on this screen is unmistakable. */
     .shutter {
       width: 82px; height: 82px;
       border-radius: 50%;
-      background: rgba(242,228,204,0.92);
-      border: 4px solid rgba(242,228,204,0.4);
-      box-shadow: 0 0 0 6px color-mix(in srgb, var(--orange) 20%, transparent);
+      background: #fff;
+      border: 5px solid var(--orange);
+      box-shadow: 0 6px 22px rgba(46,30,8,0.28);
       cursor: pointer;
-      transition: transform 0.1s;
+      transition: transform 0.1s, opacity 0.2s;
       -webkit-tap-highlight-color: transparent;
       position: relative;
     }
     .shutter::after {
       content: '';
       position: absolute;
-      inset: 8px;
+      inset: 6px;
       border-radius: 50%;
-      background: #fff;
+      background: var(--orange);
     }
     .shutter:active { transform: scale(0.91); }
-    .shutter:disabled { opacity: 1; cursor: default; }
+    .shutter:disabled { opacity: 0.45; cursor: default; }
 
     /* ── COUNTDOWN ─────────────────────────────────── */
     #countdown {
@@ -344,6 +352,8 @@
       gap: 14px;
       z-index: 15;
       background: transparent;
+      /* Display only — taps fall through so X can cancel a running session */
+      pointer-events: none;
     }
     #countdown.show { display: flex; }
 
@@ -356,12 +366,16 @@
       text-shadow: 0 0 80px var(--orange), 0 0 20px var(--orange);
       animation: cdPop 1s cubic-bezier(0.22,1,0.36,1) forwards;
     }
+    /* Own dark backing: it sits on a live camera feed of any brightness */
     #cd-label {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.25em;
-      color: rgba(242,228,204,0.7);
-      font-weight: 600;
+      font-size: clamp(1.1rem, 2.6vw, 1.8rem);
+      letter-spacing: 0.04em;
+      color: #fff;
+      font-weight: 700;
+      font-family: var(--font-brand);
+      background: rgba(20,14,6,0.62);
+      padding: 0.35em 1em;
+      border-radius: 100px;
     }
     @keyframes cdPop {
       0%   { transform: scale(1.6); opacity: 0; }
@@ -432,10 +446,11 @@
 
     /* ── PREVIEW + GIF shared ──────────────────────── */
     .warm-screen {
+      --ws-pad-b: max(clamp(36px,6vh,52px), env(safe-area-inset-bottom));
       justify-content: flex-start;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: clamp(36px, 6vh, 52px) 20px max(clamp(36px,6vh,52px), env(safe-area-inset-bottom));
+      padding: clamp(36px, 6vh, 52px) 20px var(--ws-pad-b);
       gap: 18px;
       background: radial-gradient(ellipse at 60% 5%, #fce8c8 0%, var(--bg) 55%);
     }
@@ -763,6 +778,27 @@
       width: 100%;
       max-width: 380px;
       flex-shrink: 0;
+    }
+    /* Each screen's primary actions stay pinned to the bottom of the screen,
+       so Continue / Get Photo / Save are reachable without scrolling. */
+    .warm-screen .action-row.sticky-actions {
+      position: sticky;
+      /* Sticky offsets are measured inside the screen's bottom padding; pull
+         the bar down over that padding so nothing peeks out beneath it. */
+      bottom: calc(-1 * var(--ws-pad-b));
+      z-index: 6;
+      margin-top: auto;
+      padding: 14px 0 calc(var(--ws-pad-b) + 4px);
+    }
+    .warm-screen .action-row.sticky-actions::before {
+      content: '';
+      position: absolute;
+      top: -18px; bottom: 0; left: 50%;
+      width: 100vw;
+      transform: translateX(-50%);
+      background: linear-gradient(to top, var(--bg) 82%, rgba(253,246,238,0));
+      z-index: -1;
+      pointer-events: none;
     }
 
     /* ── GIF SCREEN extras ─────────────────────────── */
@@ -1249,6 +1285,30 @@
       #claim-done canvas, #claim-done img[alt*="QR"], #qr-img { width: 340px !important; height: 340px !important; }
       #editor-screen .editor-canvas-wrap { max-height: 70vh; max-width: 920px; }
     }
+    /* iPad landscape: logo, every layout card and Start Session must fit one
+       screen. Size the logo by height and use shorter cards. */
+    @media (min-width: 740px) and (orientation: landscape) {
+      .logo-hando  { font-size: clamp(4rem, 12vh, 9rem); }
+      .logo-booth  { font-size: clamp(1.3rem, 3.6vh, 2.6rem); margin-top: -6px; }
+      .logo-wrap   { padding: 0; }
+      .layout-grid, .home-grid-wrap, .start-btn { max-width: 1000px; }
+      .home-grid-wrap { width: min(100%, 1000px); }
+      .layout-card { aspect-ratio: auto; height: clamp(120px, 21vh, 210px); padding: 12px; gap: 6px; }
+      .layout-label { font-size: 1.3rem; }
+      .start-btn   { padding: clamp(18px, 3vh, 30px); font-size: 1.6rem; }
+    }
+    /* QR screens: scanning is the job. Size the photo/video to the space that's
+       left so the full QR codes are always on screen without scrolling. */
+    #thankyou .img-panel, #thankyou .img-panel .panel-img,
+    #video-preview .img-panel, #video-preview .img-panel .panel-img {
+      max-height: max(160px, calc(100dvh - 700px));
+    }
+    /* 4-column grid (all 7 layouts on): compact icons, height from content */
+    .layout-grid.cols-4 .layout-card { aspect-ratio: auto; }
+    .layout-grid.cols-4 .icon-cell { min-width: 40px !important; min-height: 16px !important; }
+    @media (min-width: 740px) and (orientation: portrait) {
+      .layout-grid.cols-4 .layout-card { min-height: 190px; }
+    }
   </style>
 </head>
 <body>
@@ -1257,7 +1317,7 @@
 <div id="home" class="screen active">
   <div id="home-bg"></div>
   <div class="logo-wrap" onclick="handleLogoTap()" style="-webkit-tap-highlight-color:transparent;cursor:default;user-select:none">
-    <span class="logo-hando">Hando</span>
+    <span class="logo-hando">PNG</span>
     <span class="logo-booth">Booth</span>
   </div>
 
@@ -1340,12 +1400,12 @@
 
   <button class="start-btn" onclick="startBooth()">&#x25B6;&ensp;Start Session</button>
 
-  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px">
+  <div class="home-foot" style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px">
     <!-- Admin button -->
     <button onclick="openAdminModal()" aria-label="Admin" id="admin-gear-btn" style="width:40px;height:40px;background:#fff;border:1.5px solid var(--border);border-radius:50%;color:var(--orange);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 10px var(--shadow);-webkit-tap-highlight-color:transparent">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v5.21</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v6.0</span>
   </div>
 </div>
 
@@ -1445,7 +1505,7 @@
     <button id="preview-edit-btn" class="btn-ghost" onclick="openEditor()" style="flex:1;min-width:90px;padding:12px;font-size:0.85rem">✎ Edit</button>
   </div>
 
-  <div class="action-row">
+  <div class="action-row sticky-actions">
     <button class="btn-ghost" onclick="retake()">↩ Retake All</button>
     <button class="btn-warm"  onclick="continueFlow()">Continue ›</button>
   </div>
@@ -1504,7 +1564,7 @@
   </div>
 
   <!-- Action row: Back + Get Photo (Print is in the top-right of this screen) -->
-  <div class="action-row" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
+  <div class="action-row sticky-actions" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">← Back</button>
     <button class="btn-warm"  onclick="doGetQR()" style="flex:1.4;min-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📷 Get Photo</button>
   </div>
@@ -1570,7 +1630,7 @@
     <button class="sticker-btn" onclick="editorAddSticker('📸')">📸</button>
   </div>
   <input type="file" id="editor-photo-input" accept="image/*" style="display:none" onchange="handleEditorPhoto(this)">
-  <div class="action-row" style="max-width:380px;width:100%">
+  <div class="action-row sticky-actions" style="max-width:380px;width:100%">
     <button class="btn-ghost" onclick="editorUndo()">↩ Undo</button>
     <button class="btn-warm" onclick="editorSave()">✓ Save</button>
   </div>
@@ -2144,6 +2204,10 @@
 </div>
 
 <script>
+  /* Guest-facing brand name + saved-file prefix — change here only */
+  const BRAND = 'PNG Booth';
+  const FILE_PREFIX = 'png-booth';
+
   /* ─── Capture state ───────────────────────────────── */
   const COUNTS = { single: 1, double: 2, strip: 3, mini: 3, strip4: 4, quad: 4 };
   let layout     = 'single';
@@ -2981,6 +3045,17 @@
   /* ─── Retake state ────────────────────────────────── */
   let retakeIndex = null;
 
+  /* ─── Session cancel token ────────────────────────── */
+  // Bumped when the guest leaves the camera (X, Home, Start Over) or a new
+  // session starts. Capture/record code checks it after every await and
+  // stops, so a cancelled countdown can never keep shooting in the background.
+  let _sessionId = 0;
+  function _cancelSession() {
+    _sessionId++;
+    retakeIndex = null;
+    if (_mediaRecorder && _mediaRecorder.state === 'recording') stopRecording();
+  }
+
   /* ─── Screen ──────────────────────────────────────── */
   function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -3008,75 +3083,9 @@
       } catch(e) {}
     }, 500);
   }
-  // Full state save (including photos) only on page hide — runs off-thread
-  function _saveSessionFull() {
-    try {
-      const active = document.querySelector('.screen.active');
-      const screenId = active ? active.id : 'home';
-      const state = {
-        screen: screenId,
-        layout,
-        photos,
-        activeFilter,
-        activeOverlayId: activeOverlay ? activeOverlay.id : null,
-        compositeDataUrl,
-        gifUrl
-      };
-      sessionStorage.setItem('hb_session', JSON.stringify(state));
-    } catch(e) {}
-  }
-
-  // Save full state (with photos) only when user leaves the page
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') _saveSessionFull();
-  });
-  window.addEventListener('pagehide', () => _saveSessionFull());
-
-  function _restoreSession() {
-    try {
-      const raw = sessionStorage.getItem('hb_session');
-      if (!raw) return false;
-      const s = JSON.parse(raw);
-      if (!s.screen || s.screen === 'home') return false;
-      // For camera screen, if we have photos go to preview, else go home
-      if (s.screen === 'camera') {
-        if (!s.photos || s.photos.length === 0) return false;
-        s.screen = 'preview';
-      }
-      // For video-preview, we can't restore the recorded blob — go home
-      if (s.screen === 'video-preview') return false;
-      // Need photos for photo screens
-      if (!s.photos || s.photos.length === 0) return false;
-      layout = s.layout || 'single';
-      photos = s.photos;
-      activeFilter = s.activeFilter || 'none';
-      compositeDataUrl = s.compositeDataUrl || null;
-      gifUrl = s.gifUrl || null;
-      // Restore overlay selection
-      if (s.activeOverlayId) {
-        loadOverlays();
-        const all = [...STOCK_OVERLAYS, ...overlays];
-        activeOverlay = all.find(o => o.id === s.activeOverlayId) || null;
-      }
-      // Highlight layout card
-      document.querySelectorAll('.layout-card').forEach(c => {
-        c.classList.toggle('selected', c.dataset.layout === layout);
-      });
-      // Restore to the right screen
-      if (s.screen === 'gif-screen' || s.screen === 'editor-screen' || s.screen === 'thankyou') {
-        if (compositeDataUrl) {
-          $('export-img').src = compositeDataUrl;
-          $('export-img').style.opacity = '1';
-          $('export-spinner').classList.add('hidden');
-        }
-        showGifScreen();
-      } else {
-        showPreviewScreen();
-      }
-      return true;
-    } catch(e) { return false; }
-  }
-
+  // No mid-session restore after a reload: on a shared kiosk a refresh is the
+  // staff's reset button, and restoring put the previous guest's photo back
+  // on screen (and re-uploaded it).
   function _clearSession() {
     try { sessionStorage.removeItem('hb_session'); } catch {}
   }
@@ -3094,6 +3103,7 @@
   let _selectedDeviceId = null;
   let _cameraDevices = [];
 
+  // Returns true when a live camera stream is attached, false if it failed.
   async function startCamera(withAudio) {
     // Reuse existing stream ONLY if the live track is still on the requested
     // device (otherwise switchCamera() would silently keep the old camera)
@@ -3109,7 +3119,7 @@
           await video.play().catch(() => {});
           applyMirror();
           populateCameraList();
-          return;
+          return true;
         } catch {}
       }
     }
@@ -3155,7 +3165,7 @@
                 '• Then refresh this page.';
         }
         alert(msg);
-        return;
+        return false;
       }
     }
     video.srcObject = stream;
@@ -3163,6 +3173,7 @@
     applyMirror();
     // Populate camera list after permission is granted
     populateCameraList();
+    return true;
   }
 
   // Mirror override: null = auto (mirror if front), true/false = forced
@@ -3314,7 +3325,26 @@
     setTimeout(() => window.scrollTo(0, 0), 50);
   }
 
+  let _startingBooth = false;
   async function startBooth() {
+    if (_startingBooth) return; // ignore double taps while the camera starts
+    _startingBooth = true;
+    _cancelSession();
+    busy = false; shutter.disabled = false;
+    cdOverlay.classList.remove('show');
+    _resetSessionOutputs();
+    const startBtn = document.querySelector('.start-btn');
+    const startLabel = startBtn ? startBtn.innerHTML : '';
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Starting camera…'; }
+    try {
+      await _startBoothInner();
+    } finally {
+      _startingBooth = false;
+      if (startBtn) { startBtn.disabled = false; startBtn.innerHTML = startLabel; }
+    }
+  }
+
+  async function _startBoothInner() {
     nudgeAddressBarHidden();
     // Ensure iOS AudioContext is unlocked so countdown beeps + shutter sound play
     try {
@@ -3329,8 +3359,14 @@
     activeFilter = 'none';
     activeOverlay = null;
     const isVideo = (layout === 'video');
-    await startCamera(isVideo);
+    // Camera failed (permission denied / no device): stay where we are —
+    // startCamera already told the guest what to do.
+    if (!(await startCamera(isVideo))) return;
     if (isVideo) {
+      // The frame guide must show exactly what gets recorded (vidWidth×vidHeight),
+      // not the last photo layout's cell ratio.
+      document.querySelectorAll('.cam-crop-guide').forEach(el =>
+        el.style.setProperty('--crop-ratio', (vidWidth / vidHeight).toFixed(4)));
       thumbStrip.innerHTML = '';
       $('shutter').style.display = 'none';
       $('rec-btn').style.display = '';
@@ -3349,6 +3385,7 @@
       $('shutter').style.display = '';
       $('rec-btn').style.display = 'none';
       showVideoOverlayOnCamera(false);
+      _updateCropRatio();
       buildThumbs();
       const videoEl = $('video');
       videoEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
@@ -3358,6 +3395,7 @@
   }
 
   function goHome() {
+    _cancelSession();
     busy = false;
     cdOverlay.classList.remove('show');
     shutter.disabled = false;
@@ -3367,18 +3405,26 @@
     showScreen('home');
   }
 
-  /* FIX 3 — X on camera: go back to preview if photos exist, else home */
+  /* FIX 3 — X on camera: back to preview if a full set of photos exists
+     (closing a single-photo retake), otherwise home. A half-finished new
+     session is discarded rather than shown as a strip with blank slots. */
   function closeCameraKeepPhotos() {
+    _cancelSession();
     busy = false;
     cdOverlay.classList.remove('show');
     shutter.disabled = false;
     stopStream();
-    if (photos.length > 0) showPreviewScreen();
-    else showScreen('home');
+    const complete = photos.length === COUNTS[layout] && photos.every(Boolean);
+    if (complete) showPreviewScreen();
+    else { photos = []; showScreen('home'); }
   }
 
   /* ─── Video recording ──────────────────────────────── */
+  // True from stop() until onstop has finalized the blob. A second tap in that
+  // window used to start a hidden recording that replaced the guest's video.
+  let _recStopping = false;
   function toggleRecording() {
+    if (_recStopping) return;
     if (_mediaRecorder && _mediaRecorder.state === 'recording') {
       stopRecording();
     } else {
@@ -3392,6 +3438,7 @@
 
   function startRecording() {
     if (!stream) return;
+    const recSid = _sessionId;
     _recordedChunks = [];
 
     // Create a canvas that composites video + overlay.
@@ -3492,29 +3539,32 @@
     _mediaRecorder = new MediaRecorder(canvasStream, opts);
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
     _mediaRecorder.onstop = () => {
+      _recStopping = false;
       if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
       _recCanvas = null;
       if (_recAudioCtx) { try { _recAudioCtx.close(); } catch {} _recAudioCtx = null; }
+      // Guest left the camera mid-recording — discard, don't jump to a preview
+      if (recSid !== _sessionId) { _recordedChunks = []; return; }
       const mime = _mediaRecorder ? _mediaRecorder.mimeType : 'video/mp4';
       const blob = new Blob(_recordedChunks, { type: mime });
       console.log('[rec] stopped, blob size:', Math.round(blob.size/1024) + 'KB, mime:', mime);
+      stopStream();
+      if (!blob.size) {
+        alert('The recording failed. Please try again.');
+        goHome();
+        return;
+      }
       if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
       _recordedBlobUrl = URL.createObjectURL(blob);
       _recordedBlob = blob; // keep blob reference for direct upload
-      stopStream();
       try { localStorage.setItem(LS_USAGE, String((parseInt(localStorage.getItem(LS_USAGE)||'0'))+1)); } catch {}
       showVideoPreview();
     };
+    // On error the recorder stops itself and fires onstop, which finalizes
+    // whatever was captured — one code path for both outcomes.
     _mediaRecorder.onerror = (e) => {
       console.error('[rec] MediaRecorder error:', e.error || e);
       stopRecording();
-      // Still show preview if we have any data
-      if (_recordedChunks.length > 0) {
-        const blob = new Blob(_recordedChunks, { type: 'video/mp4' });
-        if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
-        _recordedBlobUrl = URL.createObjectURL(blob);
-        showVideoPreview();
-      }
     };
     _mediaRecorder.start(100);
     $('rec-btn').classList.add('recording');
@@ -3543,6 +3593,7 @@
       // because of this. requestData() emits the pending buffer as a final
       // dataavailable event, then stop() emits whatever's left.
       try { _mediaRecorder.requestData(); } catch (e) { /* not all browsers support this */ }
+      _recStopping = true;
       _mediaRecorder.stop();
     }
     if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
@@ -3566,43 +3617,65 @@
       vid.play().catch(() => {});
     }
     showScreen('video-preview');
-    // Reset QR slot to a spinner and start the upload → render the QR.
-    const slot = $('video-qr');
-    if (slot) slot.innerHTML = '<span class="spin-ring"></span>';
-    if (_tgConfigured() && _recordedBlobUrl) {
-      _renderVideoQR();
-    } else if (slot) {
-      slot.innerHTML = '';
-      slot.textContent = 'Configure Telegram in Admin';
-      slot.style.fontSize = '0.78rem';
-      slot.style.color = 'var(--muted)';
-      slot.style.textAlign = 'center';
-    }
+    _archiveVideo();
+    _renderVideoQR();
   }
 
-  /* Upload the recorded video to Telegram + Google Drive (background),
-     cache result, render a QR code that points to the Telegram-hosted file
-     so guests can scan and download on their phone. */
+  // QR slot states shared by the photo, GIF and video QR codes
+  function _qrNote(slot, text) {
+    slot.innerHTML = '';
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:0.85rem;color:var(--muted);text-align:center;line-height:1.4;padding:8px';
+    p.textContent = text;
+    slot.appendChild(p);
+  }
+  function _qrRetry(slot, retry) {
+    slot.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.className = 'btn-ghost';
+    btn.style.cssText = 'flex:0 0 auto;font-size:0.95rem;padding:14px 18px';
+    btn.textContent = 'Upload failed — tap to retry';
+    btn.onclick = retry;
+    slot.appendChild(btn);
+  }
+
+  /* Guest QR for the recorded video → permanent Supabase link */
   let _tgVideoResult = null;
   async function _renderVideoQR() {
     const slot = $('video-qr');
     if (!slot) return;
+    if (!_sbConfigured() || !_recordedBlob) { _qrNote(slot, 'QR sharing is not set up'); return; }
+    slot.innerHTML = '<span class="spin-ring"></span>';
     try {
-      let res = _tgVideoResult;
-      if (!res) {
-        res = await _uploadVideoToTelegram();
-        _tgVideoResult = res;
-      }
-      const url = await _telegramFileUrl(res);
+      const url = await _sbVideoLink();
       slot.innerHTML = '';
-      if (url) _renderQRInto(slot, url);
-      else { slot.textContent = 'No URL'; slot.style.fontSize = '0.78rem'; }
+      _renderQRInto(slot, url);
     } catch (e) {
-      slot.innerHTML = '';
-      slot.textContent = 'Upload failed';
-      slot.style.fontSize = '0.78rem';
-      slot.style.color = 'var(--muted)';
       console.warn('[qr] video upload failed:', e.message, e);
+      _qrRetry(slot, _renderVideoQR);
+    }
+  }
+
+  /* Operator archive (Telegram + Google Drive) — once per recording,
+     independent of each other and of the guest QR. */
+  let _archivedVideoBlob = null;
+  function _archiveVideo() {
+    if (!_recordedBlob || _archivedVideoBlob === _recordedBlob) return;
+    _archivedVideoBlob = _recordedBlob;
+    if (_tgConfigured()) {
+      _uploadVideoToTelegram()
+        .then(res => { _tgVideoResult = res; })
+        .catch(e => console.warn('[telegram] video upload failed:', e.message));
+    }
+    if (_gdriveConfigured()) {
+      const isMp4 = (_recordedBlob.type || '').includes('mp4');
+      const ext = isMp4 ? 'mp4' : 'webm';
+      const blobUrl = URL.createObjectURL(_recordedBlob);
+      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      uploadToGDrive(blobUrl, isMp4 ? 'video/mp4' : 'video/webm', `${FILE_PREFIX}-video-${ts}.${ext}`,
+        `${BRAND} Video — ${new Date().toLocaleString()}`)
+        .catch(e => console.warn('[gdrive] video upload failed:', e.message))
+        .finally(() => URL.revokeObjectURL(blobUrl));
     }
   }
 
@@ -3622,21 +3695,9 @@
       // MP4 → sendVideo (audio + faststart preserved). WebM → sendDocument
       // (sendVideo doesn't accept WebM; passthrough is the safest fallback).
       const opts = isMp4 ? { method: 'sendVideo' } : { method: 'sendDocument' };
-      const res = await uploadToTelegram(blobUrl, mime, ext, opts);
-      // Best-effort Google Drive archive in parallel (don't block QR on this).
-      if (_gdriveConfigured()) {
-        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        uploadToGDrive(blobUrl, mime, `hando-Video-${ts}.${ext}`,
-          `Hando Booth Video — ${new Date().toLocaleString()}`)
-          .catch(e => console.warn('[gdrive] video upload failed:', e.message))
-          .finally(() => URL.revokeObjectURL(blobUrl));
-      } else {
-        URL.revokeObjectURL(blobUrl);
-      }
-      return res;
-    } catch (e) {
+      return await uploadToTelegram(blobUrl, mime, ext, opts);
+    } finally {
       URL.revokeObjectURL(blobUrl);
-      throw e;
     }
   }
 
@@ -3655,7 +3716,7 @@
     if (!_recordedBlobUrl) { alert('No video yet.'); return; }
     fetch(_recordedBlobUrl).then(r => r.blob()).then(blob => {
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      saveToDevice(blob, 'hando-booth-' + Date.now() + '.' + ext);
+      saveToDevice(blob, FILE_PREFIX + '-' + Date.now() + '.' + ext);
     });
   }
 
@@ -3668,11 +3729,11 @@
       const isActualMp4 = blob.type.includes('mp4') || recMime.includes('mp4');
       const ext = isActualMp4 ? 'mp4' : 'webm';
       const mime = isActualMp4 ? 'video/mp4' : 'video/webm';
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.' + ext, { type: mime });
+      const file = new File([blob], FILE_PREFIX + '-' + Date.now() + '.' + ext, { type: mime });
       // Try native share — always attempt with file first
       if (navigator.share) {
         try {
-          await navigator.share({ files: [file], title: 'PNG Booth Video', text: 'Check out my PNG Booth video!' });
+          await navigator.share({ files: [file], title: BRAND + ' Video', text: 'Check out my ' + BRAND + ' video!' });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
@@ -3704,7 +3765,7 @@
       const form = new FormData();
       form.append('chat_id', TELEGRAM_CHAT_ID);
       form.append('video', blob, filename);
-      form.append('caption', 'PNG Booth — Video — ' + new Date().toLocaleString());
+      form.append('caption', BRAND + ' — Video — ' + new Date().toLocaleString());
 
       const apiUrl = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendVideo';
       const ac = new AbortController();
@@ -3726,7 +3787,7 @@
         const blobUrl = URL.createObjectURL(_recordedBlob);
         const ext = _recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        await uploadToGDrive(blobUrl, _recordedBlob.type, `hando-Video-${ts}.${ext}`, `Hando Booth Video — ${new Date().toLocaleString()}`);
+        await uploadToGDrive(blobUrl, _recordedBlob.type, `${FILE_PREFIX}-video-${ts}.${ext}`, `${BRAND} Video — ${new Date().toLocaleString()}`);
         URL.revokeObjectURL(blobUrl);
       } catch (e) {
         console.warn('[gdrive] video upload failed:', e.message);
@@ -3782,16 +3843,16 @@
     try {
       // Convert to JPEG for wider app compatibility (Messenger, Instagram, email)
       const blob = await _dataUrlToJpeg(compositeDataUrl);
-      const file = new File([blob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      const file = new File([blob], FILE_PREFIX + '-' + Date.now() + '.jpg', { type: 'image/jpeg' });
       const downloadFallback = () => saveToDevice(blob, file.name, 'image/jpeg');
-      await _shareFile(file, 'PNG Booth Photo', 'Check out my PNG Booth photo!', downloadFallback);
+      await _shareFile(file, BRAND + ' Photo', 'Check out my ' + BRAND + ' photo!', downloadFallback);
       // Telegram upload already happens in doGetQR() — don't upload again
     } catch (err) {
       if (err.name !== 'AbortError') {
         // Last-resort download
         try {
           const blob = await _dataUrlToJpeg(compositeDataUrl);
-          saveToDevice(blob, 'hando-booth-' + Date.now() + '.jpg', 'image/jpeg');
+          saveToDevice(blob, FILE_PREFIX + '-' + Date.now() + '.jpg', 'image/jpeg');
         } catch { /* nothing left to try */ }
       }
     }
@@ -3869,18 +3930,23 @@
   async function startCapture() {
     if (busy) return;
     busy = true; shutter.disabled = true;
+    const sid = _sessionId;
+    const cancelled = () => sid !== _sessionId;
 
     if (retakeIndex !== null) {
       // Single-slot retake mode
-      await runCountdown(`Retake photo ${retakeIndex + 1}`);
+      const idx = retakeIndex;
+      await runCountdown(`Retake photo ${idx + 1}`);
+      if (cancelled()) return;
       const dataUrl = snap();
-      photos[retakeIndex] = dataUrl;
-      markThumb(retakeIndex, dataUrl);
+      photos[idx] = dataUrl;
+      markThumb(idx, dataUrl);
       doFlash();
       cdOverlay.classList.remove('show');
       busy = false; shutter.disabled = false;
       retakeIndex = null;
       await sleep(350);
+      if (cancelled()) return;
       showPreviewScreen();
       return;
     }
@@ -3892,19 +3958,22 @@
         i === 0 ? 'Get ready!' : 'Keep going!',
         i === 0 && firstCountdownExtra > 0 ? countdownSecs + firstCountdownExtra : undefined
       );
+      if (cancelled()) return;
       const dataUrl = snap(); photos.push(dataUrl);
       markThumb(i, dataUrl); doFlash();
-      if (i < total - 1) await sleep(500);
+      if (i < total - 1) { await sleep(500); if (cancelled()) return; }
     }
     cdOverlay.classList.remove('show');
     busy = false; shutter.disabled = false;
     // Increment usage counter when a full session is captured
     try { localStorage.setItem(LS_USAGE, String((parseInt(localStorage.getItem(LS_USAGE)||'0'))+1)); } catch {}
     await sleep(350);
+    if (cancelled()) return;
     showPreviewScreen();
   }
 
   function runCountdown(label, secsOverride) {
+    const sid = _sessionId;
     return new Promise(resolve => {
       // Re-prime audio so iOS doesn't lose sound mid-session
       _ensureAudioReady();
@@ -3912,6 +3981,7 @@
       cdOverlay.classList.add('show');
       let n = (typeof secsOverride === 'number' && secsOverride > 0) ? secsOverride : countdownSecs;
       function tick() {
+        if (sid !== _sessionId) { resolve(); return; } // guest left the camera
         if (n === 0) { resolve(); return; }
         cdNum.textContent = n;
         cdNum.style.animation = 'none';
@@ -4146,8 +4216,13 @@
   // await the HD version before uploading / printing.
   let _renderGen = 0;
   let _hdRenderPromise = null;
+  // Bumped whenever the composite's content changes (filter, overlay, retake,
+  // mirror, sticker edit). Uploads remember the version they sent so going
+  // Back → Continue doesn't re-send an unchanged photo.
+  let _compositeVersion = 0;
   async function reRenderComposite() {
     const gen = ++_renderGen;
+    _compositeVersion++;
     const spinner = $('composite-spinner'), img = $('composite-img');
     spinner.classList.remove('hidden');
     img.style.opacity = compositeDataUrl ? '0.4' : '0';
@@ -4344,8 +4419,9 @@
   }
 
   async function startRetakeSingle(index) {
+    if (!(await startCamera())) return;
+    _updateCropRatio();
     retakeIndex = index;
-    await startCamera();
     buildThumbs();
     // Re-mark already-captured slots
     photos.forEach((src, i) => { if (i !== index) markThumb(i, src); });
@@ -4426,19 +4502,38 @@
   // instead of double-uploading the same media.
   let _tgPhotoResult = null;
   let _tgMp4Result = null;
+  let _uploadedPhotoVersion = -1; // _compositeVersion the uploads above belong to
+  let _gifKey = null;             // photos + filter + delay the current GIF was made from
 
-  function showGifScreen() {
-    exportMode = 'photo'; gifUrl = null; gifWorking = false;
-    _gifIsMp4 = false; _gifExt = 'gif'; _cachedMp4Blob = null;
-    _tgPhotoUploaded = false; // reset for new session
+  function _currentGifKey() {
+    // Cheap fingerprint: data-URL lengths + tails differ between captures
+    return photos.map(p => p ? p.length + p.slice(-24) : '-').join(',') + '|' + activeFilter + '|' + frameDelay;
+  }
+
+  // Everything one guest produced — cleared when the next guest starts.
+  function _resetSessionOutputs() {
+    try { if (gifUrl) URL.revokeObjectURL(gifUrl); } catch {}
+    try { if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl); } catch {}
+    _cachedMp4Blob = null;
+    _recordedBlobUrl = null;
+    _recordedBlob = null;
     _tgPhotoResult = null;
     _tgMp4Result = null;
+    _tgVideoResult = null;
+    _tgPhotoUploaded = false;
+    _uploadedPhotoVersion = -1;
+    _gifKey = null;
+    _sbPhoto = null; _sbGif = null; _sbVideo = null;
+    compositeDataUrl = null; gifUrl = null; exportMode = 'photo';
+  }
+
+  function showGifScreen() {
+    exportMode = 'photo';
     // Auto-download removed in v4.6
     $('mode-photo').classList.add('active'); $('mode-gif').classList.remove('active');
     $('gif-controls').style.display = 'none';
     $('export-img').src = compositeDataUrl || ''; $('export-img').style.opacity = '1';
     $('export-spinner').classList.add('hidden');
-    frameDelay = 500;
 
     const gifScreenHead = document.querySelector('#gif-screen .screen-head p');
     // FIX (Issue 2): generate a GIF for ALL shot counts, including single
@@ -4447,20 +4542,36 @@
     if (gifScreenHead) gifScreenHead.textContent = 'Save your photo & GIF';
     $('gif-panel').style.display = '';
     $('gif-panel').style.position = 'relative';
-    $('gif-img').src = ''; $('gif-img').style.opacity = '0';
-    $('gif-spinner').classList.remove('hidden');
-    generateGif();
+    // Only rebuild (and re-upload) the GIF when its inputs changed — going
+    // Back → Continue with the same photos reuses the finished GIF.
+    if (_currentGifKey() !== _gifKey) {
+      frameDelay = 500;
+      document.querySelectorAll('.delay-btn[data-d]').forEach(b => b.classList.toggle('active', Number(b.dataset.d) === 500));
+      _gifKey = _currentGifKey();
+      if (gifUrl) { try { URL.revokeObjectURL(gifUrl); } catch {} }
+      gifUrl = null; _gifIsMp4 = false; _gifExt = 'gif'; _cachedMp4Blob = null;
+      _tgMp4Result = null;
+      $('gif-img').src = ''; $('gif-img').style.opacity = '0';
+      $('gif-spinner').classList.remove('hidden');
+      generateGif();
+    }
     showScreen('gif-screen');
     // Scroll to top so "Save your moment" header is visible
     const gs = $('gif-screen');
     if (gs) gs.scrollTop = 0;
     window.scrollTo(0, 0);
 
+    // A changed composite (new filter, stickers, retake) is a new photo
+    if (_uploadedPhotoVersion !== _compositeVersion) {
+      _tgPhotoUploaded = false;
+      _tgPhotoResult = null;
+    }
     // Wait for the HD render (kicked off after the preview on the previous
     // screen) before uploading — otherwise the upload would carry the small
     // preview and the print quality would be lost.
     if (compositeDataUrl && !_tgPhotoUploaded) {
       _tgPhotoUploaded = true;
+      _uploadedPhotoVersion = _compositeVersion;
       const LAYOUT_LABELS_UP = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad' };
       const layoutDesc = LAYOUT_LABELS_UP[layout] || layout;
       (async () => {
@@ -4472,10 +4583,12 @@
           .catch(e => { _tgPhotoUploaded = false; console.warn('[telegram] photo upload failed:', e.message); });
         // Google Drive upload
         const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        uploadToGDrive(compositeDataUrl, 'image/png', `hando-${layoutDesc}-${ts}.png`, `Hando Booth ${layoutDesc} — ${new Date().toLocaleString()}`)
+        uploadToGDrive(compositeDataUrl, 'image/png', `${FILE_PREFIX}-${layoutDesc}-${ts}.png`, `${BRAND} ${layoutDesc} — ${new Date().toLocaleString()}`)
           .catch(e => console.warn('[gdrive] photo upload failed:', e.message));
       })();
     }
+    // Guest link — memoized per composite version, so this is a no-op on Back → Continue
+    if (compositeDataUrl && _sbConfigured()) _sbPhotoLink().catch(() => {});
   }
 
   function backToPreview() { showScreen('preview'); }
@@ -4491,13 +4604,18 @@
       $('export-spinner').classList.add('hidden');
     } else {
       if (gifUrl) { $('export-img').src = gifUrl; $('export-img').style.opacity = '1'; }
-      else generateGif();
+      else if (!gifWorking) generateGif();
     }
   }
 
   function setFrameDelay(ms) {
+    if (ms === frameDelay && gifUrl) return;
     frameDelay = ms;
-    document.querySelectorAll('.delay-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.d) === ms));
+    // [data-d] only — admin countdown buttons share .delay-btn and were losing their highlight
+    document.querySelectorAll('.delay-btn[data-d]').forEach(b => b.classList.toggle('active', Number(b.dataset.d) === ms));
+    // New speed = new GIF; the QR/upload must carry this one, not the old one
+    _gifKey = _currentGifKey();
+    _tgMp4Result = null;
     gifUrl = null; generateGif();
   }
 
@@ -4518,8 +4636,12 @@
     return _gifencModule;
   }
 
+  // Each run takes a generation number; a newer run (new photos, filter or
+  // speed) makes older in-flight runs stop without touching the UI.
+  let _gifGen = 0;
   async function generateGif() {
-    if (gifWorking) return;
+    const gen = ++_gifGen;
+    const stale = () => gen !== _gifGen;
     gifWorking = true;
 
     const img     = $('gif-img');
@@ -4548,6 +4670,7 @@
     try {
       // Load gifenc library (cached after first load)
       const { GIFEncoder, quantize, applyPalette } = await _loadGifenc();
+      if (stale()) return;
 
       const gif = GIFEncoder();
 
@@ -4566,6 +4689,7 @@
         } catch (e) {
           console.warn('[gif] photo', i, 'failed to load — skipping. Reason:', e);
         }
+        if (stale()) return;
       }
       console.log('[gif] encoding', loadedFrames.length, 'of', photos.length, 'photos');
 
@@ -4577,6 +4701,7 @@
       for (let i = 0; i < loadedFrames.length; i++) {
         lbl.textContent = `Generating GIF… ${Math.round((i / loadedFrames.length) * 100)}%`;
         await yieldUI();
+        if (stale()) return;
 
         const im = loadedFrames[i];
         const fc = document.createElement('canvas');
@@ -4615,6 +4740,7 @@
         }
       }
 
+      if (stale()) return;
       gif.finish();
       lbl.textContent = 'Generating GIF… 100%';
 
@@ -4636,6 +4762,7 @@
       // ready by the time the user taps Get Photo. Telegram re-encodes the
       // GIF to a universally-shareable MP4 server-side.
       _uploadGifToTelegram();
+      if (_sbConfigured()) _sbGifLink().catch(() => {}); // QR ready before Get Photo
 
       // Pre-generate MP4 in background for the (still-defined) share-file
       // paths used elsewhere. Independent of the Telegram QR flow above.
@@ -4646,6 +4773,7 @@
       }).catch(e => console.warn('[gif] MP4 pre-cache failed:', e.message));
 
     } catch (err) {
+      if (stale()) return;
       console.error('[gif] gifenc generation failed:', err);
       lbl.textContent = 'GIF failed: ' + (err.message || 'unknown error');
       if (compositeDataUrl) { img.src = compositeDataUrl; img.style.opacity = '0.6'; }
@@ -4660,7 +4788,7 @@
     if (!url) return;
     const ext = exportMode === 'gif' ? 'gif' : 'png';
     const mime = exportMode === 'gif' ? 'image/gif' : 'image/png';
-    saveToDevice(url, `hando-booth-${Date.now()}.${ext}`, mime);
+    saveToDevice(url, `${FILE_PREFIX}-${Date.now()}.${ext}`, mime);
   }
 
   /* FIX 12 — download current export (photo or GIF) */
@@ -4669,7 +4797,7 @@
     if (!url) { alert('Nothing ready to download yet.'); return; }
     const ext = exportMode === 'gif' ? 'gif' : 'png';
     const mime = exportMode === 'gif' ? 'image/gif' : 'image/png';
-    saveToDevice(url, `hando-booth-${Date.now()}.${ext}`, mime);
+    saveToDevice(url, `${FILE_PREFIX}-${Date.now()}.${ext}`, mime);
   }
 
   /* Get Photo — upload composite/GIF, show QR with claim URL for guest to scan */
@@ -4764,80 +4892,35 @@
         </div>
         ${hasGif ? `
         <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:12px;min-width:${QR_PX}px">
-          <div style="${tagStyle}">GIF (Video)</div>
+          <div style="${tagStyle}">GIF</div>
           <div id="qr-gif" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
           <div style="${captionStyle}">Scan to download</div>
         </div>` : ''}
       </div>
     `;
     qrBox.dataset.qrPx = String(QR_PX);
-    // The captions live under each QR now; the bottom hint just signals admin config issues.
-    $('qr-hint').textContent = _tgConfigured() ? '' : 'Connect Telegram in Admin to enable QR sharing.';
+    $('qr-hint').textContent = '';
 
     showScreen('thankyou');
 
-    if (!_tgConfigured()) {
-      qrBox.style.display = 'none';
-      return;
-    }
-
-    // Photo upload (auto-detected as sendPhoto from PNG content-type).
-    (async () => {
+    // Guest QR codes → permanent Supabase links (no secrets, no expiry)
+    const fill = async (slotId, getLink, label) => {
+      const slot = $(slotId);
+      if (!slot) return;
+      if (!_sbConfigured()) { _qrNote(slot, 'QR sharing is not set up'); return; }
+      slot.innerHTML = '<span class="spin-ring"></span>';
       try {
-        // Ensure HD composite is ready (preview-tier render may still be active).
-        await _ensureHDComposite();
-        let photoRes = _tgPhotoResult;
-        if (!photoRes) {
-          // sendDocument: preserves full print resolution (sendPhoto downscales).
-          photoRes = await uploadToTelegram(compositeDataUrl, 'image/png', 'png', { method: 'sendDocument' });
-          _tgPhotoResult = photoRes;
-        }
-        const photoUrl = await _telegramFileUrl(photoRes);
-        const slot = $('qr-photo');
-        if (!slot) return;
+        const url = await getLink();
+        if ($(slotId) !== slot) return; // screen was rebuilt meanwhile
         slot.innerHTML = '';
-        if (photoUrl) _renderQRInto(slot, photoUrl);
-        else slot.textContent = 'No URL';
+        _renderQRInto(slot, url);
       } catch (e) {
-        const slot = $('qr-photo');
-        if (slot) slot.textContent = 'Upload failed';
-        console.warn('[qr] photo upload failed:', e.message, e);
+        console.warn(`[qr] ${label} upload failed:`, e.message, e);
+        _qrRetry(slot, () => fill(slotId, getLink, label));
       }
-    })();
-
-    if (hasGif) {
-      (async () => {
-        try {
-          // Wait for the GIF to finish encoding if it isn't ready yet.
-          // (User can tap Get Photo before the GIF spinner finishes.)
-          const start = Date.now();
-          while (!gifUrl && Date.now() - start < 20000) {
-            await new Promise(r => setTimeout(r, 200));
-          }
-          if (!gifUrl) throw new Error('GIF not ready yet');
-
-          let gifRes = _tgMp4Result;
-          if (!gifRes) {
-            // Upload the actual GIF — Telegram's sendAnimation accepts it
-            // and re-encodes server-side to a universally-shareable MP4.
-            // Crucial: don't feed Telegram our iPad-recorded MP4 here; it
-            // gets rejected by sendAnimation's strict validator.
-            gifRes = await uploadToTelegram(gifUrl, 'image/gif', 'gif');
-            _tgMp4Result = gifRes;
-          }
-          const gifQrUrl = await _telegramFileUrl(gifRes);
-          const slot = $('qr-gif');
-          if (!slot) return;
-          slot.innerHTML = '';
-          if (gifQrUrl) _renderQRInto(slot, gifQrUrl);
-          else slot.textContent = 'No URL';
-        } catch (e) {
-          const slot = $('qr-gif');
-          if (slot) slot.textContent = 'Upload failed';
-          console.warn('[qr] GIF upload failed:', e.message, e);
-        }
-      })();
-    }
+    };
+    fill('qr-photo', _sbPhotoLink, 'photo');
+    if (hasGif) fill('qr-gif', _sbGifLink, 'GIF');
   }
 
   /* Render a QR code into a target element. Uses qrcodejs (already loaded).
@@ -4940,8 +5023,9 @@
   function _uploadGifToTelegram() {
     if (_tgMp4Result) return; // already uploaded
     if (!gifUrl) { console.warn('[telegram] no gifUrl yet, skipping upload'); return; }
+    const key = _gifKey; // ignore the result if the GIF was replaced meanwhile
     uploadToTelegram(gifUrl, 'image/gif', 'gif')
-      .then(res => { _tgMp4Result = res; console.log('[telegram] GIF uploaded → Telegram MP4'); })
+      .then(res => { if (key === _gifKey) _tgMp4Result = res; console.log('[telegram] GIF uploaded → Telegram MP4'); })
       .catch(e => console.warn('[telegram] GIF upload failed:', e.message));
   }
 
@@ -4951,9 +5035,9 @@
     if (!photos || photos.length < 2) { alert('No GIF yet.'); return; }
     try {
       const { blob, ext, mime } = await _getMp4();
-      const fname = 'hando-booth-' + Date.now() + '.' + ext;
+      const fname = FILE_PREFIX + '-' + Date.now() + '.' + ext;
       const file = new File([blob], fname, { type: mime });
-      await _shareFile(file, 'PNG Booth', 'Check out my PNG Booth photo!', null);
+      await _shareFile(file, BRAND, 'Check out my ' + BRAND + ' GIF!', null);
     } catch (err) {
       if (err.name !== 'AbortError') {
         console.warn('[share] GIF share failed:', err.message);
@@ -5296,7 +5380,7 @@
     c.fillStyle = '#fff';
     c.font = `bold ${16}px system-ui, sans-serif`;
     c.textAlign = 'left'; c.textBaseline = 'top';
-    c.fillText(`HANDO BOOTH — ${layoutName.toUpperCase()} TEMPLATE`, pad+10, pad+8);
+    c.fillText(`${BRAND.toUpperCase()} — ${layoutName.toUpperCase()} TEMPLATE`, pad+10, pad+8);
     c.font = `${13}px system-ui, sans-serif`;
     c.fillStyle = 'rgba(255,255,255,0.75)';
     c.fillText(`Canvas: ${cw} × ${ch} px  •  Design overlay here, keep cells clear`, pad+10, pad+28);
@@ -5304,7 +5388,7 @@
     cv.toBlob(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = `hando-template-${layoutName}.png`;
+      a.href = url; a.download = `${FILE_PREFIX}-template-${layoutName}.png`;
       document.body.appendChild(a); a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 2000);
@@ -5374,7 +5458,7 @@
     form.append(fieldName, blob, filename);
     const LAYOUT_LABELS_TG = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad', video: 'Video' };
     const layoutLabel = LAYOUT_LABELS_TG[layout] || layout;
-    form.append('caption', 'PNG Booth — ' + layoutLabel + ' — ' + new Date().toLocaleString());
+    form.append('caption', BRAND + ' — ' + layoutLabel + ' — ' + new Date().toLocaleString());
 
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
@@ -5411,33 +5495,6 @@
     throw lastErr || new Error('Telegram upload failed after retries');
   }
 
-  /* FIX (qr): call Telegram getFile to turn an upload result into a public download URL.
-     The URL contains the bot token — only acceptable because the QR is shown briefly to
-     the guest standing at the booth, not posted publicly. */
-  async function _telegramFileUrl(uploadResult) {
-    if (!uploadResult || !uploadResult.ok) return null;
-    const r = uploadResult.result;
-    // Pick file_id depending on the method used
-    let fileId = null;
-    if (r.photo && r.photo.length) {
-      fileId = r.photo[r.photo.length - 1].file_id; // largest size
-    } else if (r.video) fileId = r.video.file_id;
-    else if (r.animation) fileId = r.animation.file_id;
-    else if (r.document) fileId = r.document.file_id;
-    if (!fileId) return null;
-
-    const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getFile?file_id=${encodeURIComponent(fileId)}`;
-    try {
-      const resp = await fetch(apiUrl);
-      const json = await resp.json();
-      if (!json.ok || !json.result || !json.result.file_path) return null;
-      return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${json.result.file_path}`;
-    } catch (e) {
-      console.warn('[telegram] getFile failed:', e.message);
-      return null;
-    }
-  }
-
   // FIX (HD + fast): preserve FULL print resolution (no downscale) but convert
   // PNG → high-quality JPEG. A 1200×1800 (4×6 @ 300dpi) PNG is 2–5 MB; the same
   // image as JPEG @ 0.92 is ~500KB–1MB — visually indistinguishable for printing
@@ -5462,14 +5519,93 @@
     });
   }
 
-  // Backward-compatible alias — returns a public download URL (via Telegram getFile)
-  // so older call sites (submitIntake / claim flow) can embed it in QR or share links.
-  // NOTE: the URL contains the bot token; only use for QR shown briefly at the booth.
+  /* ═══════════════════════════════════════════════════
+     GUEST LINKS — Supabase Storage
+     QR codes point at public, unguessable file URLs in a Supabase Storage
+     bucket: no secret in the link and it never expires (Telegram file links
+     carried the bot token and died after ~1 hour). The anon key is public by
+     design — the bucket policy only allows adding new files under
+     YYYY-MM-DD/<uuid>.<ext>; nobody can list, overwrite or delete.
+     Telegram + Google Drive remain the operator's archive.
+  ═══════════════════════════════════════════════════ */
+  const SUPABASE_URL      = '';
+  const SUPABASE_ANON_KEY = '';
+  const SUPABASE_BUCKET   = 'booth';
+  function _sbConfigured() { return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
+
+  // Upload a Blob / data: URL / blob: URL; resolves to its public URL.
+  async function _sbUpload(src, contentType, ext) {
+    if (!_sbConfigured()) throw new Error('Guest sharing is not set up');
+    const blob = src instanceof Blob ? src : await (await fetch(src)).blob();
+    const path = `${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${SUPABASE_BUCKET}/${path}`;
+    let lastErr = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), /^video\//.test(contentType) ? 120000 : 45000);
+      try {
+        const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${path}`, {
+          method: 'POST', body: blob, signal: ac.signal,
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+                     'Content-Type': contentType, 'x-upsert': 'false' }
+        });
+        clearTimeout(timer);
+        if (r.ok) return publicUrl;
+        const text = await r.text();
+        // A retry after a lost response: the file is already there
+        if (attempt > 1 && /duplicate|already exists/i.test(text)) return publicUrl;
+        throw new Error(`Upload failed (${r.status}) ${text.slice(0, 120)}`);
+      } catch (err) {
+        clearTimeout(timer);
+        lastErr = err;
+        console.warn(`[guest-link] upload attempt ${attempt}/3 failed:`, err.message);
+        if (attempt < 3) await sleep(attempt * 1000);
+      }
+    }
+    throw lastErr || new Error('Upload failed');
+  }
+
+  // One upload per version of each output, shared by the eager background
+  // upload and the QR screen. A failed attempt is forgotten so Retry works.
+  let _sbPhoto = null; // { version, promise }
+  let _sbGif = null;   // { key, promise }
+  let _sbVideo = null; // { blob, promise }
+  function _sbPhotoLink() {
+    if (_sbPhoto && _sbPhoto.version === _compositeVersion) return _sbPhoto.promise;
+    const entry = { version: _compositeVersion };
+    entry.promise = (async () => {
+      await _ensureHDComposite(); // print-resolution, not the fast preview
+      const png = await (await fetch(compositeDataUrl)).blob();
+      const jpg = await _compressForTelegram(png); // full-res JPEG, 3–5× smaller
+      return jpg ? _sbUpload(jpg, 'image/jpeg', 'jpg') : _sbUpload(png, 'image/png', 'png');
+    })();
+    entry.promise.catch(() => { if (_sbPhoto === entry) _sbPhoto = null; });
+    return (_sbPhoto = entry).promise;
+  }
+  function _sbGifLink() {
+    if (_sbGif && _sbGif.key === _gifKey) return _sbGif.promise;
+    const entry = { key: _gifKey };
+    entry.promise = (async () => {
+      const t0 = Date.now(); // the guest can reach the QR before encoding ends
+      while ((!gifUrl || gifWorking) && Date.now() - t0 < 30000) await sleep(200);
+      if (!gifUrl) throw new Error('GIF not ready');
+      return _sbUpload(gifUrl, 'image/gif', 'gif');
+    })();
+    entry.promise.catch(() => { if (_sbGif === entry) _sbGif = null; });
+    return (_sbGif = entry).promise;
+  }
+  function _sbVideoLink() {
+    if (_sbVideo && _sbVideo.blob === _recordedBlob) return _sbVideo.promise;
+    const blob = _recordedBlob;
+    const isMp4 = (blob.type || '').includes('mp4');
+    const entry = { blob, promise: _sbUpload(blob, isMp4 ? 'video/mp4' : 'video/webm', isMp4 ? 'mp4' : 'webm') };
+    entry.promise.catch(() => { if (_sbVideo === entry) _sbVideo = null; });
+    return (_sbVideo = entry).promise;
+  }
+
+  // Legacy name kept for the intake/claim code paths — now uploads to guest storage
   async function uploadPhotoToSupabase(dataUrl, contentType, ext) {
-    const res = await uploadToTelegram(dataUrl, contentType, ext);
-    const url = await _telegramFileUrl(res);
-    if (!url) throw new Error('Telegram upload succeeded but no public URL available');
-    return url;
+    return _sbUpload(dataUrl, contentType || 'image/png', ext || 'png');
   }
 
   function saveTelegramConfig() {
@@ -5532,10 +5668,18 @@
       if (dataUrl.startsWith('data:')) {
         base64 = dataUrl.split(',')[1];
       } else {
-        // Blob URL — fetch and convert
-        const resp = await fetch(dataUrl);
-        const buf = await resp.arrayBuffer();
-        base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        // Blob URL — fetch and convert. FileReader, not
+        // btoa(String.fromCharCode(...bytes)): spreading a multi-MB array
+        // overflows the call stack, so every video failed to reach Drive.
+        const blob = await (await fetch(dataUrl)).blob();
+        base64 = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          // Not split(',')[1]: recorder MIME types contain commas
+          // (video/mp4;codecs=avc1…,mp4a…), so cut after "base64,"
+          fr.onload = () => { const s = String(fr.result); resolve(s.slice(s.indexOf('base64,') + 7)); };
+          fr.onerror = () => reject(fr.error);
+          fr.readAsDataURL(blob);
+        });
       }
 
       const payload = {
@@ -5584,7 +5728,7 @@
           fileData: testData,
           mimeType: 'image/png',
           filename: 'test-connection.png',
-          description: 'Hando Booth connection test'
+          description: BRAND + ' connection test'
         })
       });
       const result = await resp.json();
@@ -5633,17 +5777,17 @@
     if (vidUrl) {
       fetch(vidUrl).then(r => r.blob()).then(blob => {
         const ext = vidUrl.includes('.mp4') ? 'mp4' : 'webm';
-        saveToDevice(blob, 'hando-booth-' + Date.now() + '.' + ext);
+        saveToDevice(blob, FILE_PREFIX + '-' + Date.now() + '.' + ext);
       }).catch(() => { window.open(vidUrl, '_blank'); });
     } else if (photoUrl) {
       fetch(photoUrl).then(r => r.blob()).then(pBlob => {
-        saveToDevice(pBlob, 'hando-booth-' + Date.now() + '.png', 'image/png');
+        saveToDevice(pBlob, FILE_PREFIX + '-' + Date.now() + '.png', 'image/png');
       }).catch(() => { window.open(photoUrl, '_blank'); });
       // Stagger GIF download so mobile browsers don't block it
       if (gifUrl) {
         setTimeout(() => {
           fetch(gifUrl).then(r => r.blob()).then(gBlob => {
-            saveToDevice(gBlob, 'hando-booth-' + Date.now() + '.gif', 'image/gif');
+            saveToDevice(gBlob, FILE_PREFIX + '-' + Date.now() + '.gif', 'image/gif');
           }).catch(() => { window.open(gifUrl, '_blank'); });
         }, 1500);
       }
@@ -5672,8 +5816,8 @@
         gif_url: gifUrl || '',
         media_kind: mediaKind,
         subject: `Here's your ${mediaKind}, ${firstName}`,
-        message: `Hi ${firstName},\n\nThanks for stopping by PNG Booth! Your ${mediaKind} is ready:\n${mediaUrl}\n\n— PNG Booth`,
-        from_name: 'PNG Booth',
+        message: `Hi ${firstName},\n\nThanks for stopping by ${BRAND}! Your ${mediaKind} is ready:\n${mediaUrl}\n\n— ${BRAND}`,
+        from_name: BRAND,
         reply_to: 'hello@handobooth.com'
       };
       console.log('[email] sending', { service: EMAILJS_SERVICE_ID, template: EMAILJS_TEMPLATE_ID, to: email });
@@ -5759,11 +5903,11 @@
         if (!blob) { window.open(imgSrc, '_blank'); return; }
       }
       const jpegBlob = blob.type === 'image/jpeg' ? blob : await _toJpegBlob(blob);
-      const file = new File([jpegBlob], 'hando-booth-' + Date.now() + '.jpg', { type: 'image/jpeg' });
+      const file = new File([jpegBlob], FILE_PREFIX + '-' + Date.now() + '.jpg', { type: 'image/jpeg' });
       // Always try share with file first (skip canShare check — it's unreliable on iOS)
       if (navigator.share) {
         try {
-          await navigator.share({ files: [file], title: 'PNG Booth Photo', text: 'Check out my PNG Booth photo!' });
+          await navigator.share({ files: [file], title: BRAND + ' Photo', text: 'Check out my ' + BRAND + ' photo!' });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
@@ -5808,22 +5952,22 @@
       } catch {
         // CORS blocked — try sharing URL directly
         if (navigator.share) {
-          await navigator.share({ title: 'PNG Booth GIF', text: 'Check out my PNG Booth GIF!', url });
+          await navigator.share({ title: BRAND + ' GIF', text: 'Check out my ' + BRAND + ' GIF!', url });
           return;
         }
         window.open(url, '_blank'); return;
       }
-      const file = new File([blob], 'png-booth-' + Date.now() + '.gif', { type: 'image/gif' });
+      const file = new File([blob], FILE_PREFIX + '-' + Date.now() + '.gif', { type: 'image/gif' });
       // Try share with file first
       if (navigator.share) {
         try {
-          await navigator.share({ files: [file], title: 'PNG Booth GIF', text: 'Check out my PNG Booth GIF!' });
+          await navigator.share({ files: [file], title: BRAND + ' GIF', text: 'Check out my ' + BRAND + ' GIF!' });
           return;
         } catch (e) {
           if (e.name === 'AbortError') return;
           // File share failed — try URL share
           try {
-            await navigator.share({ title: 'PNG Booth GIF', text: 'Check out my PNG Booth GIF!', url });
+            await navigator.share({ title: BRAND + ' GIF', text: 'Check out my ' + BRAND + ' GIF!', url });
             return;
           } catch (e2) { if (e2.name === 'AbortError') return; }
         }
@@ -5895,7 +6039,7 @@
     const ext = exportMode === 'gif' ? 'gif' : 'png';
     if (localUrl) {
       const a = document.createElement('a');
-      a.href = localUrl; a.download = `hando-booth-${Date.now()}.${ext}`;
+      a.href = localUrl; a.download = `${FILE_PREFIX}-${Date.now()}.${ext}`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
@@ -5910,7 +6054,7 @@
               to_name: name,
               to_email: email,
               photo_url: publicUrl,
-              from_name: 'PNG Booth'
+              from_name: BRAND
             }).catch(e => console.warn('Email failed:', e));
           }
         })
@@ -5957,20 +6101,13 @@
   }
 
   function startOver() {
-    // FIX (memory leak): explicitly revoke blob URLs from this session before
-    // dropping references. Without this, every back-to-back session leaks a
-    // few MB of off-heap memory and contributes to long-session lag on iPad.
-    try { if (gifUrl) URL.revokeObjectURL(gifUrl); } catch {}
-    try { if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl); } catch {}
-    if (typeof _cachedMp4Blob === 'object' && _cachedMp4Blob) _cachedMp4Blob = null;
-    _recordedBlobUrl = null;
-    _recordedBlob = null;
-    _tgPhotoResult = null;
-    _tgMp4Result = null;
-    _tgVideoResult = null;
-    _tgPhotoUploaded = false;
-    photos = []; compositeDataUrl = null; gifUrl = null;
-    activeFilter = 'none'; activeOverlay = null; exportMode = 'photo';
+    // FIX (memory leak): _resetSessionOutputs revokes this session's blob URLs
+    // before dropping references. Without this, every back-to-back session
+    // leaks a few MB of off-heap memory and contributes to long-session lag.
+    _cancelSession();
+    _resetSessionOutputs();
+    photos = [];
+    activeFilter = 'none'; activeOverlay = null;
     _clearSession();
     showScreen('home');
   }
@@ -6490,7 +6627,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: TELEGRAM_CHAT_ID,
-          text: '📸 *PNG Booth connected\\!*\n\nPhotos, GIFs, and videos from the booth will be sent here\\.',
+          text: '📸 *' + BRAND + ' connected\\!*\n\nPhotos, GIFs, and videos from the booth will be sent here\\.',
           parse_mode: 'MarkdownV2'
         })
       });
@@ -6651,8 +6788,11 @@
     else if (visible === 3) cols = isWide ? 3 : 2;
     else if (visible === 4) cols = 2;
     else if (visible === 5) cols = isWide ? 3 : 2;
-    else cols = isWide ? 3 : 2;
-    grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+    else if (visible === 6) cols = isWide ? 3 : 2;
+    // 7 cards: 4 + 3 on a tablet so all rows fit above Start Session
+    else cols = window.innerWidth >= 740 ? 4 : (isWide ? 3 : 2);
+    grid.style.gridTemplateColumns = 'repeat(' + cols + ', minmax(0, 1fr))';
+    grid.classList.toggle('cols-4', cols === 4);
   }
   function _syncEnabledLayoutsUI() {
     document.querySelectorAll('#layout-toggles input[data-layout]').forEach(cb => {
@@ -7075,7 +7215,7 @@
     if (dataUrl) {
       wrap.innerHTML = '<img src="' + dataUrl + '" style="max-width:clamp(180px,50vw,300px);max-height:140px" alt="Logo">';
     } else {
-      wrap.innerHTML = '<span class="logo-hando">Hando</span><span class="logo-booth">Booth</span>';
+      wrap.innerHTML = '<span class="logo-hando">PNG</span><span class="logo-booth">Booth</span>';
     }
     _applyLogoScale(); // re-apply scale after rebuilding logo
   }
@@ -7413,6 +7553,8 @@
     drawEditor();
     const canvas = $('editor-canvas');
     compositeDataUrl = canvas.toDataURL('image/png');
+    _compositeVersion++;
+    _hdRenderPromise = null; // the edited canvas is now the final composite
     const compImg = $('composite-img');
     if (compImg) compImg.src = compositeDataUrl;
     // Route through showGifScreen so the GIF regenerates + auto-downloads
@@ -8032,8 +8174,8 @@
     if (EMAILJS_PUBLIC_KEY && typeof emailjs !== 'undefined') {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
     }
-    // Restore session if user refreshed mid-flow
-    if (_restoreSession()) return;
+    // A reload always starts a fresh guest; drop any state saved by older versions
+    _clearSession();
   })();
 </script>
 </body>
