@@ -64,7 +64,7 @@ UI dimensions (ui-ux-ultra): Function 4 → 9 · Persuasion 6 → 7 · Craft 6 �
 Correction to the earlier MVP_REVIEW.md: "X mid-countdown leaves a ghost session" was reproduced with a scripted click that goes through overlays. A real tap on X during a countdown was blocked by the countdown layer, so the real bug was "can't cancel once started". It is fixed either way, and the test now uses real pointer clicks.
 
 ## Open (Medium / Low)
-- [M9] Free-plan pausing: the project pauses after ~7 days idle, which is likely why v5.5 left Supabase. Fixed with `.github/workflows/supabase-keepalive.yml` (calls `keepalive()` every 3 days). It goes live on the next push. GitHub disables scheduled jobs in public repos after 60 days without commits (it emails first).
+- [M9] ~~Free-plan pausing~~ **Fixed.** The project pauses after ~7 days idle, which is likely why v5.5 left Supabase. A daily Vercel cron (`keepalive/`, project `conex1/png-booth-keepalive`, 03:17 UTC) calls `keepalive()`. Verified: cron registered, and a cron-triggered run logged `[keepalive] 200`. (The GitHub Actions route was dropped: this Mac's GitHub token can't push workflow files.)
 - [M1] Guest bucket accepts uploads from anyone holding the public key. The damage is limited: only `YYYY-MM-DD/<uuid>.<ext>` paths, 50 MB cap, image/video types only, no list/overwrite/delete. Proper fix: a server route that issues signed upload URLs (see Stack).
 - [M6] Admin settings live per iPad in a 5 MB browser store. Big custom sounds or logos can still fill it.
 - [M8] No retention: guest photos stay in storage forever. The Philippine DPA expects a stated retention period. Fix: a scheduled deletion (e.g. 30 days) plus a one-line notice near the QR.
@@ -83,7 +83,6 @@ Correction to the earlier MVP_REVIEW.md: "X mid-countdown leaves a ghost session
 ## Not verified
 - Real iPad Safari: audio unlock, MediaRecorder MP4, camera switching, `100dvh` with the toolbar. Test one full session of each layout on the booth iPad before the first event.
 - Real Telegram, real Apps Script, real EmailJS. All mocked here. (Supabase verified live.)
-- The keep-alive job only runs after the next push to GitHub.
 - Android Messenger playback of the GIF link. The old flow sent guests a Telegram-converted MP4 for the GIF. The new GIF QR serves the GIF itself (saves as an animated GIF on iOS/Android). Check that Messenger keeps it animated.
 - Printing, the sticker editor's pinch/rotate on touch, and the admin screens beyond opening them.
 

@@ -30,8 +30,8 @@ create policy "booth: anon can add guest files"
 -- URLs are served without RLS, so guests can still open their own link.
 
 -- Keep-alive: free-plan projects pause after ~7 days without activity, which
--- breaks QR uploads between events. .github/workflows/supabase-keepalive.yml
--- calls this every 3 days. Returns only the server time.
+-- breaks QR uploads between events. A daily Vercel cron (keepalive/, project
+-- conex1/png-booth-keepalive) calls this. Returns only the server time.
 create or replace function public.keepalive()
 returns timestamptz
 language sql
