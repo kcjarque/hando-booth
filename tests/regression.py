@@ -11,6 +11,7 @@ Needs: pip install playwright && playwright install chromium
 """
 import glob
 import json
+import re
 import sys
 from playwright.sync_api import sync_playwright
 
@@ -91,8 +92,9 @@ def new_page(browser, size=PORTRAIT, uploads=None, camera=True):
     def app_html(route):
         resp = route.fetch()
         html = resp.text()
-        html = html.replace("const SUPABASE_URL      = '';", "const SUPABASE_URL      = 'https://test.supabase.co';")
-        html = html.replace("const SUPABASE_ANON_KEY = '';", "const SUPABASE_ANON_KEY = 'anon-test-key';")
+        # Always point at a fake project — tests must never write to the real bucket
+        html = re.sub(r"const SUPABASE_URL\s*=\s*'[^']*';", "const SUPABASE_URL = 'https://test.supabase.co';", html)
+        html = re.sub(r"const SUPABASE_ANON_KEY\s*=\s*'[^']*';", "const SUPABASE_ANON_KEY = 'anon-test-key';", html)
         route.fulfill(response=resp, body=html, headers={**resp.headers, 'content-type': 'text/html'})
 
     page.route(BASE, app_html)

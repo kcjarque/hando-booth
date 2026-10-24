@@ -5528,8 +5528,8 @@
      YYYY-MM-DD/<uuid>.<ext>; nobody can list, overwrite or delete.
      Telegram + Google Drive remain the operator's archive.
   ═══════════════════════════════════════════════════ */
-  const SUPABASE_URL      = '';
-  const SUPABASE_ANON_KEY = '';
+  const SUPABASE_URL      = 'https://wdzsjgwhhohxlrzxojgq.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenNqZ3doaG9oeGxyenhvamdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzOTkyOTYsImV4cCI6MjA5MDk3NTI5Nn0.K677qTL0E813GSkW9HuALOCLyKh86YOSAgS1RvS_odw';
   const SUPABASE_BUCKET   = 'booth';
   function _sbConfigured() { return !!(SUPABASE_URL && SUPABASE_ANON_KEY); }
 
@@ -5544,10 +5544,12 @@
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), /^video\//.test(contentType) ? 120000 : 45000);
       try {
+        const headers = { apikey: SUPABASE_ANON_KEY, 'Content-Type': contentType, 'x-upsert': 'false' };
+        // Legacy anon keys are JWTs and go in Authorization too; new
+        // sb_publishable_ keys are not JWTs and must only be sent as apikey.
+        if (!SUPABASE_ANON_KEY.startsWith('sb_')) headers.Authorization = 'Bearer ' + SUPABASE_ANON_KEY;
         const r = await fetch(`${SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${path}`, {
-          method: 'POST', body: blob, signal: ac.signal,
-          headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
-                     'Content-Type': contentType, 'x-upsert': 'false' }
+          method: 'POST', body: blob, signal: ac.signal, headers
         });
         clearTimeout(timer);
         if (r.ok) return publicUrl;

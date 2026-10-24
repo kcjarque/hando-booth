@@ -28,3 +28,16 @@ create policy "booth: anon can add guest files"
 
 -- No select/update/delete policies for anon on purpose. Public-bucket file
 -- URLs are served without RLS, so guests can still open their own link.
+
+-- Keep-alive: free-plan projects pause after ~7 days without activity, which
+-- breaks QR uploads between events. .github/workflows/supabase-keepalive.yml
+-- calls this every 3 days. Returns only the server time.
+create or replace function public.keepalive()
+returns timestamptz
+language sql
+stable
+set search_path = ''
+as $$ select now() $$;
+
+revoke all on function public.keepalive() from public;
+grant execute on function public.keepalive() to anon;

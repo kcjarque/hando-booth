@@ -3,9 +3,9 @@ Date: 2026-10-24 · Reviewer: Claude · Scope: launch gate, every feature, score
 Baseline: v5.20 (commit b217585) → v6.0 (uncommitted working tree)
 
 ## Verdict
-**NOT CLEARED, three steps from CLEARED.** All code-level blockers are fixed and covered by a 27-check regression suite (the original v5.20 code passes 2 of the 18 bug checks; v6.0 passes all 27). Three steps remain, and none of them can be done in code:
+**NOT CLEARED, three steps from CLEARED.** All code-level blockers are fixed and covered by a 27-check regression suite (the original v5.20 code passes 2 of the 18 bug checks; v6.0 passes all 27). Guest links are live on Supabase and verified end to end (2026-10-24). Three steps remain, and none of them can be done in code:
 
-1. **Create the Supabase project** for guest links (token needed) and run one real end-to-end upload. Until then, v6.0 shows "QR sharing is not set up" instead of a QR, so **do not deploy v6.0 before this**.
+1. **Lock down the old `photos` bucket** (B4 below). It holds 273 guest photos from April–May that anyone with the old public key (in this repo's history) can list and download.
 2. **Rotate the Telegram bot token** in @BotFather. Every QR shown so far contained it, so anyone who scanned one can still use it.
 3. **Pick a new admin password.** `hando2025` is readable in the public repo.
 
@@ -23,7 +23,7 @@ A 10 means no open Critical, High or Medium item for that feature. Device-only b
 | 4 | Preview, filters, retake | 6 | 9 | Retake All after a cancelled single retake now takes a full new set. Continue pinned on screen |
 | 5 | Save screen + GIF | 5 | 9 | Uploads happen once per version of the photo/GIF. Overlapping GIF encodes can't overwrite each other. Get Photo pinned on screen |
 | 6 | Sticker editor | 6 | 8 | Save pinned on screen. An edit is a new photo version, so it is uploaded |
-| 7 | QR sharing (guest links) | 2 | 8* | Permanent Supabase Storage links, no secrets. Uploaded in the background so the QR is usually ready instantly. "Tap to retry" on failure. QR codes always fully on screen. *Goes live with the Supabase step |
+| 7 | QR sharing (guest links) | 2 | 9 | Permanent Supabase Storage links, no secrets, verified live end to end. Uploaded in the background so the QR is usually ready instantly. "Tap to retry" on failure. QR codes always fully on screen. Keep-alive prevents free-plan pausing |
 | 8 | Telegram archive | 5 | 8 | Once per version. No longer used for guest links. Token still needs rotating |
 | 9 | Google Drive archive | 3 | 9 | Videos now upload (they crashed before at any size over ~100 KB). Independent of Telegram setup |
 | 10 | Kiosk session handling | 3 | 9 | Reload starts a clean guest. One cancel token across capture, countdown and recording |
@@ -36,7 +36,8 @@ A 10 means no open Critical, High or Medium item for that feature. Device-only b
 UI dimensions (ui-ux-ultra): Function 4 → 9 · Persuasion 6 → 7 · Craft 6 → 8 · Engineering UX 3 → 9 · Direction 7 → 8
 
 ## Blockers (open)
-- [B1] Supabase project not created. Code and SQL are ready (`supabase/booth-storage.sql`), and `SUPABASE_URL` / `SUPABASE_ANON_KEY` are empty in `index.html`. Fix: create the project (Singapore region), run the SQL, fill in the two constants, then run a real upload + scan from a phone.
+- [B1] ~~Supabase project not created~~ **Done 2026-10-24.** Restored the paused `hando-booth` project (HandoCrafted org, Tokyo, free plan). Applied `supabase/booth-storage.sql`. Wired the URL and public key into `index.html`. Live rule test passed 8/8: guest upload allowed and its link opens; wrong path, HTML, list, overwrite and delete all refused; keep-alive answers. A live end-to-end photo and video session gave 3 QR links, each opening with status 200 and the right file type.
+- [B4] **Old `photos` bucket exposed (new, open).** It is public, has no size/type limits, and holds 273 objects (366 MB, 2026-04-05 to 05-03). Anon policies allow listing everything and uploading anything. The old anon key is in commit `7c0a86c`, so anyone can enumerate and download every guest photo. Restoring the project made this reachable again. Fix (needs your choice): at minimum drop the anon list + upload policies. Better: also make the bucket private, or delete the photos if they're no longer needed (old guest links would stop working).
 - [B2] Telegram bot token exposed. It was embedded in every QR from v5.x. Fix: @BotFather → /revoke, then paste the new token in Admin on each iPad.
 - [B3] Admin password `hando2025` in public source (`index.html`, `CLAUDE.md`). Fix (needs your choice): a new password stored only as a SHA-256 hash, or make the repo private (GitHub Pages on a private repo needs a paid plan).
 
@@ -64,6 +65,7 @@ UI dimensions (ui-ux-ultra): Function 4 → 9 · Persuasion 6 → 7 · Craft 6 �
 Correction to the earlier MVP_REVIEW.md: "X mid-countdown leaves a ghost session" was reproduced with a scripted click that goes through overlays. A real tap on X during a countdown was blocked by the countdown layer, so the real bug was "can't cancel once started". It is fixed either way, and the test now uses real pointer clicks.
 
 ## Open (Medium / Low)
+- [M9] Free-plan pausing: the project pauses after ~7 days idle, which is likely why v5.5 left Supabase. Fixed with `.github/workflows/supabase-keepalive.yml` (calls `keepalive()` every 3 days). It goes live on the next push. GitHub disables scheduled jobs in public repos after 60 days without commits (it emails first).
 - [M1] Guest bucket accepts uploads from anyone holding the public key. The damage is limited: only `YYYY-MM-DD/<uuid>.<ext>` paths, 50 MB cap, image/video types only, no list/overwrite/delete. Proper fix: a server route that issues signed upload URLs (see Stack).
 - [M6] Admin settings live per iPad in a 5 MB browser store. Big custom sounds or logos can still fill it.
 - [M8] No retention: guest photos stay in storage forever. The Philippine DPA expects a stated retention period. Fix: a scheduled deletion (e.g. 30 days) plus a one-line notice near the QR.
@@ -81,7 +83,8 @@ Correction to the earlier MVP_REVIEW.md: "X mid-countdown leaves a ghost session
 
 ## Not verified
 - Real iPad Safari: audio unlock, MediaRecorder MP4, camera switching, `100dvh` with the toolbar. Test one full session of each layout on the booth iPad before the first event.
-- Real Supabase (B1), real Telegram, real Apps Script, real EmailJS. All mocked here.
+- Real Telegram, real Apps Script, real EmailJS. All mocked here. (Supabase verified live.)
+- The keep-alive job only runs after the next push to GitHub.
 - Android Messenger playback of the GIF link. The old flow sent guests a Telegram-converted MP4 for the GIF. The new GIF QR serves the GIF itself (saves as an animated GIF on iOS/Android). Check that Messenger keeps it animated.
 - Printing, the sticker editor's pinch/rotate on touch, and the admin screens beyond opening them.
 
