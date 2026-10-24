@@ -270,8 +270,8 @@ with sync_playwright() as p:
         pg.add_init_script("navigator.mediaDevices.getUserMedia = () => Promise.reject(Object.assign(new Error('Permission denied'), { name: 'NotAllowedError' }));")
         pg.goto(BASE); pg.wait_for_timeout(500)
         pg.click('.start-btn'); pg.wait_for_timeout(1500)
-        st = pg.evaluate("({ s: document.querySelector('.screen.active').id, disabled: document.querySelector('.start-btn').disabled, label: document.querySelector('.start-btn').textContent.trim() })")
-        check('camera denied: stays home with guidance', st['s'] == 'home' and not st['disabled'] and 'Start' in st['label'] and dialogs, json.dumps(st))
+        st = pg.evaluate("({ s: document.querySelector('.screen.active').id, disabled: document.querySelector('.start-btn').disabled, label: document.querySelector('.start-btn').textContent.trim(), notice: document.getElementById('toast').classList.contains('show') ? document.getElementById('toast').textContent.slice(0, 40) : '' })")
+        check('camera denied: stays home with in-app guidance (no browser pop-up)', st['s'] == 'home' and not st['disabled'] and 'Start' in st['label'] and 'Camera' in st['notice'] and not dialogs, json.dumps(st))
         ctx.close()
 
 
@@ -290,6 +290,9 @@ with sync_playwright() as p:
         sb = [u for u in ups if u.startswith('supabase')]
         check('one guest-link upload each for photo and GIF', sorted(x.split(':')[2] for x in sb) == ['gif', 'jpg'], str(sb))
         check('QR codes fully on screen (portrait)', all(in_view(pg, sel) for sel in ('#qr-photo', '#qr-gif')))
+        pg.set_viewport_size({'width': LANDSCAPE[0], 'height': LANDSCAPE[1]}); pg.wait_for_timeout(400)
+        check('QR codes fully on screen (landscape)', all(in_view(pg, sel) for sel in ('#qr-photo', '#qr-gif')))
+        pg.set_viewport_size({'width': PORTRAIT[0], 'height': PORTRAIT[1]}); pg.wait_for_timeout(400)
         pg.click('#thankyou .btn-ghost[onclick="showScreen(\'gif-screen\')"]'); pg.wait_for_timeout(300)  # Back to save screen
         pg.click('#gif-screen .btn-warm[onclick="doGetQR()"]'); pg.wait_for_timeout(2500)
         sb2 = [u for u in ups if u.startswith('supabase')]
