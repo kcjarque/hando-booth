@@ -173,6 +173,16 @@
       max-width: 380px;
       margin: 0 auto;
     }
+    /* Custom logo: the admin slider sets --logo-s, --logo-ar is the image's
+       width/height. An explicit width lets small logo files scale up too.
+       30vh is the tallest logo that still leaves every layout card and Start
+       on one iPad screen. */
+    .logo-wrap.has-img { max-width: none; }
+    .logo-wrap img {
+      width: min(92vw, calc(420px * var(--logo-s, 1)),
+                 calc(min(200px * var(--logo-s, 1), 22vh * var(--logo-s, 1), 30vh) * var(--logo-ar, 1)));
+      height: auto;
+    }
     .logo-hando {
       display: block;
       font-family: var(--font-brand);
@@ -837,40 +847,13 @@
       pointer-events: none;
     }
 
-    /* ── GIF SCREEN extras ─────────────────────────── */
-    .mode-toggle {
-      display: flex;
-      width: 100%;
-      max-width: 380px;
-      background: #fff;
-      border: 1.5px solid var(--border);
-      border-radius: 100px;
-      padding: 5px;
-      gap: 4px;
-      flex-shrink: 0;
-      box-shadow: 0 2px 8px var(--shadow);
-    }
-    .mode-btn {
-      flex: 1;
-      padding: 11px 16px;
-      border: none;
-      border-radius: 100px;
-      font-size: 0.88rem;
-      font-weight: 700;
-      font-family: var(--font-ui);
-      cursor: pointer;
-      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-      color: var(--text);
-      background: transparent;
-      -webkit-tap-highlight-color: transparent;
-      display: inline-flex; align-items: center; justify-content: center; gap: 0.45em;
-      min-height: 48px;
-    }
-    .mode-btn.active {
-      background: var(--orange);
-      color: #fff;
-      box-shadow: 0 2px 12px rgba(162,106,23,0.3);
-    }
+    /* ── SAVE SCREEN: photo and GIF side by side ───── */
+    .save-media { display: flex; gap: 16px; width: 100%; max-width: 920px; align-items: flex-start; justify-content: center; flex-shrink: 0; }
+    .save-media figure { flex: 1 1 0; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .save-media figcaption { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    /* Height left after header, labels, GIF speed and the pinned buttons */
+    .save-media .img-panel, .save-media .img-panel .panel-img { width: 100%; max-width: none; max-height: max(200px, calc(100dvh - 600px)); }
+    .save-media .img-panel { min-height: 160px; }
 
     .delay-row {
       display: flex;
@@ -1251,16 +1234,6 @@
     .sticker-btn:active { transform: scale(0.92); }
     .sticker-btn img { width: 32px; height: 32px; object-fit: contain; }
 
-    /* ── PRINT ─────────────────────────────────────── */
-    #print-target {
-      display: none;
-    }
-    @media print {
-      body > *                    { display: none !important; }
-      #print-target               { display: flex !important; position: fixed; inset: 0;
-                                    align-items: center; justify-content: center; background: #fff; }
-      #print-target img           { max-width: 100%; max-height: 100%; object-fit: contain; }
-    }
 
     /* ── TABLET / KIOSK POLISH ─────────────────────── */
     @media (min-width: 600px) {
@@ -1268,7 +1241,7 @@
       .logo-booth  { font-size: clamp(1.4rem, 3.5vw, 2rem); }
       .warm-screen { padding-left: 36px; padding-right: 36px; gap: 22px; }
       .screen-top, .img-panel, .prev-section, .action-row,
-      .mode-toggle, .delay-row, .retake-strip { max-width: 620px; }
+      .delay-row, .retake-strip { max-width: 620px; }
       /* 3 columns so 6 layout cards fit evenly (2 rows of 3) */
       .layout-grid  { max-width: 620px; gap: 14px; grid-template-columns: repeat(3, 1fr); }
       .layout-card  { padding: 24px 10px 16px; }
@@ -1292,7 +1265,7 @@
       .logo-wrap   { padding: 14px 0 8px; }
       .warm-screen { padding-left: 48px; padding-right: 48px; gap: 32px; }
       .screen-top, .img-panel, .prev-section, .action-row,
-      .mode-toggle, .delay-row, .retake-strip { max-width: 820px; }
+      .delay-row, .retake-strip { max-width: 820px; }
       /* Square 3-col grid that fills the iPad portrait width */
       .layout-grid  { max-width: 820px; gap: 18px; grid-template-columns: repeat(3, 1fr); }
       .layout-card  { padding: 18px 14px; }
@@ -1335,7 +1308,7 @@
       .logo-booth  { font-size: clamp(3rem, 7vw, 4.5rem); margin-top: -14px; }
       .warm-screen { padding-left: 64px; padding-right: 64px; gap: 36px; }
       .screen-top, .img-panel, .prev-section, .action-row,
-      .mode-toggle, .delay-row, .retake-strip { max-width: 920px; }
+      .delay-row, .retake-strip { max-width: 920px; }
       .layout-grid  { max-width: 920px; gap: 22px; }
       .layout-card  { padding: 22px 16px; }
       .layout-label { font-size: 1.7rem; }
@@ -1368,21 +1341,36 @@
     /* iPad landscape: photo on the left, choices + actions on the right,
        instead of a phone column stretched across the screen. */
     @media (min-width: 1000px) and (orientation: landscape) {
-      #preview.active, #gif-screen.active {
+      #preview.active {
         display: grid;
         grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
         column-gap: 40px; row-gap: 18px;
         align-content: start; align-items: start;
       }
-      #preview > *, #gif-screen > * { grid-column: 2; width: 100%; max-width: none !important; }
-      #preview > .screen-top, #gif-screen > .screen-top { grid-column: 1 / -1; }
-      #preview > .img-panel, #gif-screen > #export-panel {
+      #preview > * { grid-column: 2; width: 100%; max-width: none !important; }
+      #preview > .screen-top { grid-column: 1 / -1; }
+      #preview > .img-panel {
         grid-column: 1; grid-row: 2 / span 12;
         position: sticky; top: 0;
         max-height: calc(100dvh - 200px);
       }
-      #preview > .img-panel .panel-img, #gif-screen > #export-panel .panel-img { max-height: calc(100dvh - 200px); }
-      #preview .sticky-actions::before, #gif-screen .sticky-actions::before { width: 100%; left: 0; transform: none; }
+      #preview > .img-panel .panel-img { max-height: calc(100dvh - 200px); }
+      #preview .sticky-actions::before { width: 100%; left: 0; transform: none; }
+    }
+
+    /* iPad landscape save screen: photo + GIF on the left, speed + buttons on the right */
+    @media (min-width: 1000px) and (orientation: landscape) {
+      #gif-screen.active {
+        display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+        column-gap: 40px; row-gap: 18px; align-content: start; align-items: start;
+      }
+      #gif-screen > * { grid-column: 2; width: 100%; max-width: none !important; }
+      #gif-screen > .screen-top { grid-column: 1 / -1; }
+      #gif-screen > .save-media { grid-column: 1; grid-row: 2 / span 4; }
+      #gif-screen .save-media .img-panel, #gif-screen .save-media .img-panel .panel-img { max-height: calc(100dvh - 250px); }
+      #gif-screen > .sticky-actions { position: static; padding: 0; margin-top: 0; flex-direction: column-reverse; }
+      #gif-screen > .sticky-actions > button { flex: none !important; width: 100%; }
+      #gif-screen > .sticky-actions::before { display: none; }
     }
 
     /* The reveal: the finished strip drops in after the last flash.
@@ -1507,7 +1495,7 @@
   <button class="start-btn" onclick="startBooth()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor"/></svg>Start session</button>
 
   <div class="home-foot" style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px">
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v6.1</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v6.2</span>
   </div>
 </div>
 
@@ -1569,7 +1557,7 @@
   <div id="retake-strip" class="retake-strip" style="display:none"></div>
 
   <!-- Filters -->
-  <div class="prev-section">
+  <div class="prev-section" id="filter-section">
     <p class="section-label">Filter</p>
     <div class="pill-row">
       <button class="fpill active" data-f="none"    onclick="setFilter('none')">None</button>
@@ -1591,7 +1579,7 @@
   </div>
 
   <!-- Overlay gallery -->
-  <div class="prev-section">
+  <div class="prev-section" id="frame-section">
     <p class="section-label">Frame</p>
     <div id="ov-gallery" class="ov-gallery"></div>
   </div>
@@ -1621,19 +1609,30 @@
     </button>
     <div class="screen-head">
       <h2>Save your moment</h2>
-      <p>Preview your photo and GIF, then get your QR code</p>
+      <p>Your photo and GIF, ready for your QR code</p>
     </div>
     <div style="width:52px"></div>
   </div>
 
-  <!-- Photo / GIF switch — one media panel shows the chosen one -->
-  <div class="mode-toggle" role="tablist" aria-label="Preview">
-    <button class="mode-btn active" id="mode-photo" onclick="setExportMode('photo')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>Photo</button>
-    <button class="mode-btn"        id="mode-gif"   onclick="setExportMode('gif')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>GIF</button>
+  <!-- Photo and GIF side by side; GIF speed underneath -->
+  <div class="save-media">
+    <figure>
+      <figcaption>Photo</figcaption>
+      <div class="img-panel" id="export-panel">
+        <img id="export-img" class="panel-img" alt="Your photo">
+        <div id="export-spinner" class="panel-spinner hidden"><span class="spin-ring"></span><span>Rendering…</span></div>
+      </div>
+    </figure>
+    <figure>
+      <figcaption>GIF</figcaption>
+      <div class="img-panel" id="gif-panel">
+        <img id="gif-img" class="panel-img" alt="Your GIF">
+        <div id="gif-spinner" class="panel-spinner"><span class="spin-ring"></span><span id="gif-spinner-label">Making your GIF…</span></div>
+      </div>
+    </figure>
   </div>
 
-  <!-- GIF speed (only in GIF mode) — right under the switch so it is never below the fold -->
-  <div class="prev-section" id="gif-controls" style="display:none">
+  <div class="prev-section" id="gif-controls">
     <p class="section-label">GIF speed</p>
     <div class="delay-row">
       <button class="delay-btn"        data-d="200"  onclick="setFrameDelay(200)">Fast<small>0.2 s</small></button>
@@ -1642,27 +1641,7 @@
     </div>
   </div>
 
-  <!-- Photo preview -->
-  <div class="img-panel" id="export-panel">
-    <img id="export-img" class="panel-img" alt="Photo preview">
-    <div id="export-spinner" class="panel-spinner hidden">
-      <span class="spin-ring"></span>
-      <span id="export-spinner-label">Generating GIF…</span>
-    </div>
-  </div>
-
-  <!-- GIF preview (shown below photo for multi-photo layouts) -->
-  <div class="img-panel" id="gif-panel" style="display:none">
-    <p style="font-size:0.65rem;color:var(--muted);text-align:center;margin:6px 0 2px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;position:absolute;top:-18px;left:0;width:100%">Animated GIF</p>
-    <img id="gif-img" class="panel-img" alt="GIF preview">
-    <div id="gif-spinner" class="panel-spinner">
-      <span class="spin-ring"></span>
-      <span>Generating GIF…</span>
-    </div>
-  </div>
-
-
-  <!-- Action row: Back + Get Photo (Print is in the top-right of this screen) -->
+  <!-- Action row: Back + Get my photos -->
   <div class="action-row sticky-actions" style="max-width:520px;width:100%;flex-wrap:wrap;gap:8px">
     <button class="btn-ghost" onclick="backToPreview()" style="flex:1;min-width:120px;white-space:nowrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>Back</button>
     <button class="btn-warm"  id="get-photos-btn" onclick="doGetQR()" style="flex:1.4;min-width:140px;white-space:nowrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg><span>Get my photos</span></button>
@@ -1763,9 +1742,8 @@
   <!-- Share buttons (free-floating, same style as action-row) -->
   <div id="ty-share-row" class="action-row" style="max-width:380px;width:100%"></div>
 
-  <div class="action-row" style="max-width:560px;width:100%">
+  <div class="action-row" style="max-width:420px;width:100%">
     <button class="btn-ghost" onclick="showScreen('gif-screen')"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>Back</button>
-    <button class="btn-ghost" onclick="printPhoto()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>Print</button>
     <button class="btn-warm" onclick="startOver()">Start over</button>
   </div>
 
@@ -1816,10 +1794,6 @@
 
 <div id="toast" role="status" aria-live="polite" onclick="this.classList.remove('show')"></div>
 
-<!-- Print target (only visible when printing) -->
-<div id="print-target">
-  <img id="print-target-img" alt="Print">
-</div>
 
 <!-- ════════════ ADMIN MODAL ════════════ -->
 <div id="admin-modal" class="modal-backdrop" style="display:none" onclick="if(event.target===this)closeAdmin()">
@@ -2220,7 +2194,7 @@
         <div class="admin-card">
           <div class="admin-card-title">Logo Size</div>
           <div style="display:flex;align-items:center;gap:10px">
-            <input type="range" id="logo-size-slider" min="50" max="200" step="5" value="100"
+            <input type="range" id="logo-size-slider" min="50" max="300" step="5" value="100"
               oninput="setLogoScale(this.value)"
               style="flex:1;accent-color:var(--action-text)">
             <span id="logo-size-label" style="font-size:0.78rem;font-weight:700;color:var(--text);min-width:38px;text-align:right">100%</span>
@@ -3489,6 +3463,7 @@
     // startCamera already told the guest what to do.
     if (!(await startCamera(isVideo))) return;
     if (isVideo) {
+      _loadMediabunny().catch(() => {}); // warm up the MP4 packager before the recording ends
       // The frame guide must show exactly what gets recorded (vidWidth×vidHeight),
       // not the last photo layout's cell ratio.
       document.querySelectorAll('.cam-crop-guide').forEach(el =>
@@ -3664,7 +3639,7 @@
     console.log('[rec] mime:', mimeType);
     _mediaRecorder = new MediaRecorder(canvasStream, opts);
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recordedChunks.push(e.data); };
-    _mediaRecorder.onstop = () => {
+    _mediaRecorder.onstop = async () => {
       _recStopping = false;
       if (_recAnimId) { cancelAnimationFrame(_recAnimId); _recAnimId = null; }
       _recCanvas = null;
@@ -3672,14 +3647,17 @@
       // Guest left the camera mid-recording — discard, don't jump to a preview
       if (recSid !== _sessionId) { _recordedChunks = []; return; }
       const mime = _mediaRecorder ? _mediaRecorder.mimeType : 'video/mp4';
-      const blob = new Blob(_recordedChunks, { type: mime });
-      console.log('[rec] stopped, blob size:', Math.round(blob.size/1024) + 'KB, mime:', mime);
+      const raw = new Blob(_recordedChunks, { type: mime });
+      console.log('[rec] stopped, blob size:', Math.round(raw.size/1024) + 'KB, mime:', mime);
       stopStream();
-      if (!blob.size) {
+      if (!raw.size) {
         notify('The recording failed. Please try again.');
         goHome();
         return;
       }
+      // Regular MP4 so the guest can post it to Instagram and Messenger
+      const blob = await _socialMp4(raw);
+      if (recSid !== _sessionId) return; // guest left while it was being prepared
       if (_recordedBlobUrl) URL.revokeObjectURL(_recordedBlobUrl);
       _recordedBlobUrl = URL.createObjectURL(blob);
       _recordedBlob = blob; // keep blob reference for direct upload
@@ -4350,7 +4328,7 @@
 
   // Two-tier render: a fast preview (small cells, <100ms) shown immediately,
   // then an HD render in the background that replaces compositeDataUrl when
-  // ready. _hdRenderPromise lets callers (showGifScreen, printPhoto, doGetQR)
+  // ready. _hdRenderPromise lets callers (showGifScreen, doGetQR)
   // await the HD version before uploading / printing.
   let _renderGen = 0;
   let _hdRenderPromise = null;
@@ -4401,6 +4379,7 @@
     activeFilter = name;
     document.querySelectorAll('.fpill').forEach(p => p.classList.toggle('active', p.dataset.f === name));
     reRenderComposite();
+    _filterRetakeThumbs();
   }
 
   /* ─── Overlay gallery ─────────────────────────────── */
@@ -4467,6 +4446,21 @@
     const gallery = $('ov-gallery');
     gallery.innerHTML = '';
 
+    // Frames available for this layout
+    const all = [...STOCK_OVERLAYS, ...overlays];
+    const visible = all.filter(ov =>
+      (ov.layout === 'all' || !ov.layout || ov.layout === layout) &&
+      (ov.enabled !== false)
+    );
+    // None → no Frame section. Exactly one → it's always used, so no picker.
+    const section = $('frame-section');
+    if (visible.length <= 1) {
+      if (section) section.style.display = 'none';
+      activeOverlay = visible[0] || null;
+      return;
+    }
+    if (section) section.style.display = '';
+
     // "None" chip — always first
     const noneItem = document.createElement('div');
     noneItem.className = 'ov-item' + (!activeOverlay ? ' selected' : '');
@@ -4478,18 +4472,6 @@
     noneItem.append(noneThumb, noneLbl);
     noneItem.onclick = () => { activeOverlay = null; renderOverlayGallery(); reRenderComposite(); };
     gallery.appendChild(noneItem);
-
-    // Filter: matching layout + enabled
-    const all = [...STOCK_OVERLAYS, ...overlays];
-    const visible = all.filter(ov =>
-      (ov.layout === 'all' || !ov.layout || ov.layout === layout) &&
-      (ov.enabled !== false)
-    );
-
-    if (!visible.length) {
-      const em = document.createElement('p'); em.className = 'ov-empty';
-      em.textContent = 'No overlays for this layout'; gallery.appendChild(em); return;
-    }
 
     visible.forEach(ov => {
       const item = document.createElement('div');
@@ -4552,8 +4534,28 @@
     const hint = document.createElement('p');
     hint.id = 'retake-hint';
     hint.style.cssText = 'font-size:0.95rem;color:var(--text);font-weight:700;text-align:center;margin-top:8px;width:100%';
-    hint.textContent = 'Tap a photo to retake just that one';
+    hint.textContent = 'Tap a photo to retake';
     strip.insertAdjacentElement('afterend', hint);
+    _filterRetakeThumbs();
+  }
+
+  // Retake thumbnails show the chosen filter, so guests see the look on every
+  // shot before continuing. Small renders; a newer filter cancels older work.
+  let _thumbGen = 0;
+  async function _filterRetakeThumbs() {
+    const gen = ++_thumbGen;
+    const imgs = document.querySelectorAll('#retake-strip .retake-thumb img');
+    for (let i = 0; i < imgs.length; i++) {
+      if (activeFilter === 'none') { imgs[i].src = photos[i]; continue; }
+      let im; try { im = await loadImg(photos[i]); } catch { continue; }
+      if (gen !== _thumbGen) return;
+      const w = 360, h = Math.max(1, Math.round(w * im.naturalHeight / im.naturalWidth));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const cx = c.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(im, 0, 0, w, h);
+      applyPixelFilter(cx, w, h, activeFilter);
+      imgs[i].src = c.toDataURL('image/jpeg', 0.85);
+    }
   }
 
   async function startRetakeSingle(index) {
@@ -4661,13 +4663,15 @@
     _tgPhotoUploaded = false;
     _uploadedPhotoVersion = -1;
     _gifKey = null;
-    _sbPhoto = null; _sbGif = null; _sbVideo = null;
+    _sbPhoto = null; _sbGif = null; _sbVideo = null; _gifVideo = null;
     compositeDataUrl = null; gifUrl = null; exportMode = 'photo';
   }
 
   function showGifScreen() {
     // Auto-download removed in v4.6
-    setExportMode('photo');
+    exportMode = 'photo';
+    $('export-img').src = compositeDataUrl || ''; $('export-img').style.opacity = '1';
+    $('export-spinner').classList.add('hidden');
     // The button says what the next screen gives: one QR, or photo + GIF QRs
     const gpLabel = document.querySelector('#get-photos-btn span');
     if (gpLabel) gpLabel.textContent = photos.length > 1 ? 'Get my photos' : 'Get my photo';
@@ -4675,8 +4679,7 @@
     // FIX (Issue 2): generate a GIF for ALL shot counts, including single
     // (1 photo). A 1-frame GIF is still a valid sharable animated file and
     // matches the user's "Include all photos if it's 4, 3, 2, 1 shots" ask.
-    // It is previewed in the same panel via the Photo / GIF switch.
-    $('gif-panel').style.display = 'none';
+    // Shown next to the photo, with its speed control underneath.
     // Only rebuild (and re-upload) the GIF when its inputs changed — going
     // Back → Continue with the same photos reuses the finished GIF.
     if (_currentGifKey() !== _gifKey) {
@@ -4728,29 +4731,6 @@
 
   function backToPreview() { showScreen('preview'); }
 
-  function setExportMode(mode) {
-    exportMode = mode;
-    $('mode-photo').classList.toggle('active', mode === 'photo');
-    $('mode-gif').classList.toggle('active', mode === 'gif');
-    $('mode-photo').setAttribute('aria-pressed', String(mode === 'photo'));
-    $('mode-gif').setAttribute('aria-pressed', String(mode === 'gif'));
-    $('gif-controls').style.display = mode === 'gif' ? '' : 'none';
-    if (mode === 'photo') {
-      $('export-img').src = compositeDataUrl || '';
-      $('export-img').style.opacity = '1';
-      $('export-spinner').classList.add('hidden');
-    } else if (gifUrl && !gifWorking) {
-      $('export-img').src = gifUrl; $('export-img').style.opacity = '1';
-      $('export-spinner').classList.add('hidden');
-    } else {
-      // Still encoding: dim the photo and show progress; generateGif swaps the
-      // GIF in when it finishes while this mode is active.
-      $('export-img').style.opacity = '0.35';
-      $('export-spinner').classList.remove('hidden');
-      if (!gifWorking) generateGif();
-    }
-  }
-
   function setFrameDelay(ms) {
     if (ms === frameDelay && gifUrl) return;
     frameDelay = ms;
@@ -4760,7 +4740,6 @@
     _gifKey = _currentGifKey();
     _tgMp4Result = null;
     gifUrl = null;
-    if (exportMode === 'gif') { $('export-img').style.opacity = '0.35'; $('export-spinner').classList.remove('hidden'); }
     generateGif();
   }
 
@@ -4784,6 +4763,77 @@
   // Each run takes a generation number; a newer run (new photos, filter or
   // speed) makes older in-flight runs stop without touching the UI.
   let _gifGen = 0;
+  /* ── Social-ready MP4 (mediabunny) ───────────────────
+     Instagram / Facebook Stories and Messenger reject two things the booth
+     used to hand out: an animated .gif (imports as a still image) and the
+     *fragmented* MP4 that MediaRecorder writes. mediabunny repackages a
+     recording into a regular MP4 (moov before mdat, H.264/AAC copied — no
+     re-encode) and encodes the GIF frames as an H.264 video. Loaded on demand
+     from the CDN, like gifenc. */
+  let _mediabunny = null;
+  async function _loadMediabunny() {
+    if (!_mediabunny) _mediabunny = import('https://cdn.jsdelivr.net/npm/mediabunny@1.61.3/dist/bundles/mediabunny.min.mjs');
+    try { return await _mediabunny; } catch (e) { _mediabunny = null; throw e; }
+  }
+
+  // Recording → regular MP4. Falls back to the original file if anything
+  // fails (it still plays; it just may not import into Stories/Messenger).
+  async function _socialMp4(blob) {
+    try {
+      const mb = await _loadMediabunny();
+      const input = new mb.Input({ formats: mb.ALL_FORMATS, source: new mb.BlobSource(blob) });
+      const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mb.BufferTarget() });
+      const conv = await mb.Conversion.init({ input, output, video: { codec: 'avc' }, audio: { codec: 'aac' } });
+      if (!conv.isValid) throw new Error(conv.discardedTracks.map(t => t.reason).join(', ') || 'not convertible');
+      await conv.execute();
+      return new Blob([output.target.buffer], { type: 'video/mp4' });
+    } catch (e) {
+      console.warn('[mp4] repackage failed, using the original recording:', e.message);
+      return blob;
+    }
+  }
+
+  // The GIF as an H.264 MP4 for the guest's QR code: same photos, filter and
+  // speed; loops until it lasts at least 3 s (Stories need a real clip).
+  let _gifVideo = null; // { key, promise } — one per GIF version
+  function _gifVideoBlob() {
+    if (_gifVideo && _gifVideo.key === _gifKey) return _gifVideo.promise;
+    const entry = { key: _gifKey };
+    entry.promise = (async () => {
+      const mb = await _loadMediabunny();
+      if (!(await mb.canEncodeVideo('avc'))) {
+        // Older iPadOS without WebCodecs H.264: record the frames instead
+        return _socialMp4((await _framesToMp4()).blob);
+      }
+      const s = Math.min(1, 1080 / Math.max(CELL_W, CELL_H));
+      const W = Math.round(CELL_W * s / 2) * 2, H = Math.round(CELL_H * s / 2) * 2; // H.264 needs even sizes
+      const frames = [];
+      for (const src of photos) { // filter each photo once, reuse for every loop
+        const im = await loadImg(src);
+        const fc = document.createElement('canvas'); fc.width = W; fc.height = H;
+        const fx = fc.getContext('2d', { willReadFrequently: true });
+        const k = Math.max(W / im.naturalWidth, H / im.naturalHeight);
+        fx.drawImage(im, (W - im.naturalWidth * k) / 2, (H - im.naturalHeight * k) / 2, im.naturalWidth * k, im.naturalHeight * k);
+        applyPixelFilter(fx, W, H, activeFilter);
+        frames.push(fc);
+      }
+      const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+      const cx = canvas.getContext('2d');
+      const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: 'in-memory' }), target: new mb.BufferTarget() });
+      const source = new mb.CanvasSource(canvas, { codec: 'avc', bitrate: mb.QUALITY_HIGH });
+      output.addVideoTrack(source, { frameRate: 30 });
+      await output.start();
+      const d = frameDelay / 1000;
+      const loops = Math.max(2, Math.ceil(3 / (d * frames.length)));
+      let t = 0;
+      for (let l = 0; l < loops; l++) for (const f of frames) { cx.drawImage(f, 0, 0); await source.add(t, d); t += d; }
+      await output.finalize();
+      return new Blob([output.target.buffer], { type: 'video/mp4' });
+    })();
+    entry.promise.catch(e => { console.warn('[gif-video] failed:', e.message); if (_gifVideo === entry) _gifVideo = null; });
+    return (_gifVideo = entry).promise;
+  }
+
   async function generateGif() {
     const gen = ++_gifGen;
     const stale = () => gen !== _gifGen;
@@ -4791,7 +4841,7 @@
 
     const img     = $('gif-img');
     const spinner = $('gif-spinner');
-    const lbl     = $('export-spinner-label');
+    const lbl     = $('gif-spinner-label');
     spinner.classList.remove('hidden');
     img.style.opacity = gifUrl ? '0.35' : '0';
     lbl.textContent = 'Generating GIF…';
@@ -4900,10 +4950,6 @@
       if (vid) { vid.style.display = 'none'; vid.removeAttribute('src'); vid.load(); }
       img.style.display = '';
       img.src = gifUrl; img.style.opacity = '1';
-      if (exportMode === 'gif') {
-        $('export-img').src = gifUrl; $('export-img').style.opacity = '1';
-        $('export-spinner').classList.add('hidden');
-      }
       _gifIsMp4 = false;
       _gifExt = 'gif';
 
@@ -4913,13 +4959,6 @@
       _uploadGifToTelegram();
       if (_sbConfigured()) _sbGifLink().catch(() => {}); // QR ready before Get Photo
 
-      // Pre-generate MP4 in background for the (still-defined) share-file
-      // paths used elsewhere. Independent of the Telegram QR flow above.
-      _cachedMp4Blob = null;
-      _framesToMp4().then(result => {
-        _cachedMp4Blob = result;
-        console.log('[gif] MP4 pre-cached:', Math.round(result.blob.size / 1024) + 'KB');
-      }).catch(e => console.warn('[gif] MP4 pre-cache failed:', e.message));
 
     } catch (err) {
       if (stale()) return;
@@ -5041,7 +5080,7 @@
         </div>
         ${hasGif ? `
         <div id="qr-slot-gif" style="display:flex;flex-direction:column;align-items:center;gap:12px;min-width:${QR_PX}px">
-          <div style="${tagStyle}">GIF</div>
+          <div style="${tagStyle}">GIF (video)</div>
           <div id="qr-gif" style="width:${QR_PX}px;height:${QR_PX}px;display:flex;align-items:center;justify-content:center"><span class="spin-ring"></span></div>
           <div style="${captionStyle}">Scan to download</div>
         </div>` : ''}
@@ -5173,7 +5212,8 @@
     if (_tgMp4Result) return; // already uploaded
     if (!gifUrl) { console.warn('[telegram] no gifUrl yet, skipping upload'); return; }
     const key = _gifKey; // ignore the result if the GIF was replaced meanwhile
-    uploadToTelegram(gifUrl, 'image/gif', 'gif')
+    const speed = { 200: 'Fast', 500: 'Medium', 1000: 'Slow' }[frameDelay] || 'Custom';
+    uploadToTelegram(gifUrl, 'image/gif', 'gif', { captionExtra: `GIF · ${speed} speed (${frameDelay / 1000} s per photo)` })
       .then(res => { if (key === _gifKey) _tgMp4Result = res; console.log('[telegram] GIF uploaded → Telegram MP4'); })
       .catch(e => console.warn('[telegram] GIF upload failed:', e.message));
   }
@@ -5192,20 +5232,6 @@
         console.warn('[share] GIF share failed:', err.message);
       }
     }
-  }
-
-  /* ═══════════════════════════════════════════════════
-     PRINT
-  ═══════════════════════════════════════════════════ */
-  async function printPhoto() {
-    // FIX 11 — always print composite (works from gif-screen and thank-you screen)
-    // Wait for the HD render to land before printing, otherwise we'd print
-    // the small preview version instead of the full print-resolution version.
-    await _ensureHDComposite();
-    const url = compositeDataUrl || '';
-    if (!url) { notify('Nothing to print yet.'); return; }
-    $('print-target-img').src = url;
-    window.print();
   }
 
   /* ═══════════════════════════════════════════════════
@@ -5648,7 +5674,7 @@
     form.append(fieldName, blob, filename);
     const LAYOUT_LABELS_TG = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad', video: 'Video' };
     const layoutLabel = LAYOUT_LABELS_TG[layout] || layout;
-    form.append('caption', BRAND + ' — ' + layoutLabel + ' — ' + new Date().toLocaleString());
+    form.append('caption', BRAND + ' — ' + layoutLabel + (opts.captionExtra ? ' — ' + opts.captionExtra : '') + ' — ' + new Date().toLocaleString());
 
     const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/${method}`;
 
@@ -5778,10 +5804,10 @@
     if (_sbGif && _sbGif.key === _gifKey) return _sbGif.promise;
     const entry = { key: _gifKey };
     entry.promise = (async () => {
-      const t0 = Date.now(); // the guest can reach the QR before encoding ends
-      while ((!gifUrl || gifWorking) && Date.now() - t0 < 30000) await sleep(200);
-      if (!gifUrl) throw new Error('GIF not ready');
-      return _sbUpload(gifUrl, 'image/gif', 'gif');
+      // Guests get the GIF as an MP4: Stories and Messenger import that as a
+      // moving clip, while a .gif file arrives as a still image.
+      const mp4 = await _gifVideoBlob();
+      return _sbUpload(mp4, 'video/mp4', 'mp4');
     })();
     entry.promise.catch(() => { if (_sbGif === entry) _sbGif = null; });
     return (_sbGif = entry).promise;
@@ -6918,6 +6944,9 @@
       btn.onclick = () => setFilter('custom-' + f.id);
       container.appendChild(btn);
     });
+    // Nothing to choose besides "None" → hide the Filter section entirely
+    const choices = [...document.querySelectorAll('#preview .fpill')].filter(b => b.dataset.f !== 'none' && b.style.display !== 'none').length;
+    $('filter-section').style.display = choices ? '' : 'none';
   }
 
   /* ── Enabled layouts ────────────────────────────── */
@@ -7395,10 +7424,14 @@
   function applyHomeLogo(dataUrl) {
     const wrap = document.querySelector('.logo-wrap');
     if (dataUrl) {
-      wrap.innerHTML = '<img src="' + dataUrl + '" style="max-width:clamp(180px,50vw,300px);max-height:140px" alt="Logo">';
+      wrap.innerHTML = '<img src="' + dataUrl + '" alt="Logo">';
+      const img = wrap.querySelector('img');
+      const fit = () => { if (img.naturalWidth) wrap.style.setProperty('--logo-ar', img.naturalWidth / img.naturalHeight); };
+      img.onload = fit; fit();
     } else {
       wrap.innerHTML = '<span class="logo-hando">PNG</span><span class="logo-booth">Booth</span>';
     }
+    wrap.classList.toggle('has-img', !!dataUrl);
     _applyLogoScale(); // re-apply scale after rebuilding logo
   }
   function setLogoScale(pct) {
@@ -7412,9 +7445,17 @@
     const wrap = document.querySelector('.logo-wrap');
     if (!wrap) return;
     const s = _logoScale / 100;
+    if (wrap.classList.contains('has-img')) {
+      // Custom logo grows through its size cap (see .logo-wrap img), which
+      // stops at the screen edge instead of pushing Start off the screen.
+      wrap.style.zoom = '';
+      wrap.style.setProperty('--logo-s', s);
+      return;
+    }
     // Use CSS zoom — unlike transform:scale, zoom affects layout flow
-    // so the logo won't overlap buttons when enlarged.
-    wrap.style.zoom = s;
+    // so the logo won't overlap buttons when enlarged. The built-in wordmark
+    // stops at 200%; past that it pushes Start off an iPad screen.
+    wrap.style.zoom = Math.min(s, 2);
     wrap.style.WebkitTextSizeAdjust = 'none'; // prevent iOS font inflation
   }
 

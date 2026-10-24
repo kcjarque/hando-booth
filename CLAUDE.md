@@ -101,6 +101,12 @@ If a filter is changed before a previous render completes, both renders run conc
 - **Brand**: `BRAND` / `FILE_PREFIX` constants — guest-facing name is PNG Booth.
 - **Regression suite**: `python3 tests/regression.py` (serve on :3003 first). Run it before every push.
 
+### 31. v6.2 feedback round (2026-10-25)
+- **Stories / Messenger need a regular MP4.** MediaRecorder writes fragmented MP4 and a .gif imports as a still. `_socialMp4()` remuxes recordings (mediabunny 1.61.3 from jsDelivr, no re-encode); `_gifVideoBlob()` encodes the GIF frames to H.264 MP4 (WebCodecs) and that is the GIF guest link. Both fall back to the original file if mediabunny can't load.
+- **Save screen** shows photo + GIF side by side with GIF speed; no Photo/GIF toggle. Print is removed entirely.
+- **Looking good**: Filter/Frame sections hide when there is nothing to choose; one frame is applied automatically; retake thumbnails show the chosen filter.
+- **Custom logo** size comes from `--logo-s` (slider, max 300%) and `--logo-ar` with an explicit width, capped at 92vw / 30vh so Start never leaves an iPad screen. The built-in wordmark still uses `zoom`, capped at 200%.
+
 ---
 
 ## Architecture
@@ -123,7 +129,7 @@ If a filter is changed before a previous render completes, both renders run conc
 ## Pending Features
 
 1. ~~Share flow~~ ✅ Implemented (QR + claim page + EmailJS)
-2. ~~Print button~~ ✅ Implemented (`window.print` with `@media print` CSS)
+2. ~~Print button~~ Removed in v6.2 at the client's request
 3. Individual photo retake (tap photo in strip to re-capture that slot)
 4. ~~Admin mode~~ ✅ Implemented
 5. Fix and re-enable frame overlays

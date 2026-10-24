@@ -21,6 +21,29 @@ PORTRAIT, LANDSCAPE = (820, 1180), (1180, 820)
 results = []
 
 
+
+def mp4_info(data):
+    """Top-level boxes + ffprobe codecs for an MP4 byte string."""
+    import struct, subprocess, tempfile
+    boxes, i = [], 0
+    while i + 8 <= len(data):
+        size, typ = struct.unpack('>I4s', data[i:i + 8])
+        if size == 1: size = struct.unpack('>Q', data[i + 8:i + 16])[0]
+        if size < 8: break
+        boxes.append(typ.decode('latin1')); i += size
+    with tempfile.NamedTemporaryFile(suffix='.mp4') as f:
+        f.write(data); f.flush()
+        r = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,codec_name', '-of', 'json', f.name], capture_output=True, text=True)
+    streams = {st['codec_type']: st['codec_name'] for st in json.loads(r.stdout or '{}').get('streams', [])}
+    return {'boxes': boxes, 'streams': streams}
+
+
+def mp4_ok(data, audio):
+    info = mp4_info(data); b = info['boxes']
+    good = 'moof' not in b and 'moov' in b and 'mdat' in b and b.index('moov') < b.index('mdat') and info['streams'].get('video') == 'h264'
+    return good and (info['streams'].get('audio') == 'aac' if audio else True)
+
+
 def scenario(name):
     def wrap(fn):
         try:
@@ -67,6 +90,7 @@ def new_page(browser, size=PORTRAIT, uploads=None, camera=True):
         method = url.rsplit('/', 1)[-1].split('?')[0]
         if method != 'getFile':
             log.append('telegram:' + method)
+            page.tg_bodies.append((method, route.request.post_data_buffer or b''))
         body = {'ok': True, 'result': {'file_path': 'x/file.jpg'}} if method == 'getFile' else \
                {'ok': True, 'result': {'document': {'file_id': 'D'}, 'animation': {'file_id': 'A'}, 'video': {'file_id': 'V'}}}
         route.fulfill(status=200, content_type='application/json', body=json.dumps(body))
@@ -85,9 +109,12 @@ def new_page(browser, size=PORTRAIT, uploads=None, camera=True):
             route.fulfill(status=500, content_type='application/json', body='{"error":"test outage"}')
             return
         log.append('supabase:%s:%s:%s' % (req.method, ext, req.headers.get('content-type', '')))
+        page.files.append((ext, req.post_data_buffer or b''))
         route.fulfill(status=200, content_type='application/json', body='{"Key":"k"}')
 
     sb_state = page.sb = {'fail': 0}
+    page.files = []
+    page.tg_bodies = []
 
     def app_html(route):
         resp = route.fetch()
@@ -285,10 +312,14 @@ with sync_playwright() as p:
         pg.wait_for_function("document.querySelectorAll('#qr-photo canvas, #qr-gif canvas').length === 2", timeout=30000)
         qr = pg.evaluate('window.__qr')
         prefix = 'https://test.supabase.co/storage/v1/object/public/booth/'
-        check('photo + GIF QR point at public Supabase files', len(qr) == 2 and all(u.startswith(prefix) for u in qr) and qr[0].endswith('.jpg') and qr[1].endswith('.gif'), str(qr))
+        check('photo + GIF QR point at public Supabase files (GIF as MP4 for Stories)', len(qr) == 2 and all(u.startswith(prefix) for u in qr) and qr[0].endswith('.jpg') and qr[1].endswith('.mp4'), str(qr))
         check('no QR contains a Telegram URL or token', not any('telegram' in u or '/bot' in u for u in qr), str(qr))
         sb = [u for u in ups if u.startswith('supabase')]
-        check('one guest-link upload each for photo and GIF', sorted(x.split(':')[2] for x in sb) == ['gif', 'jpg'], str(sb))
+        check('one guest-link upload each for photo and GIF', sorted(x.split(':')[2] for x in sb) == ['jpg', 'mp4'], str(sb))
+        gifmp4 = [b for e, b in pg.files if e == 'mp4']
+        check('GIF video is a regular H.264 MP4 (not fragmented, moov first)', gifmp4 and mp4_ok(gifmp4[0], audio=False), mp4_info(gifmp4[0]) if gifmp4 else 'none')
+        anim = [b for m, b in pg.tg_bodies if m == 'sendAnimation']
+        check('Telegram GIF caption says the speed', anim and b'Medium speed (0.5 s per photo)' in anim[0], anim[0].split(b'name="caption"')[-1].split(b'\r\n--')[0].decode('utf-8', 'replace').strip() if anim else 'no sendAnimation')
         check('QR codes fully on screen (portrait)', all(in_view(pg, sel) for sel in ('#qr-photo', '#qr-gif')))
         pg.set_viewport_size({'width': LANDSCAPE[0], 'height': LANDSCAPE[1]}); pg.wait_for_timeout(400)
         check('QR codes fully on screen (landscape)', all(in_view(pg, sel) for sel in ('#qr-photo', '#qr-gif')))
@@ -328,9 +359,73 @@ with sync_playwright() as p:
         qr = pg.evaluate('window.__qr')
         vids = [u for u in ups if u.startswith('supabase')]
         check('video QR fully on screen', in_view(pg, '#video-qr'))
+        vids = [b for e, b in pg.files if e == 'mp4']
+        check('recorded video re-packaged as a regular MP4 with audio (Instagram / Messenger)', vids and mp4_ok(vids[0], audio=True), mp4_info(vids[0]) if vids else 'none')
         check('video QR is a public Supabase file', len(qr) == 1 and qr[0].startswith('https://test.supabase.co/storage/v1/object/public/booth/') and qr[0].rsplit('.', 1)[-1] in ('mp4', 'webm'), str(qr))
         check('video archived to Telegram + Drive once, guest link once', len(vids) == 1 and sum(u.startswith('telegram:sendVideo') or u.startswith('telegram:sendDocument') for u in ups) == 1 and sum(u.startswith('drive:video') and int(u.rsplit(':', 1)[1]) > 10_000 for u in ups) == 1, str(ups))
         pg.context.close()
+
+    @scenario('Feedback — save screen shows photo + GIF together with GIF speed; no print on QR screen')
+    def _():
+        pg = new_page(b)
+        start(pg, 'strip'); capture(pg); to_save_screen(pg)
+        both = all(in_view(pg, sel) for sel in ('#export-panel', '#gif-panel'))
+        speed = pg.evaluate("getComputedStyle(document.getElementById('gif-controls')).display !== 'none'") and in_view(pg, '#gif-controls .delay-row')
+        check('photo and GIF on one screen, GIF speed visible', both and speed, f'both={both} speed={speed}')
+        pg.click('#gif-screen .btn-warm[onclick="doGetQR()"]'); pg.wait_for_timeout(800)
+        check('no Print button on "Enjoy your photo"', pg.evaluate("![...document.querySelectorAll('#thankyou button')].some(b => /print/i.test(b.textContent))"))
+        pg.context.close()
+
+    @scenario('Feedback — Looking good: hint text and filtered retake thumbnails')
+    def _():
+        pg = new_page(b)
+        start(pg, 'strip'); capture(pg); pg.wait_for_timeout(800)
+        check('hint reads "Tap a photo to retake"', pg.evaluate("document.getElementById('retake-hint').textContent") == 'Tap a photo to retake')
+        pg.evaluate("setFilter('bw')"); pg.wait_for_timeout(1500)
+        gray = pg.evaluate("""(async () => { const im = document.querySelector('#retake-strip .retake-thumb img'); await im.decode();
+          const c = document.createElement('canvas'); c.width = 40; c.height = 30; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 40, 30);
+          const d = x.getImageData(0, 0, 40, 30).data; let diff = 0; for (let i = 0; i < d.length; i += 4) diff += Math.abs(d[i] - d[i + 1]) + Math.abs(d[i + 1] - d[i + 2]);
+          return diff / (d.length / 4); })()""")
+        check('retake thumbnails show the chosen filter (B&W → grey)', gray < 6, f'avg channel spread {gray:.1f}')
+        pg.evaluate("setFilter('none')"); pg.wait_for_timeout(800)
+        check('back to None restores the original thumbnails', pg.evaluate("[...document.querySelectorAll('#retake-strip .retake-thumb img')].every((im, i) => im.src === photos[i])"))
+        pg.context.close()
+
+    @scenario('Feedback — frames: none hidden, one used automatically, several shown')
+    def _():
+        pg = new_page(b)
+        start(pg, 'strip'); capture(pg); pg.wait_for_timeout(600)
+        check('several frames → Frame picker shown', pg.evaluate("getComputedStyle(document.getElementById('frame-section')).display !== 'none'"))
+        pg.evaluate("STOCK_OVERLAYS.forEach((o, i) => o.enabled = i === 1); overlays = []; saveStockEnabled(); showPreviewScreen()"); pg.wait_for_timeout(800)
+        one = pg.evaluate("({ hidden: getComputedStyle(document.getElementById('frame-section')).display === 'none', used: activeOverlay && activeOverlay.id })")
+        check('one frame → used automatically, no picker', one['hidden'] and one['used'] == pg.evaluate("STOCK_OVERLAYS[1].id"), json.dumps(one))
+        pg.evaluate("STOCK_OVERLAYS.forEach(o => o.enabled = false); saveStockEnabled(); showPreviewScreen()"); pg.wait_for_timeout(800)
+        none = pg.evaluate("({ hidden: getComputedStyle(document.getElementById('frame-section')).display === 'none', used: activeOverlay })")
+        check('no frames → Frame section hidden', none['hidden'] and none['used'] is None, json.dumps(none))
+        pg.evaluate("BUILTIN_FILTERS.forEach(f => f.id !== 'none' && setFilterVisible(f.id, false))"); pg.wait_for_timeout(300)
+        check('no filters to choose → Filter section hidden', pg.evaluate("getComputedStyle(document.getElementById('filter-section')).display === 'none'"))
+        pg.context.close()
+
+    @scenario('Feedback — custom logo can go bigger')
+    def _():
+        pg = new_page(b)
+        check('logo size slider goes to 300%', pg.evaluate("document.getElementById('logo-size-slider').max") == '300')
+        pg.context.close()
+        # A small square logo file must grow with the slider, and 300% must still fit the screen
+        for size in (PORTRAIT, LANDSCAPE, (1024, 768)):
+            pg = new_page(b, size)
+            r = pg.evaluate("""async () => {
+              const c = document.createElement('canvas'); c.width = c.height = 200;
+              c.getContext('2d').fillRect(0, 0, 200, 200); applyHomeLogo(c.toDataURL());
+              const img = document.querySelector('.logo-wrap img'); await img.decode();
+              const at = async pct => { setLogoScale(pct); await new Promise(r => requestAnimationFrame(r)); return img.getBoundingClientRect(); };
+              const a = await at(100), b = await at(300), home = document.getElementById('home');
+              return { w100: Math.round(a.width), w300: Math.round(b.width), left: b.left, right: b.right, vw: innerWidth,
+                       start: document.querySelector('.start-btn').getBoundingClientRect().bottom, scroll: home.scrollHeight - home.clientHeight };
+            }""")
+            check(f'custom logo 300% bigger and fits {size[0]}x{size[1]}',
+                  r['w300'] > r['w100'] * 1.2 and r['left'] >= 0 and r['right'] <= r['vw'] and r['start'] <= size[1] and r['scroll'] <= 0, json.dumps(r))
+            pg.context.close()
 
     @scenario('H5 + M5 — brand and favicon')
     def _():
