@@ -1,7 +1,9 @@
 """Booth regression suite — one check per bug fixed in PRODUCTION_REVIEW.md.
 
-Drives the real app in Chromium with a fake camera + microphone. Telegram,
-Google Drive and Supabase are mocked at the network layer (nothing is sent).
+Drives the real app in Chromium with a fake camera + microphone. Telegram
+and Supabase are mocked at the network layer (nothing is sent). Google Drive
+was removed in v6.3; old Drive settings stay in localStorage and any request
+to it is logged so the tests can prove nothing goes there.
 
 Run (static server on :3003 serving this folder):
     python3 -m http.server 3003 &
@@ -162,7 +164,7 @@ def capture(page):
 def to_save_screen(page):
     page.click('#preview .btn-warm[onclick="continueFlow()"]')
     page.wait_for_function("document.querySelector('.screen.active').id === 'gif-screen'")
-    page.wait_for_function("!!gifUrl && !gifWorking", timeout=30000)
+    page.wait_for_function("photos.length < 2 || (!!gifUrl && !gifWorking)", timeout=30000)  # one photo: no GIF
     page.wait_for_timeout(1200)
 
 
@@ -229,6 +231,7 @@ with sync_playwright() as p:
         pg.wait_for_timeout(2500)
         added = ups[len(after_back):]
         check('changed filter uploads the new photo + GIF once', len(added) == len(first), f'{added}')
+        check('nothing is sent to Google Drive (removed)', not any(u.startswith('drive') for u in ups), str(ups))
         check('save screen primary action visible (portrait)', in_view(pg, '#gif-screen .btn-warm[onclick="doGetQR()"]'))
         pg.context.close()
 
@@ -276,16 +279,6 @@ with sync_playwright() as p:
         pg.click('#camera .icon-btn')
         pg.wait_for_timeout(12000)
         check('X mid-recording: stays home', screen(pg) == 'home', screen(pg))
-        pg.context.close()
-
-
-    @scenario('H4 — Google Drive accepts a video-sized (4 MB) blob')
-    def _():
-        ups = []
-        pg = new_page(b, uploads=ups)
-        res = pg.evaluate("""async () => { const u = URL.createObjectURL(new Blob([new Uint8Array(4 * 1024 * 1024)], { type: 'video/mp4;codecs=avc1.42001f,mp4a.40.2' }));
-          const r = await uploadToGDrive(u, 'video/mp4', 'test.mp4', 'test'); return r && r.ok; }""")
-        check('Drive upload of a 4 MB video (real recorder MIME)', res is True and any(x.startswith('drive:video/mp4') and int(x.rsplit(':', 1)[1]) > 5_000_000 for x in ups), str(ups))
         pg.context.close()
 
 
@@ -362,7 +355,7 @@ with sync_playwright() as p:
         vids = [b for e, b in pg.files if e == 'mp4']
         check('recorded video re-packaged as a regular MP4 with audio (Instagram / Messenger)', vids and mp4_ok(vids[0], audio=True), mp4_info(vids[0]) if vids else 'none')
         check('video QR is a public Supabase file', len(qr) == 1 and qr[0].startswith('https://test.supabase.co/storage/v1/object/public/booth/') and qr[0].rsplit('.', 1)[-1] in ('mp4', 'webm'), str(qr))
-        check('video archived to Telegram + Drive once, guest link once', len(vids) == 1 and sum(u.startswith('telegram:sendVideo') or u.startswith('telegram:sendDocument') for u in ups) == 1 and sum(u.startswith('drive:video') and int(u.rsplit(':', 1)[1]) > 10_000 for u in ups) == 1, str(ups))
+        check('video archived to Telegram once, guest link once, nothing to Google Drive', len(vids) == 1 and sum(u.startswith('telegram:sendVideo') or u.startswith('telegram:sendDocument') for u in ups) == 1 and not any(u.startswith('drive') for u in ups), str(ups))
         pg.context.close()
 
     @scenario('Feedback — save screen shows photo + GIF together with GIF speed; no print on QR screen')
@@ -426,6 +419,100 @@ with sync_playwright() as p:
             check(f'custom logo 300% bigger and fits {size[0]}x{size[1]}',
                   r['w300'] > r['w100'] * 1.2 and r['left'] >= 0 and r['right'] <= r['vw'] and r['start'] <= size[1] and r['scroll'] <= 0, json.dumps(r))
             pg.context.close()
+
+    @scenario('v6.3 — sound and Start survive a stuck iPad audio context')
+    def _():
+        import base64, io, struct, wave
+        buf = io.BytesIO(); w = wave.open(buf, 'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(22050)
+        w.writeframes(b''.join(struct.pack('<h', 8000 if (i // 20) % 2 else -8000) for i in range(11025))); w.close()
+        wav = 'data:audio/wav;base64,' + base64.b64encode(buf.getvalue()).decode()
+        # iOS after a screen lock / another app: the context reports 'suspended' (or 'running'
+        # with a frozen clock) and resume() never settles. A fresh context works.
+        stick = """(mode) => {
+          window.__stuck = new WeakSet([_audioCtx]); window.__played = [];
+          const st = Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'state').get;
+          const ct = Object.getOwnPropertyDescriptor(BaseAudioContext.prototype, 'currentTime').get;
+          Object.defineProperty(BaseAudioContext.prototype, 'state', { configurable: true, get() { return __stuck.has(this) ? (mode === 'silent' ? 'running' : 'suspended') : st.call(this); } });
+          Object.defineProperty(BaseAudioContext.prototype, 'currentTime', { configurable: true, get() { return __stuck.has(this) ? 1.25 : ct.call(this); } });
+          const res = AudioContext.prototype.resume; AudioContext.prototype.resume = function () { return __stuck.has(this) ? new Promise(() => {}) : res.call(this); };
+          [AudioBufferSourceNode, OscillatorNode].forEach(C => { const s0 = C.prototype.start;
+            C.prototype.start = function (...a) { __played.push(__stuck.has(this.context) ? 'stuck' : st.call(this.context)); return s0.apply(this, a); }; });
+          const t = document.createElement('button'); t.id = 'tst'; t.onclick = () => previewSound();
+          t.style.cssText = 'position:fixed;top:0;left:0;z-index:99999;width:120px;height:60px'; document.body.appendChild(t);
+        }"""
+        for case in ('start', 'suspended', 'silent'):
+            pg = new_page(b)
+            pg.evaluate("w => { localStorage.setItem('hb_sound_preset', 'custom'); localStorage.setItem('hb_sound_custom', w); }", wav)
+            pg.reload(); pg.wait_for_timeout(500)
+            pg.mouse.click(5, 5); pg.wait_for_timeout(500)        # first tap: audio on, sound decoded
+            pg.evaluate(stick, case); pg.wait_for_timeout(4500 if case == 'silent' else 1200)
+            if case == 'start':
+                pg.evaluate("_customSoundBuffer = null; 0")       # iOS replaced the context: decode again
+                pg.evaluate("document.querySelector('.layout-card[data-layout=\"strip\"]').click()")
+                pg.click('.start-btn'); pg.wait_for_timeout(3000)
+                check('stuck audio: Start still opens the camera', screen(pg) == 'camera', screen(pg))
+            else:
+                pg.click('#tst'); pg.wait_for_timeout(800)
+                played = pg.evaluate('__played')
+                check(f'stuck audio ({case}): Preview sound plays on a working context', played and 'stuck' not in played and played[-1] == 'running', str(played))
+            pg.context.close()
+        # Healthy audio is not rebuilt on every tap
+        pg = new_page(b)
+        pg.mouse.click(5, 5); pg.wait_for_timeout(300)
+        first = pg.evaluate('_audioCtx')
+        pg.evaluate("window.__ctx0 = _audioCtx; 0")
+        for _ in range(3):
+            pg.wait_for_timeout(2500); pg.mouse.click(5, 5)
+        check('healthy audio context is kept across taps', pg.evaluate("_audioCtx === __ctx0 && _audioCtx.state === 'running'"))
+        pg.context.close()
+
+    @scenario('v6.3 — sticker editor Back returns to Looking good')
+    def _():
+        pg = new_page(b)
+        start(pg, 'strip'); capture(pg)
+        pg.click('#preview-edit-btn'); pg.wait_for_function("document.querySelector('.screen.active').id === 'editor-screen'")
+        pg.evaluate("editorAddSticker('⭐'); 0")
+        pg.click('#editor-screen .home-btn[onclick="closeEditor()"]'); pg.wait_for_timeout(300)
+        check('Back from Add stickers goes to Looking good', screen(pg) == 'preview', screen(pg))
+        pg.context.close()
+
+    @scenario('v6.3 — single photo: no GIF anywhere')
+    def _():
+        ups = []
+        pg = new_page(b, uploads=ups)
+        start(pg, 'single'); capture(pg)
+        pg.click('#preview .btn-warm[onclick="continueFlow()"]')
+        pg.wait_for_function("document.querySelector('.screen.active').id === 'gif-screen'"); pg.wait_for_timeout(2500)
+        r = pg.evaluate("""() => ({ gifPanel: !!document.getElementById('gif-panel').offsetParent,
+                                    speed: !!document.getElementById('gif-controls').offsetParent,
+                                    photo: !!document.getElementById('export-panel').offsetParent,
+                                    sub: document.getElementById('gif-screen-sub').textContent })""")
+        check('single: save screen shows only the photo', r['photo'] and not r['gifPanel'] and not r['speed'] and 'GIF' not in r['sub'], str(r))
+        pg.click('#gif-screen .btn-warm[onclick="doGetQR()"]')
+        pg.wait_for_function("window.__qr.length >= 1", timeout=30000); pg.wait_for_timeout(1500)
+        qr = pg.evaluate('window.__qr')
+        check('single: one QR, no GIF made or uploaded', len(qr) == 1 and qr[0].endswith('.jpg') and not any('sendAnimation' in u or ':mp4:' in u for u in ups), f'{qr} {ups}')
+        pg.context.close()
+        # Strip still gets its GIF
+        pg = new_page(b)
+        start(pg, 'strip'); capture(pg); to_save_screen(pg)
+        check('strip: GIF still shown', pg.evaluate("!!document.getElementById('gif-panel').offsetParent && !document.getElementById('gif-screen').classList.contains('no-gif')"))
+        pg.context.close()
+
+    @scenario('v6.3 — admin adds and removes sticker emojis')
+    def _():
+        pg = new_page(b)
+        pg.evaluate("""() => { const i = document.getElementById('admin-emoji-input'); i.value = '🎂 hi 🌸👨‍👩‍👧🇵🇭 ❤️'; addStickerEmojis(); removeStickerEmoji(0); }""")
+        lst = pg.evaluate('_stickerEmojis')
+        check('typed emojis added whole (family, flag), text and duplicates skipped, × removes',
+              lst[-4:] == ['🎂', '🌸', '👨‍👩‍👧', '🇵🇭'] and '❤️' not in lst and 'h' not in lst and len(lst) == 15, str(lst))
+        pg.reload(); pg.wait_for_timeout(400)
+        start(pg, 'strip'); capture(pg)
+        pg.click('#preview-edit-btn'); pg.wait_for_function("document.querySelector('.screen.active').id === 'editor-screen'")
+        bar = pg.evaluate("[...document.querySelectorAll('#sticker-bar .sticker-btn:not(.custom-sticker-btn)')].map(b => b.textContent)")
+        check('editor sticker bar uses the saved emoji list after reload', bar == lst, str(bar))
+        check('admin has no Google Drive settings', pg.evaluate("!document.getElementById('admin-panel').textContent.includes('Google Drive') && !document.getElementById('gdrive-url')"))
+        pg.context.close()
 
     @scenario('H5 + M5 — brand and favicon')
     def _():

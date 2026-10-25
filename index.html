@@ -850,6 +850,7 @@
     /* ── SAVE SCREEN: photo and GIF side by side ───── */
     .save-media { display: flex; gap: 16px; width: 100%; max-width: 920px; align-items: flex-start; justify-content: center; flex-shrink: 0; }
     .save-media figure { flex: 1 1 0; min-width: 0; margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    #gif-screen.no-gif .save-media figure + figure, #gif-screen.no-gif #gif-controls { display: none; }
     .save-media figcaption { font-size: 1.05rem; font-weight: 700; color: var(--text); }
     /* Height left after header, labels, GIF speed and the pinned buttons */
     .save-media .img-panel, .save-media .img-panel .panel-img { width: 100%; max-width: none; max-height: max(200px, calc(100dvh - 600px)); }
@@ -1495,7 +1496,7 @@
   <button class="start-btn" onclick="startBooth()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3" fill="currentColor"/></svg>Start session</button>
 
   <div class="home-foot" style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:4px">
-    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v6.2</span>
+    <span style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em">v6.3</span>
   </div>
 </div>
 
@@ -1609,7 +1610,7 @@
     </button>
     <div class="screen-head">
       <h2>Save your moment</h2>
-      <p>Your photo and GIF, ready for your QR code</p>
+      <p id="gif-screen-sub">Your photo and GIF, ready for your QR code</p>
     </div>
     <div style="width:52px"></div>
   </div>
@@ -1693,20 +1694,7 @@
   <div class="editor-canvas-wrap">
     <canvas id="editor-canvas"></canvas>
   </div>
-  <div class="sticker-bar" id="sticker-bar">
-    <button class="sticker-btn" onclick="editorAddSticker('❤️')">❤️</button>
-    <button class="sticker-btn" onclick="editorAddSticker('⭐')">⭐</button>
-    <button class="sticker-btn" onclick="editorAddSticker('🎉')">🎉</button>
-    <button class="sticker-btn" onclick="editorAddSticker('😍')">😍</button>
-    <button class="sticker-btn" onclick="editorAddSticker('🔥')">🔥</button>
-    <button class="sticker-btn" onclick="editorAddSticker('✨')">✨</button>
-    <button class="sticker-btn" onclick="editorAddSticker('🥳')">🥳</button>
-    <button class="sticker-btn" onclick="editorAddSticker('💯')">💯</button>
-    <button class="sticker-btn" onclick="editorAddSticker('🎀')">🎀</button>
-    <button class="sticker-btn" onclick="editorAddSticker('💕')">💕</button>
-    <button class="sticker-btn" onclick="editorAddSticker('🌟')">🌟</button>
-    <button class="sticker-btn" onclick="editorAddSticker('📸')">📸</button>
-  </div>
+  <div class="sticker-bar" id="sticker-bar"></div>
   <input type="file" id="editor-photo-input" accept="image/*" style="display:none" onchange="handleEditorPhoto(this)">
   <div class="action-row sticky-actions" style="max-width:380px;width:100%">
     <button class="btn-ghost" onclick="editorUndo()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Undo</button>
@@ -2030,20 +2018,10 @@
           <p style="font-size:0.68rem;color:var(--muted);margin-bottom:10px;line-height:1.4">To find the Chat ID: add <strong>@raw_data_bot</strong> to your group, it will reply with the chat ID. Remove it after.</p>
           <button onclick="testTelegramConnection()" class="delay-btn" style="width:100%">Test Connection</button>
         </div>
-        <!-- Google Drive -->
-        <div class="admin-card">
-          <div class="admin-card-title">Google Drive</div>
-          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Auto-upload photos and videos to Google Drive. A new folder is created for each day. See <strong>google-drive-upload.gs</strong> for setup.</p>
-          <label style="font-size:0.75rem;color:var(--text);font-weight:600;display:block;margin-bottom:4px">Web App URL</label>
-          <input type="text" id="gdrive-url" placeholder="https://script.google.com/macros/s/..." oninput="saveGDriveConfig()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;margin-bottom:10px;background:#fff;color:var(--text);box-sizing:border-box">
-          <label style="font-size:0.75rem;color:var(--text);font-weight:600;display:block;margin-bottom:4px">Secret Token</label>
-          <input type="password" autocomplete="off" id="gdrive-token" placeholder="hando-booth-2025-secret" oninput="saveGDriveConfig()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82rem;margin-bottom:10px;background:#fff;color:var(--text);box-sizing:border-box">
-          <button onclick="testGDriveConnection()" class="delay-btn" style="width:100%">Test Upload</button>
-        </div>
         <!-- Where photos go -->
         <div class="admin-card">
           <div class="admin-card-title">Where photos go</div>
-          <p style="font-size:0.9rem;color:var(--muted);line-height:1.5">Guests download their photo, GIF and video from the QR code on screen. A copy of everything is also sent to your Telegram chat and, if set up above, to Google Drive — open those to browse or delete photos.</p>
+          <p style="font-size:0.9rem;color:var(--muted);line-height:1.5">Guests download their photo, GIF and video from the QR code on screen. A copy of everything is also sent to your Telegram chat — open it to browse or delete photos.</p>
         </div>
         <!-- Filter Visibility -->
         <div class="admin-card">
@@ -2061,6 +2039,16 @@
             <input type="file" id="admin-sticker-file" accept="image/png,image/webp,image/gif,image/jpeg" onchange="handleAdminStickerUpload(this)">
           </label>
           <div id="admin-sticker-list"></div>
+        </div>
+        <!-- Sticker Emojis -->
+        <div class="admin-card">
+          <div class="admin-card-title">Sticker Emojis</div>
+          <p style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;line-height:1.4">Emojis guests can add in Add stickers. Tap × to remove one, or type emojis with the keyboard and tap Add.</p>
+          <div id="admin-emoji-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="admin-emoji-input" placeholder="Type emojis here" aria-label="Emojis to add" onkeydown="if (event.key === 'Enter') addStickerEmojis()" style="flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:1.2rem;background:#fff;color:var(--text);box-sizing:border-box">
+            <button class="delay-btn" onclick="addStickerEmojis()" style="flex:none;width:auto;padding:0 20px">Add</button>
+          </div>
         </div>
         <!-- Video Overlay -->
         <div class="admin-card">
@@ -2342,6 +2330,8 @@
   let _editorSel   = -1;   // selected item index
   let _editorPinch = null;  // {dist, idx} for pinch-to-resize
   let _customStickers = JSON.parse(localStorage.getItem('hb_custom_stickers') || '[]');
+  const DEFAULT_STICKER_EMOJIS = ['❤️', '⭐', '🎉', '😍', '🔥', '✨', '🥳', '💯', '🎀', '💕', '🌟', '📸'];
+  let _stickerEmojis = (() => { try { return JSON.parse(localStorage.getItem('hb_sticker_emojis')) || DEFAULT_STICKER_EMOJIS.slice(); } catch { return DEFAULT_STICKER_EMOJIS.slice(); } })();
 
   /* FIX 15 — EmailJS config (fill in from emailjs.com) */
   const EMAILJS_PUBLIC_KEY  = 'XU6XBK8cXhIS5GyLs';
@@ -2874,67 +2864,46 @@
      SOUND ENGINE  (Web Audio API — no external files)
   ═══════════════════════════════════════════════════ */
   let _audioCtx = null;
-  let _audioUnlocked = false;
-  // iOS Safari: AudioContext & HTMLAudioElement need a user gesture to start making sound
-  function unlockAudioOnGesture() {
-    if (_audioUnlocked) return;
-    _audioUnlocked = true;
+  let _audioMadeAt = 0;
+  // iOS can leave the AudioContext suspended, or "running" but silent, after
+  // the screen locks, another app takes the audio or the mic was used — and
+  // resume() then never settles, so sound stayed off until a page refresh.
+  // A context created inside a real tap does start, so every tap checks the
+  // context and replaces a broken one. (iOS doesn't count touchstart as a tap
+  // for audio; touchend and click do.)
+  let _audioStale = false; // page was hidden, or the audio clock stopped moving
+  function _healAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (_audioCtx && _audioCtx.state === 'running' && !_audioStale) return;
+    // Made by this same tap (touchend, then click): give it time to start
+    if (_audioCtx && performance.now() - _audioMadeAt < 500) { _audioCtx.resume().catch(() => {}); return; }
+    try { if (_audioCtx) _audioCtx.close(); } catch {}
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      _audioCtx = ctx;
-      if (ctx.state === 'suspended') ctx.resume();
+      _audioCtx = new AC();
+      _audioMadeAt = performance.now();
+      _audioStale = false;
       // Play a tiny silent buffer to satisfy iOS
-      const buf = ctx.createBuffer(1, 1, 22050);
-      const src = ctx.createBufferSource();
-      src.buffer = buf; src.connect(ctx.destination); src.start(0);
+      const src = _audioCtx.createBufferSource();
+      src.buffer = _audioCtx.createBuffer(1, 1, 22050);
+      src.connect(_audioCtx.destination); src.start(0);
+      if (_audioCtx.state === 'suspended') _audioCtx.resume().catch(() => {});
     } catch {}
-    // Decode custom sound into AudioBuffer on first gesture
-    // (Web Audio API only needs AudioContext unlocked once — no per-element unlocking)
-    if (_customSoundUrl && !_customSoundBuffer) {
-      _decodeCustomSound(_customSoundUrl);
-    }
+    if (_customSoundUrl && !_customSoundBuffer) _decodeCustomSound(_customSoundUrl);
   }
-  window.addEventListener('touchstart', unlockAudioOnGesture, { once: true, passive: true });
-  window.addEventListener('mousedown', unlockAudioOnGesture, { once: true });
-  window.addEventListener('keydown', unlockAudioOnGesture, { once: true });
-
-  // iOS suspends AudioContext after inactivity — re-prime on every touch so sound never disappears
-  // FIX (long-session): handle 'interrupted' and 'closed' states too, not just 'suspended'.
-  // iOS Safari moves AudioContext to 'interrupted' after phone calls / screen lock, and
-  // resume() does NOT recover it. The only fix is to create a fresh AudioContext.
-  function _ensureLiveAudioCtx() {
-    try {
-      if (!_audioCtx || _audioCtx.state === 'closed') {
-        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        // Re-decode the custom sound for the new context
-        if (_customSoundUrl) {
-          _customSoundBuffer = null;
-          _decodeCustomSound(_customSoundUrl);
-        }
-        return _audioCtx;
-      }
-      if (_audioCtx.state === 'suspended' || _audioCtx.state === 'interrupted') {
-        _audioCtx.resume().catch(() => {
-          // Resume failed — context is permanently broken; replace it.
-          try { _audioCtx.close(); } catch {}
-          _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          if (_customSoundUrl) {
-            _customSoundBuffer = null;
-            _decodeCustomSound(_customSoundUrl);
-          }
-        });
-      }
-    } catch {}
-    return _audioCtx;
-  }
-  window.addEventListener('touchstart', _ensureLiveAudioCtx, { passive: true });
-  // Re-prime on visibility change (returning from background, unlocking screen)
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) _ensureLiveAudioCtx();
-  });
+  ['touchend', 'click', 'keydown'].forEach(ev => window.addEventListener(ev, _healAudio, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) _audioStale = true; });
+  // A context iOS has silently stopped still reports 'running', but its clock stops
+  let _lastAudioTime = -1;
+  setInterval(() => {
+    if (!_audioCtx || _audioCtx.state !== 'running') return;
+    if (_audioCtx.currentTime === _lastAudioTime) _audioStale = true;
+    _lastAudioTime = _audioCtx.currentTime;
+  }, 2000);
 
   function getAudioCtx() {
-    return _ensureLiveAudioCtx();
+    if (!_audioCtx) { _healAudio(); }
+    return _audioCtx;
   }
 
   function playBeep(freq = 880, dur = 0.08, vol = 0.4, type = 'sine') {
@@ -3008,11 +2977,12 @@
     if (_decodingCustomSound) return _decodingCustomSound;
     _decodingCustomSound = (async () => {
       try {
-        const ctx = getAudioCtx();
-        if (ctx.state === 'suspended') await ctx.resume();
+        // Decode offline: it needs no running audio (iOS can keep the live
+        // context suspended for minutes), and the buffer plays on any context.
+        const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
         const resp = await fetch(url);
         const arrayBuf = await resp.arrayBuffer();
-        _customSoundBuffer = await ctx.decodeAudioData(arrayBuf);
+        _customSoundBuffer = await new OAC(1, 1, 44100).decodeAudioData(arrayBuf);
         console.log('[sound] custom sound decoded:', Math.round(_customSoundBuffer.duration * 1000) + 'ms');
       } catch (e) {
         console.warn('[sound] failed to decode custom sound:', e.message);
@@ -3026,12 +2996,7 @@
 
   // Re-prime audio before each countdown — ensures iOS AudioContext hasn't gone to sleep
   function _ensureAudioReady() {
-    try {
-      if (!_audioCtx || _audioCtx.state === 'closed') {
-        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (_audioCtx.state === 'suspended') _audioCtx.resume();
-    } catch {}
+    if (_audioCtx && _audioCtx.state === 'suspended') _audioCtx.resume().catch(() => {});
   }
 
   function _playCustomShort() {
@@ -3446,15 +3411,12 @@
 
   async function _startBoothInner() {
     nudgeAddressBarHidden();
-    // Ensure iOS AudioContext is unlocked so countdown beeps + shutter sound play
-    try {
-      unlockAudioOnGesture();
-      _ensureAudioReady();
-      // Await custom sound decode so buffer is ready before first countdown
-      if (_soundPreset === 'custom' && _customSoundUrl && !_customSoundBuffer) {
-        await _decodeCustomSound(_customSoundUrl);
-      }
-    } catch {}
+    // This tap can start audio even if iOS broke the old context
+    _healAudio();
+    // Give the custom sound a moment to decode, but never hold the camera for it
+    if (_soundPreset === 'custom' && _customSoundUrl && !_customSoundBuffer) {
+      await Promise.race([_decodeCustomSound(_customSoundUrl), new Promise(r => setTimeout(r, 1500))]);
+    }
     photos = [];
     activeFilter = 'none';
     activeOverlay = null;
@@ -3769,8 +3731,7 @@
     }
   }
 
-  /* Operator archive (Telegram + Google Drive) — once per recording,
-     independent of each other and of the guest QR. */
+  /* Operator archive (Telegram) — once per recording, independent of the guest QR. */
   let _archivedVideoBlob = null;
   function _archiveVideo() {
     if (!_recordedBlob || _archivedVideoBlob === _recordedBlob) return;
@@ -3779,16 +3740,6 @@
       _uploadVideoToTelegram()
         .then(res => { _tgVideoResult = res; })
         .catch(e => console.warn('[telegram] video upload failed:', e.message));
-    }
-    if (_gdriveConfigured()) {
-      const isMp4 = (_recordedBlob.type || '').includes('mp4');
-      const ext = isMp4 ? 'mp4' : 'webm';
-      const blobUrl = URL.createObjectURL(_recordedBlob);
-      const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      uploadToGDrive(blobUrl, isMp4 ? 'video/mp4' : 'video/webm', `${FILE_PREFIX}-video-${ts}.${ext}`,
-        `${BRAND} Video — ${new Date().toLocaleString()}`)
-        .catch(e => console.warn('[gdrive] video upload failed:', e.message))
-        .finally(() => URL.revokeObjectURL(blobUrl));
     }
   }
 
@@ -3893,18 +3844,6 @@
       }
     } catch (e) {
       console.warn('[video] Telegram upload failed:', e.message);
-    }
-    // Also upload to Google Drive
-    if (_gdriveConfigured() && _recordedBlob) {
-      try {
-        const blobUrl = URL.createObjectURL(_recordedBlob);
-        const ext = _recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
-        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        await uploadToGDrive(blobUrl, _recordedBlob.type, `${FILE_PREFIX}-video-${ts}.${ext}`, `${BRAND} Video — ${new Date().toLocaleString()}`);
-        URL.revokeObjectURL(blobUrl);
-      } catch (e) {
-        console.warn('[gdrive] video upload failed:', e.message);
-      }
     }
   }
 
@@ -4676,13 +4615,14 @@
     const gpLabel = document.querySelector('#get-photos-btn span');
     if (gpLabel) gpLabel.textContent = photos.length > 1 ? 'Get my photos' : 'Get my photo';
 
-    // FIX (Issue 2): generate a GIF for ALL shot counts, including single
-    // (1 photo). A 1-frame GIF is still a valid sharable animated file and
-    // matches the user's "Include all photos if it's 4, 3, 2, 1 shots" ask.
-    // Shown next to the photo, with its speed control underneath.
+    // One photo makes no GIF: the screen shows just the photo, and only the
+    // photo gets a QR. Otherwise the GIF sits next to the photo with its speed.
+    const withGif = photos.length > 1;
+    $('gif-screen').classList.toggle('no-gif', !withGif);
+    $('gif-screen-sub').textContent = withGif ? 'Your photo and GIF, ready for your QR code' : 'Your photo, ready for your QR code';
     // Only rebuild (and re-upload) the GIF when its inputs changed — going
     // Back → Continue with the same photos reuses the finished GIF.
-    if (_currentGifKey() !== _gifKey) {
+    if (withGif && _currentGifKey() !== _gifKey) {
       frameDelay = 500;
       document.querySelectorAll('.delay-btn[data-d]').forEach(b => b.classList.toggle('active', Number(b.dataset.d) === 500));
       _gifKey = _currentGifKey();
@@ -4710,8 +4650,6 @@
     if (compositeDataUrl && !_tgPhotoUploaded) {
       _tgPhotoUploaded = true;
       _uploadedPhotoVersion = _compositeVersion;
-      const LAYOUT_LABELS_UP = { single: 'Solo', double: 'Double', strip: 'Strip 3', mini: 'Mini', strip4: 'Strip 4', quad: 'Quad' };
-      const layoutDesc = LAYOUT_LABELS_UP[layout] || layout;
       (async () => {
         await _ensureHDComposite();
         // sendDocument preserves full print resolution. sendPhoto would
@@ -4719,10 +4657,6 @@
         uploadToTelegram(compositeDataUrl, 'image/png', 'png', { method: 'sendDocument' })
           .then(res => { _tgPhotoResult = res; console.log('[telegram] photo uploaded (HD doc)'); })
           .catch(e => { _tgPhotoUploaded = false; console.warn('[telegram] photo upload failed:', e.message); });
-        // Google Drive upload
-        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        uploadToGDrive(compositeDataUrl, 'image/png', `${FILE_PREFIX}-${layoutDesc}-${ts}.png`, `${BRAND} ${layoutDesc} — ${new Date().toLocaleString()}`)
-          .catch(e => console.warn('[gdrive] photo upload failed:', e.message));
       })();
     }
     // Guest link — memoized per composite version, so this is a no-op on Back → Continue
@@ -5270,9 +5204,9 @@
     'Sessions Completed': 'booth', 'Camera': 'booth', 'Countdown — between photos': 'booth',
     'Video Duration': 'booth', 'Camera Sound': 'booth', 'Available Layouts': 'booth', 'Features': 'booth',
     'Home Background': 'look', 'Button Color': 'look', 'Home Logo': 'look', 'Logo Size': 'look',
-    'Custom Filters': 'look', 'Filters Shown to Guests': 'look', 'Custom Sticker Upload': 'look',
+    'Custom Filters': 'look', 'Filters Shown to Guests': 'look', 'Custom Sticker Upload': 'look', 'Sticker Emojis': 'look',
     'Video Overlay': 'look', 'Overlay Templates': 'look', 'Custom Overlays': 'look',
-    'Telegram': 'sharing', 'Google Drive': 'sharing', 'Where photos go': 'sharing',
+    'Telegram': 'sharing', 'Where photos go': 'sharing',
     'Layout Sizes': 'print'
   };
   function adminTab(name) {
@@ -5380,6 +5314,7 @@
     });
     $('hlogo-picker').style.display = hlogoType==='custom' ? 'block' : 'none';
     renderAdminStickerList();
+    renderAdminEmojiList();
     renderVideoOverlayPreview();
     drawLayoutPreviews();
     renderColorSwatches();
@@ -5742,7 +5677,7 @@
      carried the bot token and died after ~1 hour). The anon key is public by
      design — the bucket policy only allows adding new files under
      YYYY-MM-DD/<uuid>.<ext>; nobody can list, overwrite or delete.
-     Telegram + Google Drive remain the operator's archive.
+     Telegram remains the operator's archive.
   ═══════════════════════════════════════════════════ */
   const SUPABASE_URL      = 'https://wdzsjgwhhohxlrzxojgq.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenNqZ3doaG9oeGxyenhvamdxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzOTkyOTYsImV4cCI6MjA5MDk3NTI5Nn0.K677qTL0E813GSkW9HuALOCLyKh86YOSAgS1RvS_odw';
@@ -5851,114 +5786,6 @@
   /* ═══════════════════════════════════════════════════
      SHARE FLOW — INTAKE MODAL
   ═══════════════════════════════════════════════════ */
-
-  /* ─── Google Drive Upload ───────��────────────────── */
-  let GDRIVE_URL = localStorage.getItem('hb_gdrive_url') || '';
-  let GDRIVE_TOKEN = localStorage.getItem('hb_gdrive_token') || '';
-
-  function _gdriveConfigured() { return !!(GDRIVE_URL && GDRIVE_TOKEN); }
-
-  function saveGDriveConfig() {
-    GDRIVE_URL = ($('gdrive-url')?.value || '').trim();
-    GDRIVE_TOKEN = ($('gdrive-token')?.value || '').trim();
-    try {
-      if (GDRIVE_URL) localStorage.setItem('hb_gdrive_url', GDRIVE_URL);
-      else localStorage.removeItem('hb_gdrive_url');
-      if (GDRIVE_TOKEN) localStorage.setItem('hb_gdrive_token', GDRIVE_TOKEN);
-      else localStorage.removeItem('hb_gdrive_token');
-    } catch {}
-  }
-
-  function _restoreGDriveConfig() {
-    GDRIVE_URL = localStorage.getItem('hb_gdrive_url') || '';
-    GDRIVE_TOKEN = localStorage.getItem('hb_gdrive_token') || '';
-    const urlEl = $('gdrive-url');
-    const tokEl = $('gdrive-token');
-    if (urlEl) urlEl.value = GDRIVE_URL;
-    if (tokEl) tokEl.value = GDRIVE_TOKEN;
-  }
-
-  async function uploadToGDrive(dataUrl, mimeType, filename, description) {
-    if (!_gdriveConfigured()) return;
-    try {
-      // Convert data URL to base64 string (strip the prefix)
-      let base64;
-      if (dataUrl.startsWith('data:')) {
-        base64 = dataUrl.split(',')[1];
-      } else {
-        // Blob URL — fetch and convert. FileReader, not
-        // btoa(String.fromCharCode(...bytes)): spreading a multi-MB array
-        // overflows the call stack, so every video failed to reach Drive.
-        const blob = await (await fetch(dataUrl)).blob();
-        base64 = await new Promise((resolve, reject) => {
-          const fr = new FileReader();
-          // Not split(',')[1]: recorder MIME types contain commas
-          // (video/mp4;codecs=avc1…,mp4a…), so cut after "base64,"
-          fr.onload = () => { const s = String(fr.result); resolve(s.slice(s.indexOf('base64,') + 7)); };
-          fr.onerror = () => reject(fr.error);
-          fr.readAsDataURL(blob);
-        });
-      }
-
-      const payload = {
-        token: GDRIVE_TOKEN,
-        fileData: base64,
-        mimeType: mimeType,
-        filename: filename,
-        description: description || ''
-      };
-
-      const resp = await fetch(GDRIVE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await resp.json();
-      if (result.ok) {
-        console.log('[gdrive] uploaded:', result.fileName, 'to folder:', result.folder);
-      } else {
-        console.warn('[gdrive] upload failed:', result.error);
-      }
-      return result;
-    } catch (e) {
-      console.warn('[gdrive] upload error:', e.message);
-    }
-  }
-
-  async function testGDriveConnection() {
-    if (!_gdriveConfigured()) {
-      notify('Please enter both the Web App URL and Secret Token first.');
-      return;
-    }
-    try {
-      // Send a tiny test image
-      const canvas = document.createElement('canvas');
-      canvas.width = 10; canvas.height = 10;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#c8831c'; ctx.fillRect(0, 0, 10, 10);
-      const testData = canvas.toDataURL('image/png').split(',')[1];
-
-      const resp = await fetch(GDRIVE_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: GDRIVE_TOKEN,
-          fileData: testData,
-          mimeType: 'image/png',
-          filename: 'test-connection.png',
-          description: BRAND + ' connection test'
-        })
-      });
-      const result = await resp.json();
-      if (result.ok) {
-        notify('Connected! Test file saved to Google Drive folder: ' + result.folder);
-      } else {
-        notify('Failed: ' + (result.error || 'Unknown error'));
-      }
-    } catch (e) {
-      notify('Connection error: ' + e.message + '\n\nMake sure the Web App URL is correct and the script is deployed.');
-    }
-  }
 
   /* Claim screen — guest fills form after scanning QR */
   function submitClaim(e) {
@@ -6372,7 +6199,7 @@
   }
   function previewSound() {
     if (_soundPreset === 'custom') {
-      _ensureAudioReady();
+      _healAudio();
       if (!_customSoundBuffer && _customSoundUrl) {
         _decodeCustomSound(_customSoundUrl).then(() => _playCustomShort());
       } else {
@@ -7504,15 +7331,22 @@
     img.src = compositeDataUrl;
   }
 
+  // Back discards the stickers and returns to "Looking good", where the editor opens from
   function closeEditor() {
-    showScreen('gif-screen');
+    showScreen('preview');
   }
 
   function renderEditorStickers() {
     const bar = $('sticker-bar');
-    // Keep default emoji buttons, add custom sticker images
-    // Remove old custom sticker buttons
-    bar.querySelectorAll('.custom-sticker-btn').forEach(b => b.remove());
+    // Admin's emoji list first, then the uploaded sticker images
+    bar.innerHTML = '';
+    _stickerEmojis.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.className = 'sticker-btn';
+      btn.textContent = emoji;
+      btn.onclick = () => editorAddSticker(emoji);
+      bar.appendChild(btn);
+    });
     _customStickers.forEach((dataUrl, i) => {
       const btn = document.createElement('button');
       btn.className = 'sticker-btn custom-sticker-btn';
@@ -7797,6 +7631,42 @@
     };
     reader.readAsDataURL(file);
     input.value = '';
+  }
+
+  function _saveStickerEmojis() {
+    try { localStorage.setItem('hb_sticker_emojis', JSON.stringify(_stickerEmojis)); } catch {}
+    renderAdminEmojiList();
+  }
+  // Typed or pasted text → its emojis (whole emoji, incl. skin tones, flags and ZWJ families)
+  function addStickerEmojis() {
+    const input = $('admin-emoji-input');
+    const text = input.value;
+    const parts = window.Intl && Intl.Segmenter
+      ? [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)].map(x => x.segment)
+      : Array.from(text);
+    const added = parts.filter(g => /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(g) && !_stickerEmojis.includes(g));
+    if (!added.length) { notify('Type or paste at least one new emoji.'); return; }
+    _stickerEmojis.push(...new Set(added));
+    input.value = '';
+    _saveStickerEmojis();
+  }
+  function removeStickerEmoji(idx) {
+    _stickerEmojis.splice(idx, 1);
+    _saveStickerEmojis();
+  }
+  function renderAdminEmojiList() {
+    const list = $('admin-emoji-list');
+    if (!list) return;
+    if (!_stickerEmojis.length) {
+      list.innerHTML = '<p style="font-size:0.72rem;color:var(--muted);padding:8px 0">No emojis — guests only see uploaded stickers</p>';
+      return;
+    }
+    list.innerHTML = _stickerEmojis.map((e, i) =>
+      '<div style="display:inline-flex;align-items:center;background:#fff;border:1.5px solid var(--border);border-radius:10px;padding-left:10px">' +
+      '<span style="font-size:1.6rem;line-height:1">' + e + '</span>' +
+      '<button onclick="removeStickerEmoji(' + i + ')" aria-label="Remove ' + e + '" style="min-width:44px;min-height:44px;background:none;border:none;color:#c0392b;cursor:pointer;display:inline-flex;align-items:center;justify-content:center"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>' +
+      '</div>'
+    ).join('');
   }
 
   function removeCustomSticker(idx) {
@@ -8345,8 +8215,7 @@
       _customSoundUrl = _savedCustomSound;
       _customAudio = new Audio(_savedCustomSound);
       _customAudio.preload = 'auto';
-      // AudioBuffer will be decoded on first user gesture (unlockAudioOnGesture)
-      // or when _ensureAudioReady() is called before countdown
+      // AudioBuffer is decoded on the first tap (_healAudio)
     }
     // Restore button color
     const _savedBtnColor = localStorage.getItem('hb_btn_color');
@@ -8380,9 +8249,8 @@
     }
     // Restore layout sizes
     _restoreLayoutSizes();
-    // Restore Telegram + Google Drive config
+    // Restore Telegram config
     _restoreTelegramConfig();
-    _restoreGDriveConfig();
     updateTemplateDimLabels();
     drawLayoutPreviews();
     // Add custom filter pills to preview screen

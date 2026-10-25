@@ -90,7 +90,7 @@ If a filter is changed before a previous render completes, both renders run conc
 **Fix applied (v5.9):** Recording canvas uses `vidWidth × vidHeight` with center-crop math to fill the target aspect ratio. Camera preview uses `object-fit: cover` with `aspect-ratio` CSS set to `vidWidth/vidHeight`, so preview matches recording output exactly.
 
 ### 21–30. v6.0 production pass (2026-10-24) — see PRODUCTION_REVIEW.md
-- **Guest QR links → Supabase Storage** (`_sbUpload`, `_sbPhotoLink/_sbGifLink/_sbVideoLink`). Telegram file URLs carried the bot token and expired after ~1h. Do NOT point QR codes at Telegram again. Telegram + Drive = operator archive only.
+- **Guest QR links → Supabase Storage** (`_sbUpload`, `_sbPhotoLink/_sbGifLink/_sbVideoLink`). Telegram file URLs carried the bot token and expired after ~1h. Do NOT point QR codes at Telegram again. Telegram = operator archive only (Drive removed in v6.3).
 - **Cancel token** `_sessionId` / `_cancelSession()`: X, Home, Start Over, new session bump it; capture, countdown and recorder check it after every await. `#countdown` is `pointer-events:none` so X is tappable mid-countdown.
 - **Record double-tap**: `_recStopping` blocks taps until `onstop`. `onerror` only calls stopRecording — `onstop` finalizes.
 - **Uploads once per version**: `_compositeVersion` (bumped on every re-render/edit) and `_gifKey` (photos+filter+delay). Never reset upload flags on screen entry.
@@ -106,6 +106,13 @@ If a filter is changed before a previous render completes, both renders run conc
 - **Save screen** shows photo + GIF side by side with GIF speed; no Photo/GIF toggle. Print is removed entirely.
 - **Looking good**: Filter/Frame sections hide when there is nothing to choose; one frame is applied automatically; retake thumbnails show the chosen filter.
 - **Custom logo** size comes from `--logo-s` (slider, max 300%) and `--logo-ar` with an explicit width, capped at 92vw / 30vh so Start never leaves an iPad screen. The built-in wordmark still uses `zoom`, capped at 200%.
+
+### 32. v6.3 feedback round (2026-10-25)
+- **Start hung / sound died until refresh (iOS audio).** iOS leaves an AudioContext suspended, or "running" with a frozen clock, after a screen lock, another app's audio or mic use, and `resume()` then never settles. Start awaited the custom-sound decode, which awaited `resume()` → stuck on "Starting camera…". Fix: `_healAudio()` runs on every touchend/click/keydown (capture phase; iOS doesn't count touchstart) and replaces a context that isn't running, or whose clock stopped (2 s check), or after the page was hidden. The custom sound is decoded on an `OfflineAudioContext` (no running audio needed; the AudioBuffer plays on any context) and Start waits for it at most 1.5 s. Never `await ctx.resume()` on the Start path again. Not a hosting issue — the same code hangs on any host.
+- **Single photo: no GIF** — `#gif-screen.no-gif` hides the GIF and its speed; nothing GIF is made or uploaded; one QR.
+- **Sticker editor Back** returns to Looking good (`closeEditor`). Save still goes to the save screen.
+- **Sticker emojis** are admin-managed (`hb_sticker_emojis`, Admin → Look → Sticker Emojis; typed text is split into whole emojis with `Intl.Segmenter`).
+- **Google Drive removed** (admin card, uploads, `google-drive-upload.gs`). Telegram is the only operator archive. Old `hb_gdrive_*` keys may remain in localStorage and are ignored.
 
 ---
 
